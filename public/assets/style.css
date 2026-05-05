@@ -1,0 +1,6 @@
+.module-btn { min-height: 84px; font-size: 1rem; }
+#dropzone.active { background: #e7f1ff; border-color: #0d6efd !important; color: #0d6efd; }
+img { max-height: 120px; object-fit: cover; width: 100%; }
+@media (max-width: 576px) {
+  .btn, .form-control, .form-select { font-size: 1rem; }
+}

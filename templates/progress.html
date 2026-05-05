@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Processing - ImageLab</title><link rel="stylesheet" href="/static/style.css"></head><body><main class="card"><h1>Processing</h1><div class="progress"><div id="bar"></div></div><p id="status">Queued...</p></main>
+<script>
+const id = "{{job_id}}";
+async function poll(){
+ const r = await fetch(`/api/job/${id}`); const j = await r.json();
+ document.getElementById('bar').style.width = `${j.progress||0}%`;
+ document.getElementById('status').textContent = `${j.status} (${j.progress||0}%)`;
+ if(['done','partial','failed'].includes(j.status)) location.href=`/results/${id}`;
+ else setTimeout(poll, 1000);
+}
+poll();
+</script></body></html>

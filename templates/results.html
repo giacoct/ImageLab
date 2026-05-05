@@ -1,0 +1,5 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Results - ImageLab</title><link rel="stylesheet" href="/static/style.css"></head><body><main class="card"><a href="/">← Dashboard</a><h1>Results</h1><p>Status: <strong>{{job.status}}</strong></p>
+{% if job.errors %}<div class="errors"><h3>Errors</h3><ul>{% for e in job.errors %}<li>{{e}}</li>{% endfor %}</ul></div>{% endif %}
+{% if job.result_zip %}<p><a class="action" href="/download/{{job.id}}/zip">Download ZIP</a></p>{% endif %}
+<ul>{% for o in job.outputs %}<li><a href="/download/{{job.id}}/{{o}}">{{o}}</a></li>{% endfor %}</ul>
+</main></body></html>

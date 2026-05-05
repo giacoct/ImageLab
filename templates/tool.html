@@ -1,0 +1,11 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{tool.name}} - ImageLab</title><link rel="stylesheet" href="/static/style.css"></head><body>
+<main class="card"><a href="/">← Dashboard</a><h1>{{tool.name}}</h1><p>{{tool.description}}</p>
+<form action="/process/{{tool_key}}" method="post" enctype="multipart/form-data">
+<label class="drop">Upload files<input type="file" name="files" multiple required></label>
+{% if tool_key == 'convert' %}<label>Target format<select name="target_format"><option>png</option><option>jpg</option><option>webp</option><option>tiff</option><option>gif</option><option>bmp</option><option>ico</option><option>pdf</option></select></label><label>Quality (1-100)<input type="number" name="quality" min="1" max="100" value="85"></label>{% endif %}
+{% if tool_key == 'resize' %}<label>Mode<select name="resize_mode"><option value="pixels">Pixels</option><option value="percent">Percent</option></select></label><label>Width<input type="number" name="width"></label><label>Height<input type="number" name="height"></label><label>Percent<input type="number" name="percent" value="100"></label>{% endif %}
+{% if tool_key == 'optimize' %}<label>Preset<select name="quality_preset"><option value="high">High</option><option value="medium" selected>Medium</option><option value="smallest">Smallest</option></select></label><label><input type="checkbox" name="strip_metadata" value="1" checked> Strip metadata</label>{% endif %}
+{% if tool_key == 'rotate' %}<label>Degrees<input type="number" name="rotate_degrees" value="90"></label><label>Flip<select name="flip_mode"><option value="none">None</option><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option></select></label>{% endif %}
+{% if tool_key == 'palette' %}<label>Color count<input type="number" name="colors" value="6" min="2" max="32"></label>{% endif %}
+<button class="action" type="submit">Process</button>
+</form></main></body></html>

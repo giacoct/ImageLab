@@ -1,0 +1,7 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ImageLab</title><link rel="stylesheet" href="/static/style.css"></head><body>
+<header><h1>ImageLab</h1><p>Private local image workstation</p></header>
+<main>
+{% for cat, tools in grouped.items() %}
+<section class="card"><h2>{{cat}}</h2><div class="grid">{% for key, t in tools %}<a class="btn" href="/tool/{{key}}"><strong>{{t.name}}</strong><span>{{t.description}}</span></a>{% endfor %}</div></section>
+{% endfor %}
+</main></body></html>

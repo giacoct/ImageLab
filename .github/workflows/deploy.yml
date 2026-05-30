@@ -3,7 +3,7 @@ name: Build & Deploy Angular App
 on:
   push:
     branches:
-      - main  # or master, or whichever branch triggers deploys
+      - master  # or master, or whichever branch triggers deploys
 
 jobs:
   build-and-deploy:

@@ -1,0 +1,64 @@
+name: Build & Deploy Angular App
+
+on:
+  push:
+    branches:
+      - main  # or master, or whichever branch triggers deploys
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Build for production
+      - name: Build Angular app
+        run: npm run build -- --configuration production
+
+      # 5. Install Tailscale on the runner
+      - name: Install Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      # 6. Deploy via rsync over Tailscale
+      - name: Deploy to server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          # Set up SSH key
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          # Disable strict host checking for the Tailscale host only
+          cat >> ~/.ssh/config << EOF
+          Host $SSH_HOST
+            StrictHostKeyChecking no
+            IdentityFile ~/.ssh/deploy_key
+          EOF
+
+          # Sync build output to server (adjust 'dist/your-app/browser' to match your actual output path)
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            dist/your-app/browser/ \
+            $SSH_USER@$SSH_HOST:$DEPLOY_PATH

@@ -3,7 +3,7 @@ name: Build & Deploy Angular App
 on:
   push:
     branches:
-      - master  # or master, or whichever branch triggers deploys
+      - master  # branch that triggers deploys
 
 jobs:
   build-and-deploy:
@@ -57,8 +57,8 @@ jobs:
             IdentityFile ~/.ssh/deploy_key
           EOF
 
-          # Sync build output to server (adjust 'dist/your-app/browser' to match your actual output path)
+          # Sync build output to server
           rsync -avz --delete \
             -e "ssh -i ~/.ssh/deploy_key" \
-            dist/your-app/browser/ \
+            dist/ImageLab/browser/ \
             $SSH_USER@$SSH_HOST:$DEPLOY_PATH

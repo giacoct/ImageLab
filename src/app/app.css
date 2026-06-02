@@ -28,16 +28,11 @@
   text-decoration: none;
 }
 
-.brand-mark {
+.brand-logo {
   align-items: center;
-  background: var(--ink);
-  border-radius: 0.45rem;
-  color: white;
-  display: inline-flex;
-  font-size: 0.78rem;
-  height: 2rem;
   justify-content: center;
-  width: 2rem;
+  display: inline-flex;
+  height: 2.5rem;
 }
 
 .main-nav {

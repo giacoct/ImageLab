@@ -5,6 +5,7 @@ import {
   dimensionsForMaxSize,
   extensionForFormat,
   formatBytes,
+  outputFormatForFile,
   renameFile,
 } from './image-tool-utils';
 
@@ -17,7 +18,15 @@ describe('image-tool-utils', () => {
 
   it('renames files for output formats', () => {
     expect(extensionForFormat('image/jpeg')).toBe('jpg');
+    expect(extensionForFormat('image/x-icon')).toBe('ico');
     expect(renameFile('photo.large.png', 'resized', 'image/webp')).toBe('photo.large-resized.webp');
+  });
+
+  it('detects output format from accepted file types', () => {
+    expect(outputFormatForFile(new File([], 'photo.jpg', { type: 'image/jpeg' }))).toBe(
+      'image/jpeg',
+    );
+    expect(outputFormatForFile(new File([], 'photo.png', { type: 'image/png' }))).toBe('image/png');
   });
 
   it('clamps image quality to a browser-safe range', () => {

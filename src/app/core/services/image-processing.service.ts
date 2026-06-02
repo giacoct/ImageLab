@@ -1,12 +1,31 @@
 import { Injectable } from '@angular/core';
 
-import { ImageDimensions, ImageOutput, OutputFormat } from '../models/image-output.model';
+import { CanvasOutputFormat, ImageDimensions, ImageOutput } from '../models/image-output.model';
+
+export interface RenderTransform {
+  rotateDegrees: 0 | 90 | 180 | 270;
+  flipHorizontal: boolean;
+  flipVertical: boolean;
+}
 
 export interface RenderOptions {
   width: number;
   height: number;
-  format: OutputFormat;
+  format: CanvasOutputFormat;
   quality: number;
+  fileName: string;
+  transform?: RenderTransform;
+}
+
+export interface BackgroundRemovalOptions {
+  color: string;
+  tolerance: number;
+  edgeSmoothing: number;
+  fileName: string;
+}
+
+export interface IcoRenderOptions {
+  size: number;
   fileName: string;
 }
 
@@ -23,10 +42,90 @@ export class ImageProcessingService {
   }
 
   async renderToBlob(file: File, options: RenderOptions): Promise<ImageOutput> {
+    const canvas = await this.renderToCanvas(file, options);
+    const blob = await this.canvasToBlob(canvas, options.format, options.quality);
+
+    return this.createOutput(options.fileName, blob, canvas.width, canvas.height);
+  }
+
+  async renderBackgroundRemoved(
+    file: File,
+    options: BackgroundRemovalOptions,
+  ): Promise<ImageOutput> {
     const image = await this.loadImage(file);
     const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(options.width));
-    canvas.height = Math.max(1, Math.round(options.height));
+    canvas.width = image.width;
+    canvas.height = image.height;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      image.release();
+      throw new Error('Canvas rendering is not available in this browser.');
+    }
+
+    context.drawImage(image.source, 0, 0);
+    image.release();
+
+    const key = hexToRgb(options.color);
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const transparentLimit = (Math.max(0, Math.min(100, options.tolerance)) / 100) * 441.672;
+    const smoothingRange = (Math.max(0, Math.min(100, options.edgeSmoothing)) / 100) * 180;
+
+    for (let index = 0; index < data.length; index += 4) {
+      const distance = colorDistance(data[index], data[index + 1], data[index + 2], key);
+
+      if (distance <= transparentLimit) {
+        data[index + 3] = 0;
+        continue;
+      }
+
+      if (smoothingRange > 0 && distance <= transparentLimit + smoothingRange) {
+        const alphaScale = (distance - transparentLimit) / smoothingRange;
+        data[index + 3] = Math.round(data[index + 3] * alphaScale);
+      }
+    }
+
+    context.putImageData(imageData, 0, 0);
+    const blob = await this.canvasToBlob(canvas, 'image/png', 1);
+
+    return this.createOutput(options.fileName, blob, canvas.width, canvas.height);
+  }
+
+  async renderIco(file: File, options: IcoRenderOptions): Promise<ImageOutput> {
+    const size = Math.max(16, Math.min(256, Math.round(options.size)));
+    const canvas = await this.renderToCanvas(file, {
+      width: size,
+      height: size,
+      format: 'image/png',
+      quality: 1,
+      fileName: options.fileName,
+    });
+    const pngBlob = await this.canvasToBlob(canvas, 'image/png', 1);
+    const iconBlob = await createIcoBlob(pngBlob, size);
+
+    return this.createOutput(options.fileName, iconBlob, canvas.width, canvas.height);
+  }
+
+  revoke(outputs: readonly ImageOutput[]): void {
+    for (const output of outputs) {
+      URL.revokeObjectURL(output.url);
+    }
+  }
+
+  private async renderToCanvas(file: File, options: RenderOptions): Promise<HTMLCanvasElement> {
+    const image = await this.loadImage(file);
+    const sourceWidth = Math.max(1, Math.round(options.width));
+    const sourceHeight = Math.max(1, Math.round(options.height));
+    const transform = options.transform ?? {
+      rotateDegrees: 0,
+      flipHorizontal: false,
+      flipVertical: false,
+    };
+    const swapsDimensions = transform.rotateDegrees === 90 || transform.rotateDegrees === 270;
+    const canvas = document.createElement('canvas');
+    canvas.width = swapsDimensions ? sourceHeight : sourceWidth;
+    canvas.height = swapsDimensions ? sourceWidth : sourceHeight;
 
     const context = canvas.getContext('2d');
     if (!context) {
@@ -36,25 +135,13 @@ export class ImageProcessingService {
 
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = 'high';
-    context.drawImage(image.source, 0, 0, canvas.width, canvas.height);
+    context.translate(canvas.width / 2, canvas.height / 2);
+    context.rotate((transform.rotateDegrees * Math.PI) / 180);
+    context.scale(transform.flipHorizontal ? -1 : 1, transform.flipVertical ? -1 : 1);
+    context.drawImage(image.source, -sourceWidth / 2, -sourceHeight / 2, sourceWidth, sourceHeight);
     image.release();
 
-    const blob = await this.canvasToBlob(canvas, options.format, options.quality);
-
-    return {
-      fileName: options.fileName,
-      blob,
-      url: URL.createObjectURL(blob),
-      size: blob.size,
-      width: canvas.width,
-      height: canvas.height,
-    };
-  }
-
-  revoke(outputs: readonly ImageOutput[]): void {
-    for (const output of outputs) {
-      URL.revokeObjectURL(output.url);
-    }
+    return canvas;
   }
 
   private async loadImage(file: File): Promise<{
@@ -95,7 +182,7 @@ export class ImageProcessingService {
 
   private canvasToBlob(
     canvas: HTMLCanvasElement,
-    format: OutputFormat,
+    format: CanvasOutputFormat,
     quality: number,
   ): Promise<Blob> {
     return new Promise((resolve, reject) => {
@@ -113,4 +200,73 @@ export class ImageProcessingService {
       );
     });
   }
+
+  private createOutput(fileName: string, blob: Blob, width: number, height: number): ImageOutput {
+    return {
+      fileName,
+      blob,
+      url: URL.createObjectURL(blob),
+      size: blob.size,
+      width,
+      height,
+    };
+  }
+}
+
+function hexToRgb(hex: string): { red: number; green: number; blue: number } {
+  const normalized = hex.replace('#', '');
+  const value = Number.parseInt(
+    normalized.length === 3 ? expandShortHex(normalized) : normalized,
+    16,
+  );
+
+  if (Number.isNaN(value)) {
+    return { red: 255, green: 255, blue: 255 };
+  }
+
+  return {
+    red: (value >> 16) & 255,
+    green: (value >> 8) & 255,
+    blue: value & 255,
+  };
+}
+
+function expandShortHex(hex: string): string {
+  return hex
+    .split('')
+    .map((value) => `${value}${value}`)
+    .join('');
+}
+
+function colorDistance(
+  red: number,
+  green: number,
+  blue: number,
+  key: { red: number; green: number; blue: number },
+): number {
+  return Math.hypot(red - key.red, green - key.green, blue - key.blue);
+}
+
+async function createIcoBlob(pngBlob: Blob, size: number): Promise<Blob> {
+  const pngBytes = new Uint8Array(await pngBlob.arrayBuffer());
+  const headerSize = 6;
+  const entrySize = 16;
+  const bytes = new Uint8Array(headerSize + entrySize + pngBytes.length);
+  const view = new DataView(bytes.buffer);
+  const dimensionByte = size >= 256 ? 0 : size;
+
+  view.setUint16(0, 0, true);
+  view.setUint16(2, 1, true);
+  view.setUint16(4, 1, true);
+  view.setUint8(6, dimensionByte);
+  view.setUint8(7, dimensionByte);
+  view.setUint8(8, 0);
+  view.setUint8(9, 0);
+  view.setUint16(10, 1, true);
+  view.setUint16(12, 32, true);
+  view.setUint32(14, pngBytes.length, true);
+  view.setUint32(18, headerSize + entrySize, true);
+  bytes.set(pngBytes, headerSize + entrySize);
+
+  return new Blob([bytes], { type: 'image/x-icon' });
 }

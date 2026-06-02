@@ -52,6 +52,22 @@ h2 {
   padding: 1rem;
 }
 
+.chain-row {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.chain-row select {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--ink);
+  min-height: 2.75rem;
+  min-width: 0;
+  padding: 0.55rem 0.7rem;
+}
+
 h3 {
   color: var(--ink);
   font-size: 1rem;

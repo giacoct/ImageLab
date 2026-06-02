@@ -7,10 +7,10 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
-import { CanvasOutputFormat, ImageOutput } from '../../core/models/image-output.model';
+import { ImageOutput } from '../../core/models/image-output.model';
 import { ImagePipelineService } from '../../core/services/image-pipeline.service';
 import { ImageProcessingService } from '../../core/services/image-processing.service';
 import { ToolRegistryService } from '../../core/services/tool-registry.service';
@@ -19,7 +19,7 @@ import { OutputListComponent } from '../../shared/output-list/output-list.compon
 import { renameFile } from '../shared/image-tool-utils';
 
 @Component({
-  selector: 'app-convert-tool',
+  selector: 'app-icon-tool',
   imports: [FileDropzoneComponent, OutputListComponent, ReactiveFormsModule, RouterLink],
   template: `
     <a class="back-link" routerLink="/"> « Back to tools</a>
@@ -54,11 +54,14 @@ import { renameFile } from '../shared/image-tool-utils';
         <h2>Settings</h2>
 
         <div class="field">
-          <label for="format">Output format</label>
-          <select id="format" formControlName="format">
-            <option value="image/jpeg">JPEG</option>
-            <option value="image/png">PNG</option>
-            <option value="image/webp">WebP</option>
+          <label for="size">Icon size</label>
+          <select id="size" formControlName="size">
+            <option [value]="16">16 x 16</option>
+            <option [value]="32">32 x 32</option>
+            <option [value]="48">48 x 48</option>
+            <option [value]="64">64 x 64</option>
+            <option [value]="128">128 x 128</option>
+            <option [value]="256">256 x 256</option>
           </select>
         </div>
 
@@ -67,7 +70,7 @@ import { renameFile } from '../shared/image-tool-utils';
         }
 
         <button class="button" type="submit" [disabled]="!canProcess()">
-          {{ isProcessing() ? 'Processing...' : 'Convert images' }}
+          {{ isProcessing() ? 'Processing...' : 'Create icons' }}
         </button>
       </form>
     </div>
@@ -77,13 +80,13 @@ import { renameFile } from '../shared/image-tool-utils';
   styleUrl: '../shared/tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ConvertComponent implements OnInit, OnDestroy {
+export class IconComponent implements OnInit, OnDestroy {
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly pipeline = inject(ImagePipelineService);
   private readonly processing = inject(ImageProcessingService);
   private readonly registry = inject(ToolRegistryService);
 
-  protected readonly tool = this.registry.findById('convert')!;
+  protected readonly tool = this.registry.findById('icon')!;
   protected readonly selectedFiles = signal<File[]>([]);
   protected readonly outputs = signal<ImageOutput[]>([]);
   protected readonly isProcessing = signal(false);
@@ -93,7 +96,7 @@ export class ConvertComponent implements OnInit, OnDestroy {
   );
 
   protected readonly form = this.fb.group({
-    format: this.fb.control<CanvasOutputFormat>('image/webp'),
+    size: [256, [Validators.required, Validators.min(16), Validators.max(256)]],
   });
 
   ngOnInit(): void {
@@ -124,20 +127,17 @@ export class ConvertComponent implements OnInit, OnDestroy {
       const nextOutputs: ImageOutput[] = [];
 
       for (const file of this.selectedFiles()) {
-        const dimensions = await this.processing.getDimensions(file);
         nextOutputs.push(
-          await this.processing.renderToBlob(file, {
-            ...dimensions,
-            quality: 1,
-            format: value.format,
-            fileName: renameFile(file.name, 'converted', value.format),
+          await this.processing.renderIco(file, {
+            size: value.size,
+            fileName: renameFile(file.name, 'icon', 'image/x-icon'),
           }),
         );
       }
 
       this.outputs.set(nextOutputs);
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'The images could not be processed.');
+      this.error.set(error instanceof Error ? error.message : 'The icons could not be created.');
     } finally {
       this.isProcessing.set(false);
     }

@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnDestroy,
+  OnInit,
   computed,
   inject,
   signal,
@@ -9,18 +10,24 @@ import {
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
-import { ImageOutput, OutputFormat } from '../../core/models/image-output.model';
+import { ImageOutput } from '../../core/models/image-output.model';
+import { ImagePipelineService } from '../../core/services/image-pipeline.service';
 import { ImageProcessingService } from '../../core/services/image-processing.service';
 import { ToolRegistryService } from '../../core/services/tool-registry.service';
 import { FileDropzoneComponent } from '../../shared/file-dropzone/file-dropzone.component';
 import { OutputListComponent } from '../../shared/output-list/output-list.component';
-import { clampQuality, dimensionsForMaxSize, renameFile } from '../shared/image-tool-utils';
+import {
+  clampQuality,
+  dimensionsForMaxSize,
+  outputFormatForFile,
+  renameFile,
+} from '../shared/image-tool-utils';
 
 @Component({
   selector: 'app-compress-tool',
   imports: [FileDropzoneComponent, OutputListComponent, ReactiveFormsModule, RouterLink],
   template: `
-    <a class="back-link" routerLink="/">Back to tools</a>
+    <a class="back-link" routerLink="/"> « Back to tools</a>
 
     <section class="tool-header">
       <div>
@@ -58,14 +65,6 @@ import { clampQuality, dimensionsForMaxSize, renameFile } from '../shared/image-
         </div>
 
         <div class="field">
-          <label for="format">Output format</label>
-          <select id="format" formControlName="format">
-            <option value="image/jpeg">JPEG</option>
-            <option value="image/webp">WebP</option>
-          </select>
-        </div>
-
-        <div class="field">
           <label for="quality">Quality: {{ form.controls.quality.value }}%</label>
           <input id="quality" type="range" min="10" max="95" step="5" formControlName="quality" />
         </div>
@@ -80,13 +79,14 @@ import { clampQuality, dimensionsForMaxSize, renameFile } from '../shared/image-
       </form>
     </div>
 
-    <app-output-list [outputs]="outputs()" />
+    <app-output-list [outputs]="outputs()" [currentToolId]="tool.id" />
   `,
   styleUrl: '../shared/tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CompressComponent implements OnDestroy {
+export class CompressComponent implements OnInit, OnDestroy {
   private readonly fb = inject(NonNullableFormBuilder);
+  private readonly pipeline = inject(ImagePipelineService);
   private readonly processing = inject(ImageProcessingService);
   private readonly registry = inject(ToolRegistryService);
 
@@ -101,9 +101,16 @@ export class CompressComponent implements OnDestroy {
 
   protected readonly form = this.fb.group({
     maxSize: [1600, [Validators.required, Validators.min(320)]],
-    format: this.fb.control<OutputFormat>('image/webp'),
     quality: [75, [Validators.required, Validators.min(10), Validators.max(95)]],
   });
+
+  ngOnInit(): void {
+    const files = this.pipeline.consume(this.tool.id, this.tool.acceptedTypes);
+
+    if (files.length > 0) {
+      this.setFiles(files);
+    }
+  }
 
   protected setFiles(files: File[]): void {
     this.replaceOutputs([]);
@@ -128,12 +135,13 @@ export class CompressComponent implements OnDestroy {
       for (const file of this.selectedFiles()) {
         const original = await this.processing.getDimensions(file);
         const dimensions = dimensionsForMaxSize(original.width, original.height, value.maxSize);
+        const format = outputFormatForFile(file);
         nextOutputs.push(
           await this.processing.renderToBlob(file, {
             ...dimensions,
             quality,
-            format: value.format,
-            fileName: renameFile(file.name, 'compressed', value.format),
+            format,
+            fileName: renameFile(file.name, 'compressed', format),
           }),
         );
       }

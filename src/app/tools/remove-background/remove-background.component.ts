@@ -7,10 +7,10 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
-import { CanvasOutputFormat, ImageOutput } from '../../core/models/image-output.model';
+import { ImageOutput } from '../../core/models/image-output.model';
 import { ImagePipelineService } from '../../core/services/image-pipeline.service';
 import { ImageProcessingService } from '../../core/services/image-processing.service';
 import { ToolRegistryService } from '../../core/services/tool-registry.service';
@@ -19,7 +19,7 @@ import { OutputListComponent } from '../../shared/output-list/output-list.compon
 import { renameFile } from '../shared/image-tool-utils';
 
 @Component({
-  selector: 'app-convert-tool',
+  selector: 'app-remove-background-tool',
   imports: [FileDropzoneComponent, OutputListComponent, ReactiveFormsModule, RouterLink],
   template: `
     <a class="back-link" routerLink="/"> « Back to tools</a>
@@ -54,12 +54,34 @@ import { renameFile } from '../shared/image-tool-utils';
         <h2>Settings</h2>
 
         <div class="field">
-          <label for="format">Output format</label>
-          <select id="format" formControlName="format">
-            <option value="image/jpeg">JPEG</option>
-            <option value="image/png">PNG</option>
-            <option value="image/webp">WebP</option>
-          </select>
+          <label for="keyColor">Key color</label>
+          <input id="keyColor" type="color" formControlName="keyColor" />
+        </div>
+
+        <div class="field">
+          <label for="tolerance">Tolerance: {{ form.controls.tolerance.value }}%</label>
+          <input
+            id="tolerance"
+            type="range"
+            min="1"
+            max="100"
+            step="1"
+            formControlName="tolerance"
+          />
+        </div>
+
+        <div class="field">
+          <label for="edgeSmoothing"
+            >Edge smoothing: {{ form.controls.edgeSmoothing.value }}%</label
+          >
+          <input
+            id="edgeSmoothing"
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            formControlName="edgeSmoothing"
+          />
         </div>
 
         @if (error()) {
@@ -67,7 +89,7 @@ import { renameFile } from '../shared/image-tool-utils';
         }
 
         <button class="button" type="submit" [disabled]="!canProcess()">
-          {{ isProcessing() ? 'Processing...' : 'Convert images' }}
+          {{ isProcessing() ? 'Processing...' : 'Remove background' }}
         </button>
       </form>
     </div>
@@ -77,13 +99,13 @@ import { renameFile } from '../shared/image-tool-utils';
   styleUrl: '../shared/tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ConvertComponent implements OnInit, OnDestroy {
+export class RemoveBackgroundComponent implements OnInit, OnDestroy {
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly pipeline = inject(ImagePipelineService);
   private readonly processing = inject(ImageProcessingService);
   private readonly registry = inject(ToolRegistryService);
 
-  protected readonly tool = this.registry.findById('convert')!;
+  protected readonly tool = this.registry.findById('remove-background')!;
   protected readonly selectedFiles = signal<File[]>([]);
   protected readonly outputs = signal<ImageOutput[]>([]);
   protected readonly isProcessing = signal(false);
@@ -93,7 +115,9 @@ export class ConvertComponent implements OnInit, OnDestroy {
   );
 
   protected readonly form = this.fb.group({
-    format: this.fb.control<CanvasOutputFormat>('image/webp'),
+    keyColor: ['#ffffff', [Validators.required]],
+    tolerance: [18, [Validators.required, Validators.min(1), Validators.max(100)]],
+    edgeSmoothing: [8, [Validators.required, Validators.min(0), Validators.max(100)]],
   });
 
   ngOnInit(): void {
@@ -124,20 +148,21 @@ export class ConvertComponent implements OnInit, OnDestroy {
       const nextOutputs: ImageOutput[] = [];
 
       for (const file of this.selectedFiles()) {
-        const dimensions = await this.processing.getDimensions(file);
         nextOutputs.push(
-          await this.processing.renderToBlob(file, {
-            ...dimensions,
-            quality: 1,
-            format: value.format,
-            fileName: renameFile(file.name, 'converted', value.format),
+          await this.processing.renderBackgroundRemoved(file, {
+            color: value.keyColor,
+            tolerance: value.tolerance,
+            edgeSmoothing: value.edgeSmoothing,
+            fileName: renameFile(file.name, 'transparent', 'image/png'),
           }),
         );
       }
 
       this.outputs.set(nextOutputs);
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'The images could not be processed.');
+      this.error.set(
+        error instanceof Error ? error.message : 'The background could not be removed.',
+      );
     } finally {
       this.isProcessing.set(false);
     }

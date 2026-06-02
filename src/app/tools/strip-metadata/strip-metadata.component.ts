@@ -7,22 +7,21 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
-import { CanvasOutputFormat, ImageOutput } from '../../core/models/image-output.model';
+import { ImageOutput } from '../../core/models/image-output.model';
 import { ImagePipelineService } from '../../core/services/image-pipeline.service';
 import { ImageProcessingService } from '../../core/services/image-processing.service';
 import { ToolRegistryService } from '../../core/services/tool-registry.service';
 import { FileDropzoneComponent } from '../../shared/file-dropzone/file-dropzone.component';
 import { OutputListComponent } from '../../shared/output-list/output-list.component';
-import { renameFile } from '../shared/image-tool-utils';
+import { outputFormatForFile, renameFile } from '../shared/image-tool-utils';
 
 @Component({
-  selector: 'app-convert-tool',
-  imports: [FileDropzoneComponent, OutputListComponent, ReactiveFormsModule, RouterLink],
+  selector: 'app-strip-metadata-tool',
+  imports: [FileDropzoneComponent, OutputListComponent, RouterLink],
   template: `
-    <a class="back-link" routerLink="/"> « Back to tools</a>
+    <a class="back-link" routerLink="/">Back to tools</a>
 
     <section class="tool-header">
       <div>
@@ -50,26 +49,17 @@ import { renameFile } from '../shared/image-tool-utils';
         }
       </div>
 
-      <form class="settings panel" [formGroup]="form" (ngSubmit)="process()">
+      <section class="settings panel">
         <h2>Settings</h2>
-
-        <div class="field">
-          <label for="format">Output format</label>
-          <select id="format" formControlName="format">
-            <option value="image/jpeg">JPEG</option>
-            <option value="image/png">PNG</option>
-            <option value="image/webp">WebP</option>
-          </select>
-        </div>
 
         @if (error()) {
           <p class="error" role="alert">{{ error() }}</p>
         }
 
-        <button class="button" type="submit" [disabled]="!canProcess()">
-          {{ isProcessing() ? 'Processing...' : 'Convert images' }}
+        <button class="button" type="button" [disabled]="!canProcess()" (click)="process()">
+          {{ isProcessing() ? 'Processing...' : 'Strip metadata' }}
         </button>
-      </form>
+      </section>
     </div>
 
     <app-output-list [outputs]="outputs()" [currentToolId]="tool.id" />
@@ -77,24 +67,19 @@ import { renameFile } from '../shared/image-tool-utils';
   styleUrl: '../shared/tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ConvertComponent implements OnInit, OnDestroy {
-  private readonly fb = inject(NonNullableFormBuilder);
+export class StripMetadataComponent implements OnInit, OnDestroy {
   private readonly pipeline = inject(ImagePipelineService);
   private readonly processing = inject(ImageProcessingService);
   private readonly registry = inject(ToolRegistryService);
 
-  protected readonly tool = this.registry.findById('convert')!;
+  protected readonly tool = this.registry.findById('strip-metadata')!;
   protected readonly selectedFiles = signal<File[]>([]);
   protected readonly outputs = signal<ImageOutput[]>([]);
   protected readonly isProcessing = signal(false);
   protected readonly error = signal('');
   protected readonly canProcess = computed(
-    () => this.selectedFiles().length > 0 && this.form.valid && !this.isProcessing(),
+    () => this.selectedFiles().length > 0 && !this.isProcessing(),
   );
-
-  protected readonly form = this.fb.group({
-    format: this.fb.control<CanvasOutputFormat>('image/webp'),
-  });
 
   ngOnInit(): void {
     const files = this.pipeline.consume(this.tool.id, this.tool.acceptedTypes);
@@ -120,17 +105,17 @@ export class ConvertComponent implements OnInit, OnDestroy {
     this.replaceOutputs([]);
 
     try {
-      const value = this.form.getRawValue();
       const nextOutputs: ImageOutput[] = [];
 
       for (const file of this.selectedFiles()) {
         const dimensions = await this.processing.getDimensions(file);
+        const format = outputFormatForFile(file);
         nextOutputs.push(
           await this.processing.renderToBlob(file, {
             ...dimensions,
             quality: 1,
-            format: value.format,
-            fileName: renameFile(file.name, 'converted', value.format),
+            format,
+            fileName: renameFile(file.name, 'clean', format),
           }),
         );
       }

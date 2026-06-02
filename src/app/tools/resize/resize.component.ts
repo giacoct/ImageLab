@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  OnInit,
   OnDestroy,
   computed,
   inject,
@@ -9,18 +10,19 @@ import {
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
-import { ImageOutput, OutputFormat } from '../../core/models/image-output.model';
+import { ImageOutput } from '../../core/models/image-output.model';
+import { ImagePipelineService } from '../../core/services/image-pipeline.service';
 import { ImageProcessingService } from '../../core/services/image-processing.service';
 import { ToolRegistryService } from '../../core/services/tool-registry.service';
 import { FileDropzoneComponent } from '../../shared/file-dropzone/file-dropzone.component';
 import { OutputListComponent } from '../../shared/output-list/output-list.component';
-import { clampQuality, renameFile } from '../shared/image-tool-utils';
+import { outputFormatForFile, renameFile } from '../shared/image-tool-utils';
 
 @Component({
   selector: 'app-resize-tool',
   imports: [FileDropzoneComponent, OutputListComponent, ReactiveFormsModule, RouterLink],
   template: `
-    <a class="back-link" routerLink="/">Back to tools</a>
+    <a class="back-link" routerLink="/"> « Back to tools</a>
 
     <section class="tool-header">
       <div>
@@ -68,21 +70,6 @@ import { clampQuality, renameFile } from '../shared/image-tool-utils';
           Preserve aspect ratio from width
         </label>
 
-        <div class="field">
-          <label for="format">Output format</label>
-          <select id="format" formControlName="format">
-            <option value="image/jpeg">JPEG</option>
-            <option value="image/png">PNG</option>
-            <option value="image/webp">WebP</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="quality">Quality: {{ form.controls.quality.value }}%</label>
-          <input id="quality" type="range" min="10" max="100" step="5" formControlName="quality" />
-          <span class="field-hint">Quality applies to JPEG and WebP outputs.</span>
-        </div>
-
         @if (error()) {
           <p class="error" role="alert">{{ error() }}</p>
         }
@@ -93,13 +80,14 @@ import { clampQuality, renameFile } from '../shared/image-tool-utils';
       </form>
     </div>
 
-    <app-output-list [outputs]="outputs()" />
+    <app-output-list [outputs]="outputs()" [currentToolId]="tool.id" />
   `,
   styleUrl: '../shared/tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ResizeComponent implements OnDestroy {
+export class ResizeComponent implements OnInit, OnDestroy {
   private readonly fb = inject(NonNullableFormBuilder);
+  private readonly pipeline = inject(ImagePipelineService);
   private readonly processing = inject(ImageProcessingService);
   private readonly registry = inject(ToolRegistryService);
 
@@ -116,9 +104,15 @@ export class ResizeComponent implements OnDestroy {
     width: [1200, [Validators.required, Validators.min(1)]],
     height: [900, [Validators.required, Validators.min(1)]],
     preserveAspect: [true],
-    format: this.fb.control<OutputFormat>('image/webp'),
-    quality: [85, [Validators.required, Validators.min(10), Validators.max(100)]],
   });
+
+  ngOnInit(): void {
+    const files = this.pipeline.consume(this.tool.id, this.tool.acceptedTypes);
+
+    if (files.length > 0) {
+      void this.setFiles(files);
+    }
+  }
 
   protected async setFiles(files: File[]): Promise<void> {
     this.replaceOutputs([]);
@@ -151,11 +145,11 @@ export class ResizeComponent implements OnDestroy {
 
     try {
       const value = this.form.getRawValue();
-      const quality = clampQuality(value.quality);
       const nextOutputs: ImageOutput[] = [];
 
       for (const file of this.selectedFiles()) {
         const original = await this.processing.getDimensions(file);
+        const format = outputFormatForFile(file);
         const width = Math.max(1, Math.round(value.width));
         const height = value.preserveAspect
           ? Math.max(1, Math.round(width * (original.height / original.width)))
@@ -165,9 +159,9 @@ export class ResizeComponent implements OnDestroy {
           await this.processing.renderToBlob(file, {
             width,
             height,
-            quality,
-            format: value.format,
-            fileName: renameFile(file.name, 'resized', value.format),
+            quality: 1,
+            format,
+            fileName: renameFile(file.name, 'resized', format),
           }),
         );
       }

@@ -1,4 +1,4 @@
-import { OutputFormat } from '../../core/models/image-output.model';
+import { CanvasOutputFormat, OutputFormat } from '../../core/models/image-output.model';
 
 export function formatBytes(size: number): string {
   if (size < 1024) {
@@ -20,12 +20,25 @@ export function extensionForFormat(format: OutputFormat): string {
       return 'png';
     case 'image/webp':
       return 'webp';
+    case 'image/x-icon':
+      return 'ico';
   }
 }
 
 export function renameFile(fileName: string, suffix: string, format: OutputFormat): string {
   const baseName = fileName.replace(/\.[^/.]+$/, '');
   return `${baseName}-${suffix}.${extensionForFormat(format)}`;
+}
+
+export function outputFormatForFile(file: File): CanvasOutputFormat {
+  switch (file.type) {
+    case 'image/jpeg':
+    case 'image/png':
+    case 'image/webp':
+      return file.type;
+    default:
+      return 'image/png';
+  }
 }
 
 export function clampQuality(value: number): number {

@@ -1,59 +1,50 @@
 # ImageLab
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.12.
+Browser-based image tools that run entirely on your device. Images are never
+uploaded to a server — all processing happens locally using native browser APIs.
 
-## Development server
+## Tools
 
-To start a local development server, run:
+- **Resize** – change dimensions, optionally preserving aspect ratio.
+- **Convert** – export images as JPEG, PNG, or WebP.
+- **Compress** – reduce file size while keeping the original format.
+- **Create ICO icons** – turn images into `.ico` files (16–256 px).
+- **Rotate and flip** – rotate, mirror, or flip without changing the format.
+- **Strip metadata** – rebuild images without embedded metadata.
+- **Remove background** – key out a color and export a transparent PNG.
+
+Every tool supports batch processing, and the output of one tool can be sent
+straight into another (tool chaining).
+
+Output keeps the source format and 100% quality, except **Convert** (you choose
+the format), **Compress** (you choose the quality), and **Remove background**
+(always PNG).
+
+## Development
+
+Start a local dev server at `http://localhost:4200/`:
 
 ```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
+npm start
 ```
 
 ## Building
 
-To build the project run:
+Build for production into `dist/`:
 
 ```bash
-ng build
+npm run build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## Testing
 
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+Run the unit tests (Vitest, via the Angular CLI):
 
 ```bash
-ng test
+npm test
 ```
 
-## Running end-to-end tests
+## Tech stack
 
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Angular 21 (standalone components, signals, lazy-loaded routes), TypeScript, and
+the browser Canvas API. No third-party image-processing dependencies.

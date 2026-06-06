@@ -74,6 +74,11 @@ h2 {
   font-size: 1.15rem;
 }
 
+.tool-fields {
+  display: grid;
+  gap: 1rem;
+}
+
 .settings-grid {
   display: grid;
   gap: 0.8rem;

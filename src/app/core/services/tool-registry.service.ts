@@ -12,6 +12,8 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxFiles: null,
     batch: true,
+    loadComponent: () =>
+      import('../../tools/resize/resize.component').then((m) => m.ResizeComponent),
   },
   {
     id: 'convert',
@@ -21,6 +23,8 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxFiles: null,
     batch: true,
+    loadComponent: () =>
+      import('../../tools/convert/convert.component').then((m) => m.ConvertComponent),
   },
   {
     id: 'compress',
@@ -30,6 +34,8 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxFiles: null,
     batch: true,
+    loadComponent: () =>
+      import('../../tools/compress/compress.component').then((m) => m.CompressComponent),
   },
   {
     id: 'icon',
@@ -39,6 +45,7 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxFiles: null,
     batch: true,
+    loadComponent: () => import('../../tools/icon/icon.component').then((m) => m.IconComponent),
   },
   {
     id: 'rotate',
@@ -48,6 +55,8 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxFiles: null,
     batch: true,
+    loadComponent: () =>
+      import('../../tools/rotate/rotate.component').then((m) => m.RotateComponent),
   },
   {
     id: 'strip-metadata',
@@ -57,6 +66,10 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxFiles: null,
     batch: true,
+    loadComponent: () =>
+      import('../../tools/strip-metadata/strip-metadata.component').then(
+        (m) => m.StripMetadataComponent,
+      ),
   },
   {
     id: 'remove-background',
@@ -66,6 +79,10 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxFiles: null,
     batch: true,
+    loadComponent: () =>
+      import('../../tools/remove-background/remove-background.component').then(
+        (m) => m.RemoveBackgroundComponent,
+      ),
   },
 ];
 

@@ -1,58 +1,27 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnDestroy,
-  OnInit,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 
 import { CanvasOutputFormat, ImageOutput } from '../../core/models/image-output.model';
-import { ImagePipelineService } from '../../core/services/image-pipeline.service';
-import { ImageProcessingService } from '../../core/services/image-processing.service';
-import { ToolRegistryService } from '../../core/services/tool-registry.service';
-import { FileDropzoneComponent } from '../../shared/file-dropzone/file-dropzone.component';
-import { OutputListComponent } from '../../shared/output-list/output-list.component';
+import { BaseToolComponent } from '../shared/base-tool.component';
+import { ToolShellComponent } from '../shared/tool-shell.component';
 import { renameFile } from '../shared/image-tool-utils';
 
 @Component({
   selector: 'app-convert-tool',
-  imports: [FileDropzoneComponent, OutputListComponent, ReactiveFormsModule, RouterLink],
+  imports: [ToolShellComponent, ReactiveFormsModule],
   template: `
-    <a class="back-link" routerLink="/"> « Back to tools</a>
-
-    <section class="tool-header">
-      <div>
-        <p class="eyebrow">Tool</p>
-        <h1>{{ tool.title }}</h1>
-      </div>
-      <p>{{ tool.description }}</p>
-    </section>
-
-    <div class="tool-workspace">
-      <div class="input-column">
-        <app-file-dropzone
-          [acceptedTypes]="tool.acceptedTypes"
-          [multiple]="true"
-          (filesSelected)="setFiles($event)"
-        />
-
-        @if (selectedFiles().length > 0) {
-          <section class="file-list panel" aria-label="Selected files">
-            <h2>Selected files</h2>
-            @for (file of selectedFiles(); track file.name + file.size) {
-              <p>{{ file.name }}</p>
-            }
-          </section>
-        }
-      </div>
-
-      <form class="settings panel" [formGroup]="form" (ngSubmit)="process()">
-        <h2>Settings</h2>
-
+    <app-tool-shell
+      [tool]="tool"
+      [selectedFiles]="selectedFiles()"
+      [outputs]="outputs()"
+      [isProcessing]="isProcessing()"
+      [error]="error()"
+      [canProcess]="canProcess()"
+      actionLabel="Convert images"
+      (filesSelected)="setFiles($event)"
+      (process)="process()"
+    >
+      <div class="tool-fields" [formGroup]="form">
         <div class="field">
           <label for="format">Output format</label>
           <select id="format" formControlName="format">
@@ -61,94 +30,33 @@ import { renameFile } from '../shared/image-tool-utils';
             <option value="image/webp">WebP</option>
           </select>
         </div>
-
-        @if (error()) {
-          <p class="error" role="alert">{{ error() }}</p>
-        }
-
-        <button class="button" type="submit" [disabled]="!canProcess()">
-          {{ isProcessing() ? 'Processing...' : 'Convert images' }}
-        </button>
-      </form>
-    </div>
-
-    <app-output-list [outputs]="outputs()" [currentToolId]="tool.id" />
+      </div>
+    </app-tool-shell>
   `,
   styleUrl: '../shared/tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ConvertComponent implements OnInit, OnDestroy {
+export class ConvertComponent extends BaseToolComponent {
   private readonly fb = inject(NonNullableFormBuilder);
-  private readonly pipeline = inject(ImagePipelineService);
-  private readonly processing = inject(ImageProcessingService);
-  private readonly registry = inject(ToolRegistryService);
 
-  protected readonly tool = this.registry.findById('convert')!;
-  protected readonly selectedFiles = signal<File[]>([]);
-  protected readonly outputs = signal<ImageOutput[]>([]);
-  protected readonly isProcessing = signal(false);
-  protected readonly error = signal('');
-  protected readonly canProcess = computed(
-    () => this.selectedFiles().length > 0 && this.form.valid && !this.isProcessing(),
-  );
-
+  protected readonly toolId = 'convert';
   protected readonly form = this.fb.group({
     format: this.fb.control<CanvasOutputFormat>('image/webp'),
   });
 
-  ngOnInit(): void {
-    const files = this.pipeline.consume(this.tool.id, this.tool.acceptedTypes);
-
-    if (files.length > 0) {
-      this.setFiles(files);
-    }
+  protected override isFormValid(): boolean {
+    return this.form.valid;
   }
 
-  protected setFiles(files: File[]): void {
-    this.replaceOutputs([]);
-    this.error.set('');
-    this.selectedFiles.set(files);
-  }
+  protected override async processFile(file: File): Promise<ImageOutput> {
+    const format = this.form.getRawValue().format;
+    const dimensions = await this.processing.getDimensions(file);
 
-  protected async process(): Promise<void> {
-    if (!this.canProcess()) {
-      return;
-    }
-
-    this.isProcessing.set(true);
-    this.error.set('');
-    this.replaceOutputs([]);
-
-    try {
-      const value = this.form.getRawValue();
-      const nextOutputs: ImageOutput[] = [];
-
-      for (const file of this.selectedFiles()) {
-        const dimensions = await this.processing.getDimensions(file);
-        nextOutputs.push(
-          await this.processing.renderToBlob(file, {
-            ...dimensions,
-            quality: 1,
-            format: value.format,
-            fileName: renameFile(file.name, 'converted', value.format),
-          }),
-        );
-      }
-
-      this.outputs.set(nextOutputs);
-    } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'The images could not be processed.');
-    } finally {
-      this.isProcessing.set(false);
-    }
-  }
-
-  ngOnDestroy(): void {
-    this.processing.revoke(this.outputs());
-  }
-
-  private replaceOutputs(outputs: ImageOutput[]): void {
-    this.processing.revoke(this.outputs());
-    this.outputs.set(outputs);
+    return this.processing.renderToBlob(file, {
+      ...dimensions,
+      quality: 1,
+      format,
+      fileName: renameFile(file.name, 'converted', format),
+    });
   }
 }

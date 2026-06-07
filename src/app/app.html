@@ -3,8 +3,10 @@
     <img src="logo.png" alt="ImageLab logo" class="brand-logo" />
     <span>ImageLab</span>
   </a>
-  <nav class="main-nav" aria-label="Primary navigation">
-    <a routerLink="/">Tools</a>
+  <nav class="main-nav" aria-label="Image tools">
+    @for (tool of tools; track tool.id) {
+      <a [routerLink]="tool.route" routerLinkActive="is-active">{{ tool.title }}</a>
+    }
   </nav>
 </header>
 

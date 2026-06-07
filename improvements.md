@@ -34,14 +34,15 @@ four places and copy-pasting ~140 lines.
 - **Adjust & filters** — brightness, contrast, saturation, grayscale, sepia,
   invert, and blur via the canvas `filter` API; sharpen via a 3×3 convolution.
 
+**Header navigation.** The top bar now lists every tool as a direct link
+(generated from `IMAGE_TOOLS`, with the active tool highlighted); Home stays
+reachable via the ImageLab logo/title.
+
 ## Backlog (later)
 
 - **Tools:** watermark, border/padding (pad-to-square), round corners,
   combine/collage, favicon package (.ico + PNGs + `site.webmanifest`),
   EXIF viewer.
-- **Header navigation:** replace the single "Tools" link with direct links to
-  every tool (Home stays reachable via the ImageLab logo/title). Drive it from
-  the registry so new tools appear automatically.
 - **Platform/UX (deferred):** live preview with before/after, batch progress,
   remember last-used settings, PWA/offline, dark mode + accessibility pass.
 - **Performance:** move heavy per-pixel work (background removal, filters) to a

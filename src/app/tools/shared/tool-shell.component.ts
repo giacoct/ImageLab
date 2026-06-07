@@ -16,12 +16,32 @@ import { OutputListComponent } from '../../shared/output-list/output-list.compon
   selector: 'app-tool-shell',
   imports: [RouterLink, FileDropzoneComponent, OutputListComponent],
   template: `
-    <a class="back-link" routerLink="/"> « Back to tools</a>
+    <a class="back-link" routerLink="/">
+      <svg
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <line x1="19" y1="12" x2="5" y2="12" />
+        <polyline points="12 19 5 12 12 5" />
+      </svg>
+      Back to tools
+    </a>
 
     <section class="tool-header">
       <div>
-        <p class="eyebrow">Tool</p>
-        <h1>{{ tool().title }}</h1>
+        <div class="tool-title-row">
+          <h1>{{ tool().title }}</h1>
+          <span class="tool-badge" [class.batch]="tool().batch" [class.single]="!tool().batch">
+            {{ tool().batch ? 'Batch' : 'Single' }}
+          </span>
+        </div>
       </div>
       <p>{{ tool().description }}</p>
     </section>

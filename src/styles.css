@@ -99,6 +99,27 @@ img {
   border-color: #c7d2cf;
 }
 
+.tool-badge {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 760;
+  letter-spacing: 0.02em;
+  padding: 0.3rem 0.7rem;
+  text-transform: uppercase;
+}
+
+.tool-badge.batch {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.tool-badge.single {
+  background: #fde047;
+  color: #854d0e;
+}
+
 .field {
   display: grid;
   gap: 0.45rem;

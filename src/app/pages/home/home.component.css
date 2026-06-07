@@ -29,22 +29,7 @@
 
 .tool-badge {
   align-self: start;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 760;
   justify-self: start;
-  letter-spacing: 0.01em;
-  padding: 0.3rem 0.65rem;
-}
-
-.tool-badge.batch {
-  background: #e7eefc;
-  color: #1d4ed8;
-}
-
-.tool-badge.single {
-  background: #f3e8ff;
-  color: #7e22ce;
 }
 
 h2 {

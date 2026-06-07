@@ -84,6 +84,27 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
         (m) => m.RemoveBackgroundComponent,
       ),
   },
+  {
+    id: 'crop',
+    title: 'Crop',
+    description: 'Crop images to a fixed aspect ratio with a chosen anchor point.',
+    route: '/tools/crop',
+    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    maxFiles: null,
+    batch: true,
+    loadComponent: () => import('../../tools/crop/crop.component').then((m) => m.CropComponent),
+  },
+  {
+    id: 'adjust',
+    title: 'Adjust & filters',
+    description: 'Tune brightness, contrast, and color, or apply blur, sharpen, and tints.',
+    route: '/tools/adjust',
+    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    maxFiles: null,
+    batch: true,
+    loadComponent: () =>
+      import('../../tools/adjust/adjust.component').then((m) => m.AdjustComponent),
+  },
 ];
 
 @Injectable({ providedIn: 'root' })

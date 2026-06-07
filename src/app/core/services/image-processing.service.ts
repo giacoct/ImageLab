@@ -29,6 +29,31 @@ export interface IcoRenderOptions {
   fileName: string;
 }
 
+export type CropAnchor = 'center' | 'top' | 'bottom' | 'left' | 'right';
+
+export interface CropOptions {
+  aspectWidth: number;
+  aspectHeight: number;
+  anchor: CropAnchor;
+  format: CanvasOutputFormat;
+  quality: number;
+  fileName: string;
+}
+
+export interface AdjustmentOptions {
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  grayscale: number;
+  sepia: number;
+  invert: boolean;
+  blur: number;
+  sharpen: number;
+  format: CanvasOutputFormat;
+  quality: number;
+  fileName: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ImageProcessingService {
   async getDimensions(file: File): Promise<ImageDimensions> {
@@ -105,6 +130,81 @@ export class ImageProcessingService {
     const iconBlob = await createIcoBlob(pngBlob, size);
 
     return this.createOutput(options.fileName, iconBlob, canvas.width, canvas.height);
+  }
+
+  async renderCrop(file: File, options: CropOptions): Promise<ImageOutput> {
+    const image = await this.loadImage(file);
+    const sourceWidth = image.width;
+    const sourceHeight = image.height;
+    const targetRatio = options.aspectWidth / options.aspectHeight;
+    const sourceRatio = sourceWidth / sourceHeight;
+
+    let cropWidth: number;
+    let cropHeight: number;
+    if (sourceRatio > targetRatio) {
+      cropHeight = sourceHeight;
+      cropWidth = Math.round(sourceHeight * targetRatio);
+    } else {
+      cropWidth = sourceWidth;
+      cropHeight = Math.round(sourceWidth / targetRatio);
+    }
+    cropWidth = Math.max(1, Math.min(sourceWidth, cropWidth));
+    cropHeight = Math.max(1, Math.min(sourceHeight, cropHeight));
+
+    const offsetX = anchorOffset(options.anchor, 'x', sourceWidth, cropWidth);
+    const offsetY = anchorOffset(options.anchor, 'y', sourceHeight, cropHeight);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      image.release();
+      throw new Error('Canvas rendering is not available in this browser.');
+    }
+
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(
+      image.source,
+      offsetX,
+      offsetY,
+      cropWidth,
+      cropHeight,
+      0,
+      0,
+      cropWidth,
+      cropHeight,
+    );
+    image.release();
+
+    const blob = await this.canvasToBlob(canvas, options.format, options.quality);
+    return this.createOutput(options.fileName, blob, cropWidth, cropHeight);
+  }
+
+  async renderAdjustments(file: File, options: AdjustmentOptions): Promise<ImageOutput> {
+    const image = await this.loadImage(file);
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      image.release();
+      throw new Error('Canvas rendering is not available in this browser.');
+    }
+
+    context.filter = buildFilterString(options);
+    context.drawImage(image.source, 0, 0);
+    image.release();
+
+    if (options.sharpen > 0) {
+      applySharpen(context, canvas.width, canvas.height, options.sharpen / 100);
+    }
+
+    const blob = await this.canvasToBlob(canvas, options.format, options.quality);
+    return this.createOutput(options.fileName, blob, canvas.width, canvas.height);
   }
 
   revoke(outputs: readonly ImageOutput[]): void {
@@ -236,6 +336,78 @@ function expandShortHex(hex: string): string {
     .split('')
     .map((value) => `${value}${value}`)
     .join('');
+}
+
+function anchorOffset(
+  anchor: CropAnchor,
+  axis: 'x' | 'y',
+  sourceSize: number,
+  cropSize: number,
+): number {
+  const slack = sourceSize - cropSize;
+
+  if (axis === 'x') {
+    if (anchor === 'left') return 0;
+    if (anchor === 'right') return slack;
+  } else {
+    if (anchor === 'top') return 0;
+    if (anchor === 'bottom') return slack;
+  }
+
+  return Math.round(slack / 2);
+}
+
+function buildFilterString(options: AdjustmentOptions): string {
+  const parts = [
+    `brightness(${options.brightness}%)`,
+    `contrast(${options.contrast}%)`,
+    `saturate(${options.saturation}%)`,
+  ];
+
+  if (options.grayscale > 0) parts.push(`grayscale(${options.grayscale}%)`);
+  if (options.sepia > 0) parts.push(`sepia(${options.sepia}%)`);
+  if (options.invert) parts.push('invert(100%)');
+  if (options.blur > 0) parts.push(`blur(${options.blur}px)`);
+
+  return parts.join(' ');
+}
+
+function applySharpen(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  amount: number,
+): void {
+  const source = context.getImageData(0, 0, width, height);
+  const output = context.createImageData(width, height);
+  const src = source.data;
+  const out = output.data;
+  const center = 1 + 4 * amount;
+
+  const sampleAt = (x: number, y: number): number =>
+    (Math.max(0, Math.min(height - 1, y)) * width + Math.max(0, Math.min(width - 1, x))) * 4;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const index = (y * width + x) * 4;
+      const up = sampleAt(x, y - 1);
+      const down = sampleAt(x, y + 1);
+      const left = sampleAt(x - 1, y);
+      const right = sampleAt(x + 1, y);
+
+      for (let channel = 0; channel < 3; channel++) {
+        const value =
+          src[index + channel] * center -
+          amount *
+            (src[up + channel] + src[down + channel] + src[left + channel] + src[right + channel]);
+        out[index + channel] = value < 0 ? 0 : value > 255 ? 255 : value;
+      }
+
+      out[index + 3] = src[index + 3];
+    }
+  }
+
+  context.putImageData(output, 0, 0);
 }
 
 function colorDistance(

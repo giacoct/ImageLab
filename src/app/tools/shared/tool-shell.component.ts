@@ -30,9 +30,11 @@ import { OutputListComponent } from '../../shared/output-list/output-list.compon
       <div class="input-column">
         <app-file-dropzone
           [acceptedTypes]="tool().acceptedTypes"
-          [multiple]="true"
+          [multiple]="tool().maxFiles !== 1"
           (filesSelected)="filesSelected.emit($event)"
         />
+
+        <ng-content select="[preview]" />
 
         @if (selectedFiles().length > 0) {
           <section class="file-list panel" aria-label="Selected files">

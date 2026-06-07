@@ -44,12 +44,15 @@ export abstract class BaseToolComponent implements OnInit, OnDestroy {
   }
 
   protected async setFiles(files: File[]): Promise<void> {
+    const max = this.tool.maxFiles;
+    const limited = max != null ? files.slice(0, max) : files;
+
     this.replaceOutputs([]);
     this.error.set('');
-    this.selectedFiles.set(files);
+    this.selectedFiles.set(limited);
 
-    if (files.length > 0) {
-      await this.onFilesSelected(files);
+    if (limited.length > 0) {
+      await this.onFilesSelected(limited);
     }
   }
 

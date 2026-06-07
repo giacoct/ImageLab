@@ -5,20 +5,19 @@ import { ImageToolDefinition } from '../models/image-tool.model';
 export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
   {
     id: 'resize',
-    title: 'Resize images',
-    description:
-      'Change dimensions for one or more images while preserving quality and aspect ratio.',
+    title: 'Resize & transform',
+    description: 'Rotate, flip, crop, and resize a single image with a live preview.',
     route: '/tools/resize',
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
-    maxFiles: null,
-    batch: true,
+    maxFiles: 1,
+    batch: false,
     loadComponent: () =>
       import('../../tools/resize/resize.component').then((m) => m.ResizeComponent),
   },
   {
     id: 'convert',
     title: 'Convert format',
-    description: 'Export images as JPEG, PNG, or WebP using browser-native conversion.',
+    description: 'Export images as JPEG, PNG, WebP, or ICO icons using browser-native conversion.',
     route: '/tools/convert',
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxFiles: null,
@@ -36,27 +35,6 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     batch: true,
     loadComponent: () =>
       import('../../tools/compress/compress.component').then((m) => m.CompressComponent),
-  },
-  {
-    id: 'icon',
-    title: 'Create ICO icons',
-    description: 'Convert images into browser and desktop-friendly .ico files.',
-    route: '/tools/icon',
-    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
-    maxFiles: null,
-    batch: true,
-    loadComponent: () => import('../../tools/icon/icon.component').then((m) => m.IconComponent),
-  },
-  {
-    id: 'rotate',
-    title: 'Rotate and flip',
-    description: 'Rotate, mirror, or flip images without changing their source format.',
-    route: '/tools/rotate',
-    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
-    maxFiles: null,
-    batch: true,
-    loadComponent: () =>
-      import('../../tools/rotate/rotate.component').then((m) => m.RotateComponent),
   },
   {
     id: 'strip-metadata',
@@ -83,16 +61,6 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
       import('../../tools/remove-background/remove-background.component').then(
         (m) => m.RemoveBackgroundComponent,
       ),
-  },
-  {
-    id: 'crop',
-    title: 'Crop',
-    description: 'Crop images to a fixed aspect ratio with a chosen anchor point.',
-    route: '/tools/crop',
-    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
-    maxFiles: null,
-    batch: true,
-    loadComponent: () => import('../../tools/crop/crop.component').then((m) => m.CropComponent),
   },
   {
     id: 'adjust',

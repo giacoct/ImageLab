@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 
-import { CanvasOutputFormat, ImageOutput } from '../../core/models/image-output.model';
+import { ImageOutput, OutputFormat } from '../../core/models/image-output.model';
 import { BaseToolComponent } from '../shared/base-tool.component';
 import { ToolShellComponent } from '../shared/tool-shell.component';
 import { renameFile } from '../shared/image-tool-utils';
@@ -28,8 +28,23 @@ import { renameFile } from '../shared/image-tool-utils';
             <option value="image/jpeg">JPEG</option>
             <option value="image/png">PNG</option>
             <option value="image/webp">WebP</option>
+            <option value="image/x-icon">ICO icon</option>
           </select>
         </div>
+
+        @if (form.controls.format.value === 'image/x-icon') {
+          <div class="field">
+            <label for="size">Icon size</label>
+            <select id="size" formControlName="size">
+              <option [value]="16">16 x 16</option>
+              <option [value]="32">32 x 32</option>
+              <option [value]="48">48 x 48</option>
+              <option [value]="64">64 x 64</option>
+              <option [value]="128">128 x 128</option>
+              <option [value]="256">256 x 256</option>
+            </select>
+          </div>
+        }
       </div>
     </app-tool-shell>
   `,
@@ -41,7 +56,8 @@ export class ConvertComponent extends BaseToolComponent {
 
   protected readonly toolId = 'convert';
   protected readonly form = this.fb.group({
-    format: this.fb.control<CanvasOutputFormat>('image/webp'),
+    format: this.fb.control<OutputFormat>('image/webp'),
+    size: this.fb.control(256),
   });
 
   protected override isFormValid(): boolean {
@@ -49,7 +65,15 @@ export class ConvertComponent extends BaseToolComponent {
   }
 
   protected override async processFile(file: File): Promise<ImageOutput> {
-    const format = this.form.getRawValue().format;
+    const { format, size } = this.form.getRawValue();
+
+    if (format === 'image/x-icon') {
+      return this.processing.renderIco(file, {
+        size,
+        fileName: renameFile(file.name, 'icon', 'image/x-icon'),
+      });
+    }
+
     const dimensions = await this.processing.getDimensions(file);
 
     return this.processing.renderToBlob(file, {

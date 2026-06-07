@@ -17,10 +17,13 @@ export interface RenderOptions {
   transform?: RenderTransform;
 }
 
-export interface BackgroundRemovalOptions {
+export interface BackgroundKeyOptions {
   color: string;
   tolerance: number;
   edgeSmoothing: number;
+}
+
+export interface BackgroundRemovalOptions extends BackgroundKeyOptions {
   fileName: string;
 }
 
@@ -29,12 +32,19 @@ export interface IcoRenderOptions {
   fileName: string;
 }
 
-export type CropAnchor = 'center' | 'top' | 'bottom' | 'left' | 'right';
+/** A crop region expressed as fractions (0..1) of the transformed image. */
+export interface NormalizedCrop {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
-export interface CropOptions {
-  aspectWidth: number;
-  aspectHeight: number;
-  anchor: CropAnchor;
+export interface EditOptions {
+  transform: RenderTransform;
+  crop: NormalizedCrop;
+  outputWidth: number;
+  outputHeight: number;
   format: CanvasOutputFormat;
   quality: number;
   fileName: string;
@@ -91,26 +101,8 @@ export class ImageProcessingService {
     context.drawImage(image.source, 0, 0);
     image.release();
 
-    const key = hexToRgb(options.color);
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    const transparentLimit = (Math.max(0, Math.min(100, options.tolerance)) / 100) * 441.672;
-    const smoothingRange = (Math.max(0, Math.min(100, options.edgeSmoothing)) / 100) * 180;
-
-    for (let index = 0; index < data.length; index += 4) {
-      const distance = colorDistance(data[index], data[index + 1], data[index + 2], key);
-
-      if (distance <= transparentLimit) {
-        data[index + 3] = 0;
-        continue;
-      }
-
-      if (smoothingRange > 0 && distance <= transparentLimit + smoothingRange) {
-        const alphaScale = (distance - transparentLimit) / smoothingRange;
-        data[index + 3] = Math.round(data[index + 3] * alphaScale);
-      }
-    }
-
+    applyBackgroundKey(imageData, options);
     context.putImageData(imageData, 0, 0);
     const blob = await this.canvasToBlob(canvas, 'image/png', 1);
 
@@ -132,55 +124,53 @@ export class ImageProcessingService {
     return this.createOutput(options.fileName, iconBlob, canvas.width, canvas.height);
   }
 
-  async renderCrop(file: File, options: CropOptions): Promise<ImageOutput> {
+  /** Apply rotate/flip, crop, and resize in a single pass for the image editor. */
+  async renderEdit(file: File, options: EditOptions): Promise<ImageOutput> {
     const image = await this.loadImage(file);
-    const sourceWidth = image.width;
-    const sourceHeight = image.height;
-    const targetRatio = options.aspectWidth / options.aspectHeight;
-    const sourceRatio = sourceWidth / sourceHeight;
+    const transformed = this.drawTransformed(image, options.transform);
+    image.release();
 
-    let cropWidth: number;
-    let cropHeight: number;
-    if (sourceRatio > targetRatio) {
-      cropHeight = sourceHeight;
-      cropWidth = Math.round(sourceHeight * targetRatio);
-    } else {
-      cropWidth = sourceWidth;
-      cropHeight = Math.round(sourceWidth / targetRatio);
-    }
-    cropWidth = Math.max(1, Math.min(sourceWidth, cropWidth));
-    cropHeight = Math.max(1, Math.min(sourceHeight, cropHeight));
+    const cropX = clamp(Math.round(options.crop.x * transformed.width), 0, transformed.width - 1);
+    const cropY = clamp(Math.round(options.crop.y * transformed.height), 0, transformed.height - 1);
+    const cropWidth = clamp(
+      Math.round(options.crop.width * transformed.width),
+      1,
+      transformed.width - cropX,
+    );
+    const cropHeight = clamp(
+      Math.round(options.crop.height * transformed.height),
+      1,
+      transformed.height - cropY,
+    );
 
-    const offsetX = anchorOffset(options.anchor, 'x', sourceWidth, cropWidth);
-    const offsetY = anchorOffset(options.anchor, 'y', sourceHeight, cropHeight);
+    const outputWidth = Math.max(1, Math.round(options.outputWidth));
+    const outputHeight = Math.max(1, Math.round(options.outputHeight));
 
     const canvas = document.createElement('canvas');
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
 
     const context = canvas.getContext('2d');
     if (!context) {
-      image.release();
       throw new Error('Canvas rendering is not available in this browser.');
     }
 
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = 'high';
     context.drawImage(
-      image.source,
-      offsetX,
-      offsetY,
+      transformed,
+      cropX,
+      cropY,
       cropWidth,
       cropHeight,
       0,
       0,
-      cropWidth,
-      cropHeight,
+      outputWidth,
+      outputHeight,
     );
-    image.release();
 
     const blob = await this.canvasToBlob(canvas, options.format, options.quality);
-    return this.createOutput(options.fileName, blob, cropWidth, cropHeight);
+    return this.createOutput(options.fileName, blob, outputWidth, outputHeight);
   }
 
   async renderAdjustments(file: File, options: AdjustmentOptions): Promise<ImageOutput> {
@@ -211,6 +201,31 @@ export class ImageProcessingService {
     for (const output of outputs) {
       URL.revokeObjectURL(output.url);
     }
+  }
+
+  /** Draw a loaded image at natural size with rotate/flip applied. */
+  private drawTransformed(
+    image: { source: CanvasImageSource; width: number; height: number },
+    transform: RenderTransform,
+  ): HTMLCanvasElement {
+    const swapsDimensions = transform.rotateDegrees === 90 || transform.rotateDegrees === 270;
+    const canvas = document.createElement('canvas');
+    canvas.width = swapsDimensions ? image.height : image.width;
+    canvas.height = swapsDimensions ? image.width : image.height;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Canvas rendering is not available in this browser.');
+    }
+
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.translate(canvas.width / 2, canvas.height / 2);
+    context.rotate((transform.rotateDegrees * Math.PI) / 180);
+    context.scale(transform.flipHorizontal ? -1 : 1, transform.flipVertical ? -1 : 1);
+    context.drawImage(image.source, -image.width / 2, -image.height / 2, image.width, image.height);
+
+    return canvas;
   }
 
   private async renderToCanvas(file: File, options: RenderOptions): Promise<HTMLCanvasElement> {
@@ -338,23 +353,33 @@ function expandShortHex(hex: string): string {
     .join('');
 }
 
-function anchorOffset(
-  anchor: CropAnchor,
-  axis: 'x' | 'y',
-  sourceSize: number,
-  cropSize: number,
-): number {
-  const slack = sourceSize - cropSize;
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
 
-  if (axis === 'x') {
-    if (anchor === 'left') return 0;
-    if (anchor === 'right') return slack;
-  } else {
-    if (anchor === 'top') return 0;
-    if (anchor === 'bottom') return slack;
+/**
+ * Key out a background color by turning matching pixels transparent, mutating
+ * the `ImageData` in place. Shared by the export pass and the live preview.
+ */
+export function applyBackgroundKey(imageData: ImageData, options: BackgroundKeyOptions): void {
+  const key = hexToRgb(options.color);
+  const data = imageData.data;
+  const transparentLimit = (Math.max(0, Math.min(100, options.tolerance)) / 100) * 441.672;
+  const smoothingRange = (Math.max(0, Math.min(100, options.edgeSmoothing)) / 100) * 180;
+
+  for (let index = 0; index < data.length; index += 4) {
+    const distance = colorDistance(data[index], data[index + 1], data[index + 2], key);
+
+    if (distance <= transparentLimit) {
+      data[index + 3] = 0;
+      continue;
+    }
+
+    if (smoothingRange > 0 && distance <= transparentLimit + smoothingRange) {
+      const alphaScale = (distance - transparentLimit) / smoothingRange;
+      data[index + 3] = Math.round(data[index + 3] * alphaScale);
+    }
   }
-
-  return Math.round(slack / 2);
 }
 
 function buildFilterString(options: AdjustmentOptions): string {

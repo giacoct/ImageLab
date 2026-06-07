@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { map } from 'rxjs';
 
 import { ImageOutput } from '../../core/models/image-output.model';
 import { BaseToolComponent } from '../shared/base-tool.component';
@@ -21,6 +23,15 @@ import { outputFormatForFile, renameFile } from '../shared/image-tool-utils';
       (filesSelected)="setFiles($event)"
       (process)="process()"
     >
+      @if (previewUrl()) {
+        <section preview class="tool-preview panel" aria-label="Live preview">
+          <h2>Preview</h2>
+          <div class="preview-stage">
+            <img [src]="previewUrl()" [style.filter]="cssFilter()" alt="Adjusted preview" />
+          </div>
+        </section>
+      }
+
       <div class="tool-fields" [formGroup]="form">
         <div class="field">
           <label for="brightness">Brightness: {{ form.controls.brightness.value }}%</label>
@@ -76,6 +87,7 @@ import { outputFormatForFile, renameFile } from '../shared/image-tool-utils';
         <div class="field">
           <label for="sharpen">Sharpen: {{ form.controls.sharpen.value }}%</label>
           <input id="sharpen" type="range" min="0" max="100" step="1" formControlName="sharpen" />
+          <span class="field-hint">Sharpen is applied on export and not shown in the preview.</span>
         </div>
 
         <label class="check-row">
@@ -103,8 +115,33 @@ export class AdjustComponent extends BaseToolComponent {
     invert: [false],
   });
 
+  private readonly formValue = toSignal(
+    this.form.valueChanges.pipe(map(() => this.form.getRawValue())),
+    { initialValue: this.form.getRawValue() },
+  );
+
+  protected readonly previewUrl = signal<string | null>(null);
+  protected readonly cssFilter = computed(() => buildCssFilter(this.formValue()));
+
   protected override isFormValid(): boolean {
     return this.form.valid;
+  }
+
+  protected override onFilesSelected(files: File[]): void {
+    this.setPreviewUrl(files[0] ? URL.createObjectURL(files[0]) : null);
+  }
+
+  override ngOnDestroy(): void {
+    this.setPreviewUrl(null);
+    super.ngOnDestroy();
+  }
+
+  private setPreviewUrl(url: string | null): void {
+    const previous = this.previewUrl();
+    if (previous) {
+      URL.revokeObjectURL(previous);
+    }
+    this.previewUrl.set(url);
   }
 
   protected override processFile(file: File): Promise<ImageOutput> {
@@ -118,4 +155,27 @@ export class AdjustComponent extends BaseToolComponent {
       fileName: renameFile(file.name, 'adjusted', format),
     });
   }
+}
+
+function buildCssFilter(value: {
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  grayscale: number;
+  sepia: number;
+  blur: number;
+  invert: boolean;
+}): string {
+  const parts = [
+    `brightness(${value.brightness}%)`,
+    `contrast(${value.contrast}%)`,
+    `saturate(${value.saturation}%)`,
+  ];
+
+  if (value.grayscale > 0) parts.push(`grayscale(${value.grayscale}%)`);
+  if (value.sepia > 0) parts.push(`sepia(${value.sepia}%)`);
+  if (value.invert) parts.push('invert(100%)');
+  if (value.blur > 0) parts.push(`blur(${value.blur}px)`);
+
+  return parts.join(' ');
 }

@@ -1,0 +1,144 @@
+.editor {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
+  margin: 1rem 0 2rem;
+}
+
+.editor-stage {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.stage-canvas-wrap {
+  display: inline-block;
+  line-height: 0;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+  user-select: none;
+}
+
+.stage-canvas {
+  display: block;
+  height: auto;
+  max-height: 65vh;
+  max-width: 100%;
+}
+
+.crop-box {
+  border: 1px solid #fff;
+  /* Dim everything outside the box; clipped by the wrap's overflow:hidden. */
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 0 0 100vmax rgba(0, 0, 0, 0.45);
+  position: absolute;
+}
+
+.crop-move {
+  cursor: move;
+  inset: 0;
+  position: absolute;
+}
+
+.crop-handle {
+  background: #fff;
+  border: 1px solid var(--accent-strong);
+  box-sizing: border-box;
+  height: 14px;
+  position: absolute;
+  width: 14px;
+  z-index: 1;
+}
+
+/* Handles sit just inside the box edges so overflow:hidden never clips them. */
+.h-n {
+  cursor: ns-resize;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+.h-s {
+  bottom: 0;
+  cursor: ns-resize;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.h-e {
+  cursor: ew-resize;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.h-w {
+  cursor: ew-resize;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.h-ne {
+  cursor: nesw-resize;
+  right: 0;
+  top: 0;
+}
+.h-nw {
+  cursor: nwse-resize;
+  left: 0;
+  top: 0;
+}
+.h-se {
+  bottom: 0;
+  cursor: nwse-resize;
+  right: 0;
+}
+.h-sw {
+  bottom: 0;
+  cursor: nesw-resize;
+  left: 0;
+}
+
+.editor-controls {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.15rem;
+  position: sticky;
+  top: 5rem;
+}
+
+.control-group {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.control-group h2 {
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.button-row .button {
+  flex: 0 0 auto;
+}
+
+.button.secondary.is-on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+@media (max-width: 880px) {
+  .editor {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-controls {
+    position: static;
+  }
+}

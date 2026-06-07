@@ -3,11 +3,41 @@
     <img src="logo.png" alt="ImageLab logo" class="brand-logo" />
     <span>ImageLab</span>
   </a>
-  <nav class="main-nav" aria-label="Image tools">
-    @for (tool of tools; track tool.id) {
-      <a [routerLink]="tool.route" routerLinkActive="is-active">{{ tool.title }}</a>
-    }
-  </nav>
+  <div class="header-actions">
+    <nav class="main-nav" aria-label="Image tools">
+      @for (tool of tools; track tool.id) {
+        <a [routerLink]="tool.route" routerLinkActive="is-active">{{ tool.title }}</a>
+      }
+    </nav>
+    <div class="info-help">
+      <button
+        type="button"
+        class="info-help__button"
+        aria-label="How to use ImageLab"
+        aria-describedby="info-help-tip"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="11" x2="12" y2="16" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+      </button>
+      <span id="info-help-tip" role="tooltip" class="info-help__tip">
+        Choose a tool, upload one or more images, adjust the settings, and download the processed
+        files.
+      </span>
+    </div>
+  </div>
 </header>
 
 <main class="app-main">

@@ -4,15 +4,15 @@ import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 
 import { OutputFormat } from '../../core/models/image-output.model';
 import { JobProcessor } from '../../core/services/tool-session.service';
-import { BaseTool } from '../shared/base-tool';
-import { ToolShell } from '../shared/tool-shell';
-import { renameFile } from '../shared/image-tool-utils';
+import { BaseTool } from '../../pages/settings/base-tool';
+import { ToolShell } from '../../pages/settings/tool-shell';
+import { renameFile } from '../../core/utils/image-tool-utils';
 
 @Component({
   selector: 'app-convert-tool',
   imports: [ToolShell, ReactiveFormsModule],
   templateUrl: './convert.html',
-  styleUrl: '../shared/tool-page.css',
+  styleUrl: '../../pages/tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Convert extends BaseTool {

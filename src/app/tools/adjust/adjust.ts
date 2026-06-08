@@ -11,15 +11,15 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { map } from 'rxjs';
 
 import { JobProcessor } from '../../core/services/tool-session.service';
-import { BaseTool } from '../shared/base-tool';
-import { ToolShell } from '../shared/tool-shell';
-import { outputFormatForFile, renameFile } from '../shared/image-tool-utils';
+import { BaseTool } from '../../pages/settings/base-tool';
+import { ToolShell } from '../../pages/settings/tool-shell';
+import { outputFormatForFile, renameFile } from '../../core/utils/image-tool-utils';
 
 @Component({
   selector: 'app-adjust-tool',
   imports: [ToolShell, ReactiveFormsModule],
   templateUrl: './adjust.html',
-  styleUrl: '../shared/tool-page.css',
+  styleUrl: '../../pages/tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Adjust extends BaseTool {

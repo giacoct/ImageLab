@@ -17,12 +17,12 @@ export const routes: Routes = [
         { path: '', redirectTo: 'import', pathMatch: 'full' },
         {
           path: 'import',
-          loadComponent: () => import('./tools/shared/import-page').then((m) => m.ImportPage),
+          loadComponent: () => import('./pages/import/import-page').then((m) => m.ImportPage),
         },
         { path: 'settings', loadComponent: tool.loadComponent },
         {
           path: 'output',
-          loadComponent: () => import('./tools/shared/output-page').then((m) => m.OutputPage),
+          loadComponent: () => import('./pages/output/output-page').then((m) => m.OutputPage),
         },
         { path: '**', redirectTo: 'import' },
       ],

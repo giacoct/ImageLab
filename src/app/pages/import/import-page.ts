@@ -26,7 +26,7 @@ import { StepIndicator } from '../../shared/step-indicator/step-indicator';
   selector: 'app-import-page',
   imports: [RouterLink, FileDropzone, Icon, StepIndicator],
   templateUrl: './import-page.html',
-  styleUrl: './tool-page.css',
+  styleUrl: '../tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ImportPage {

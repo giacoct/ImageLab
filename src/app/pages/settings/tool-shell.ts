@@ -15,7 +15,7 @@ import { StepIndicator } from '../../shared/step-indicator/step-indicator';
   selector: 'app-tool-shell',
   imports: [RouterLink, Icon, StepIndicator],
   templateUrl: './tool-shell.html',
-  styleUrl: './tool-page.css',
+  styleUrl: '../tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ToolShell {

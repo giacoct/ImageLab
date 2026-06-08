@@ -40,6 +40,8 @@ export class ToolSessionService {
   /** Latched once a job is judged slow, so the bar stays visible through 100%. */
   private readonly barLatched = signal(false);
   private startedAt = 0;
+  /** Bumped to cancel an in-flight run (e.g. on reset). */
+  private runId = 0;
 
   readonly percent = computed(() => {
     const job = this.job();
@@ -86,6 +88,7 @@ export class ToolSessionService {
       return;
     }
 
+    const runId = ++this.runId;
     this.isProcessing.set(true);
     this.error.set('');
     this.replaceOutputs([]);
@@ -93,12 +96,20 @@ export class ToolSessionService {
     this.startedAt = Date.now();
     this.job.set({ total: files.length, completed: 0, currentFileName: files[0].name });
 
-    try {
-      const nextOutputs: ImageOutput[] = [];
+    const nextOutputs: ImageOutput[] = [];
 
+    try {
       for (const file of files) {
         this.job.update((job) => (job ? { ...job, currentFileName: file.name } : job));
-        nextOutputs.push(await processor(file));
+        const output = await processor(file);
+
+        // Abandoned mid-flight (the session was reset or restarted).
+        if (runId !== this.runId) {
+          this.processing.revoke([...nextOutputs, output]);
+          return;
+        }
+
+        nextOutputs.push(output);
         this.job.update((job) => (job ? { ...job, completed: nextOutputs.length } : job));
         this.evaluateBar();
       }
@@ -106,15 +117,23 @@ export class ToolSessionService {
       this.outputs.set(nextOutputs);
       this.outputStale.set(false);
     } catch (error) {
+      if (runId !== this.runId) {
+        this.processing.revoke(nextOutputs);
+        return;
+      }
       this.error.set(error instanceof Error ? error.message : fallbackMessage);
     } finally {
-      this.isProcessing.set(false);
-      this.job.set(null);
-      this.barLatched.set(false);
+      // Only clear progress for the active run; a newer run/reset owns it now.
+      if (runId === this.runId) {
+        this.isProcessing.set(false);
+        this.job.set(null);
+        this.barLatched.set(false);
+      }
     }
   }
 
   reset(): void {
+    this.runId++; // cancel any in-flight job
     this.reuse.clear();
     this.replaceOutputs([]);
     this.files.set([]);

@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  input,
+  viewChild,
+} from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
 import { ToolRegistryService } from '../../core/services/tool-registry.service';
@@ -24,6 +35,9 @@ export class ImportPage {
   private readonly registry = inject(ToolRegistryService);
   private readonly session = inject(ToolSessionService);
   private readonly router = inject(Router);
+  private readonly injector = inject(Injector);
+
+  private readonly continueButton = viewChild<ElementRef<HTMLButtonElement>>('continueButton');
 
   protected readonly tool = computed(() => this.registry.findById(this.toolId())!);
   protected readonly files = this.session.files;
@@ -37,6 +51,13 @@ export class ImportPage {
   protected onFilesSelected(files: File[]): void {
     const max = this.tool().maxFiles;
     this.session.setFiles(max != null ? files.slice(0, max) : files);
+
+    // Reveal the Continue button once the imported list has rendered.
+    afterNextRender(
+      () =>
+        this.continueButton()?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'end' }),
+      { injector: this.injector },
+    );
   }
 
   protected continue(): void {

@@ -21,7 +21,22 @@
 
 <app-output-list [outputs]="outputs()" [currentToolId]="tool().id" />
 
-<div class="action-row step-actions">
-  <a class="button secondary" [routerLink]="tool().route + '/settings'">Back to settings</a>
-  <a class="button secondary" routerLink="/">New task</a>
+<div class="output-actions">
+  <a class="back-link back-link--home" routerLink="/">
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
+    </svg>
+    Back to tools
+  </a>
 </div>

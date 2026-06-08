@@ -54,7 +54,7 @@ a.stepper-link:focus-visible {
   width: 1.6rem;
 }
 
-.is-done .stepper-num {
+.is-enabled .stepper-num {
   background: var(--accent-soft);
   color: var(--accent-strong);
 }

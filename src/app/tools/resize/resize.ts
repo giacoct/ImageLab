@@ -106,6 +106,17 @@ export class Resize extends BaseTool implements OnDestroy {
         this.outputHeight.set(pixels.height);
       }
     });
+
+    // Any change to the export settings invalidates an existing render.
+    effect(() => {
+      this.rotateDegrees();
+      this.flipH();
+      this.flipV();
+      this.crop();
+      this.outputWidth();
+      this.outputHeight();
+      this.session.markStale();
+    });
   }
 
   protected override isFormValid(): boolean {

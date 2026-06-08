@@ -29,7 +29,13 @@
 
 <div class="action-row step-actions">
   <a class="button secondary" routerLink="/">Cancel</a>
-  <button class="button" type="button" [disabled]="files().length === 0" (click)="continue()">
+  <button
+    #continueButton
+    class="button"
+    type="button"
+    [disabled]="files().length === 0"
+    (click)="continue()"
+  >
     Continue
   </button>
 </div>

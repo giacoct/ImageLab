@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 
 import { ImageOutput } from '../models/image-output.model';
 import { ImageProcessingService } from './image-processing.service';
+import { WorkflowReuseStrategy } from './workflow-reuse.strategy';
 
 /** Produces one output for a single input file. Snapshots its settings up front. */
 export type JobProcessor = (file: File) => Promise<ImageOutput>;
@@ -24,6 +25,7 @@ const BAR_THRESHOLD_MS = 1000;
 @Injectable({ providedIn: 'root' })
 export class ToolSessionService {
   private readonly processing = inject(ImageProcessingService);
+  private readonly reuse = inject(WorkflowReuseStrategy);
 
   readonly toolId = signal<string | null>(null);
   readonly files = signal<File[]>([]);
@@ -31,6 +33,9 @@ export class ToolSessionService {
   readonly isProcessing = signal(false);
   readonly error = signal('');
   readonly job = signal<JobProgress | null>(null);
+
+  /** True once settings/files change after a run, until the job is re-run. */
+  readonly outputStale = signal(false);
 
   /** Latched once a job is judged slow, so the bar stays visible through 100%. */
   private readonly barLatched = signal(false);
@@ -43,6 +48,13 @@ export class ToolSessionService {
 
   /** Show the bar only for jobs projected to exceed the threshold. */
   readonly showProgressBar = computed(() => this.isProcessing() && this.barLatched());
+
+  /** Whether the current outputs still reflect the current settings + files. */
+  readonly outputsFresh = computed(() => this.outputs().length > 0 && !this.outputStale());
+
+  /** Step pages the user is allowed to jump to (import is always reachable). */
+  readonly canVisitSettings = computed(() => this.files().length > 0);
+  readonly canVisitOutput = this.outputsFresh;
 
   /** Switch to a tool, clearing any prior session state. */
   begin(toolId: string): void {
@@ -57,6 +69,11 @@ export class ToolSessionService {
     this.replaceOutputs([]);
     this.error.set('');
     this.files.set(files);
+  }
+
+  /** Mark the produced outputs out of date (settings changed since the run). */
+  markStale(): void {
+    this.outputStale.set(true);
   }
 
   /** Run a processor over every selected file, collecting the outputs. */
@@ -87,6 +104,7 @@ export class ToolSessionService {
       }
 
       this.outputs.set(nextOutputs);
+      this.outputStale.set(false);
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : fallbackMessage);
     } finally {
@@ -97,12 +115,14 @@ export class ToolSessionService {
   }
 
   reset(): void {
+    this.reuse.clear();
     this.replaceOutputs([]);
     this.files.set([]);
     this.error.set('');
     this.job.set(null);
     this.isProcessing.set(false);
     this.barLatched.set(false);
+    this.outputStale.set(false);
   }
 
   private replaceOutputs(outputs: ImageOutput[]): void {

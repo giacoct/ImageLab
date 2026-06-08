@@ -62,12 +62,18 @@ export abstract class BaseTool implements OnInit {
     this.selectedIndex.set(index);
   }
 
-  /** Kick off processing and move straight to the output page. */
+  /**
+   * Move to the output page. Only re-runs the job when the outputs are stale
+   * (settings or files changed since the last run); otherwise the existing
+   * outputs are shown as-is.
+   */
   protected submit(): void {
     if (!this.canSubmit()) {
       return;
     }
-    void this.session.run(this.createProcessor(), this.errorMessage);
+    if (!this.session.outputsFresh()) {
+      void this.session.run(this.createProcessor(), this.errorMessage);
+    }
     void this.router.navigate(['../output'], { relativeTo: this.route });
   }
 

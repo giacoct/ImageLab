@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { map } from 'rxjs';
 
@@ -47,6 +47,8 @@ export class Adjust extends BaseTool {
 
   constructor() {
     super();
+
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.session.markStale());
 
     // Keep the preview pointed at the selected file; revoke the old object URL.
     effect((onCleanup) => {

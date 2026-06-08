@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+
+import { ToolSessionService } from '../../core/services/tool-session.service';
 
 export type WorkflowStep = 'import' | 'settings' | 'output';
 
@@ -14,7 +16,8 @@ interface StepView {
   id: WorkflowStep;
   index: number;
   label: string;
-  state: 'done' | 'current' | 'upcoming';
+  isCurrent: boolean;
+  enabled: boolean;
   link: string;
 }
 
@@ -31,15 +34,23 @@ export class StepIndicator {
   /** Base route for the active tool, e.g. `/tools/resize`. */
   readonly toolRoute = input.required<string>();
 
+  private readonly session = inject(ToolSessionService);
+
   protected readonly steps = computed<StepView[]>(() => {
-    const currentIndex = ORDER.indexOf(this.current());
+    const current = this.current();
     const base = this.toolRoute().replace(/\/$/, '');
+    const enabled: Record<WorkflowStep, boolean> = {
+      import: true,
+      settings: this.session.canVisitSettings(),
+      output: this.session.canVisitOutput(),
+    };
 
     return ORDER.map((id, i) => ({
       id,
       index: i + 1,
       label: LABELS[id],
-      state: i < currentIndex ? 'done' : i === currentIndex ? 'current' : 'upcoming',
+      isCurrent: id === current,
+      enabled: enabled[id],
       link: `${base}/${id}`,
     }));
   });

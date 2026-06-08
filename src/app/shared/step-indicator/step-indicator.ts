@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { RouterLink } from '@angular/router';
 
 import { ToolSessionService } from '../../core/services/tool-session.service';
+import { Icon } from '../icon/icon';
 
 export type WorkflowStep = 'import' | 'settings' | 'output';
 
@@ -17,13 +18,15 @@ interface StepView {
   index: number;
   label: string;
   isCurrent: boolean;
+  /** A reachable step that comes before the current one. */
+  done: boolean;
   enabled: boolean;
   link: string;
 }
 
 @Component({
   selector: 'app-step-indicator',
-  imports: [RouterLink],
+  imports: [RouterLink, Icon],
   templateUrl: './step-indicator.html',
   styleUrl: './step-indicator.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,6 +41,7 @@ export class StepIndicator {
 
   protected readonly steps = computed<StepView[]>(() => {
     const current = this.current();
+    const currentIndex = ORDER.indexOf(current);
     const base = this.toolRoute().replace(/\/$/, '');
     const enabled: Record<WorkflowStep, boolean> = {
       import: true,
@@ -50,6 +54,7 @@ export class StepIndicator {
       index: i + 1,
       label: LABELS[id],
       isCurrent: id === current,
+      done: i < currentIndex && enabled[id],
       enabled: enabled[id],
       link: `${base}/${id}`,
     }));

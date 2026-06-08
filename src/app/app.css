@@ -125,8 +125,10 @@
 }
 
 .info-help:hover .info-help__tip,
-.info-help:focus-within .info-help__tip {
+.info-help:focus-within .info-help__tip,
+.info-help.is-open .info-help__tip {
   opacity: 1;
+  pointer-events: auto;
   transform: translateY(0);
 }
 
@@ -138,8 +140,44 @@
 
 @media (max-width: 680px) {
   .app-header {
+    gap: 0.5rem;
     min-height: 3.5rem;
-    padding: 0 1rem;
+    padding: 0.5rem 1rem;
+  }
+
+  /* Brand keeps the first row; tools + help drop to a full-width second row. */
+  .header-actions {
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    /* Allow the row (and its scrolling nav) to shrink below content width. */
+    min-width: 0;
+  }
+
+  .main-nav {
+    -ms-overflow-style: none;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    margin: 0 -0.25rem;
+    /* min-width:0 lets the flex item shrink below its content so overflow-x scrolls. */
+    min-width: 0;
+    overflow-x: auto;
+    padding: 0.15rem 0.25rem;
+    scrollbar-width: none;
+  }
+
+  .main-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .info-help {
+    flex: 0 0 auto;
+  }
+
+  /* Anchor the tip to the viewport edge so it never overflows on small screens. */
+  .info-help__tip {
+    max-width: min(16rem, calc(100vw - 2rem));
   }
 
   .app-main {

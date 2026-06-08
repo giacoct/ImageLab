@@ -17,6 +17,7 @@ export type IconName =
   | 'arrow-left'
   | 'send'
   | 'sparkles'
+  | 'check'
   | 'image'
   | 'info';
 
@@ -118,6 +119,9 @@ export type IconName =
         }
         @case ('sparkles') {
           <path d="M12 3 13.9 8.6a2 2 0 0 0 1.5 1.5L21 12l-5.6 1.9a2 2 0 0 0-1.5 1.5L12 21l-1.9-5.6a2 2 0 0 0-1.5-1.5L3 12l5.6-1.9a2 2 0 0 0 1.5-1.5z" />
+        }
+        @case ('check') {
+          <polyline points="20 6 9 17 4 12" />
         }
         @case ('info') {
           <circle cx="12" cy="12" r="10" />

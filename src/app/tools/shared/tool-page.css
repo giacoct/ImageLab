@@ -33,10 +33,9 @@
 }
 
 .tool-header {
-  align-items: end;
+  animation: fade-in-up 0.4s var(--ease) both;
   display: grid;
-  gap: 1rem;
-  grid-template-columns: minmax(0, 1fr) minmax(18rem, 30rem);
+  gap: 0.6rem;
   margin-bottom: 1.5rem;
 }
 
@@ -48,22 +47,8 @@
 }
 
 .tool-icon {
-  align-items: center;
-  border-radius: 0.6rem;
-  display: inline-flex;
   height: 2.6rem;
-  justify-content: center;
   width: 2.6rem;
-}
-
-.tool-icon.batch {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.tool-icon.single {
-  background: #fef3c7;
-  color: #92600e;
 }
 
 h1,
@@ -85,6 +70,8 @@ h1 {
 
 .tool-workspace {
   align-items: start;
+  animation: fade-in-up 0.45s var(--ease) both;
+  animation-delay: 60ms;
   display: grid;
   gap: 1rem;
   grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
@@ -161,6 +148,10 @@ h2 {
   overflow-wrap: anywhere;
   padding: 0.5rem 0.7rem;
   text-align: left;
+  transition:
+    background-color var(--speed) var(--ease),
+    border-color var(--speed) var(--ease),
+    color var(--speed) var(--ease);
   width: 100%;
 }
 
@@ -267,15 +258,14 @@ h2 {
 }
 
 .error {
-  background: #fff1f0;
-  border: 1px solid #ffd4cf;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
   border-radius: 0.5rem;
   color: var(--danger);
   padding: 0.75rem;
 }
 
 @media (max-width: 880px) {
-  .tool-header,
   .tool-workspace {
     grid-template-columns: 1fr;
   }

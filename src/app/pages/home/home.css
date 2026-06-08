@@ -5,6 +5,7 @@
 }
 
 .tool-card {
+  animation: fade-in-up 0.45s var(--ease) both;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
@@ -15,16 +16,40 @@
   padding: 1.25rem;
   text-decoration: none;
   transition:
-    border-color 160ms ease,
-    transform 160ms ease,
-    box-shadow 160ms ease;
+    border-color var(--speed) var(--ease),
+    transform var(--speed) var(--ease),
+    box-shadow var(--speed) var(--ease);
+}
+
+/* Stagger the cards' entrance for a subtle cascade. */
+.tool-card:nth-child(1) {
+  animation-delay: 40ms;
+}
+.tool-card:nth-child(2) {
+  animation-delay: 80ms;
+}
+.tool-card:nth-child(3) {
+  animation-delay: 120ms;
+}
+.tool-card:nth-child(4) {
+  animation-delay: 160ms;
+}
+.tool-card:nth-child(5) {
+  animation-delay: 200ms;
+}
+.tool-card:nth-child(6) {
+  animation-delay: 240ms;
 }
 
 .tool-card:hover,
 .tool-card:focus-visible {
   border-color: var(--accent);
   box-shadow: var(--shadow);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+}
+
+.tool-card:active {
+  transform: translateY(-1px);
 }
 
 .tool-card-top {
@@ -34,22 +59,8 @@
 }
 
 .tool-icon {
-  align-items: center;
-  border-radius: 0.6rem;
-  display: inline-flex;
   height: 2.75rem;
-  justify-content: center;
   width: 2.75rem;
-}
-
-.tool-icon.batch {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.tool-icon.single {
-  background: #fef3c7;
-  color: #92600e;
 }
 
 h2 {

@@ -9,12 +9,15 @@
         <a [routerLink]="tool.route" routerLinkActive="is-active">{{ tool.title }}</a>
       }
     </nav>
-    <div class="info-help">
+    <div class="info-help" [class.is-open]="helpOpen()" (keydown.escape)="closeHelp()">
       <button
         type="button"
         class="info-help__button"
         aria-label="How to use ImageLab"
         aria-describedby="info-help-tip"
+        [attr.aria-expanded]="helpOpen()"
+        (click)="toggleHelp()"
+        (blur)="closeHelp()"
       >
         <app-icon name="info" [size]="20" />
       </button>

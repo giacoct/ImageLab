@@ -1,35 +1,44 @@
-import { Directive, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Directive, OnInit, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 
-import { ImageOutput } from '../../core/models/image-output.model';
 import { ImageToolDefinition } from '../../core/models/image-tool.model';
-import { ImagePipelineService } from '../../core/services/image-pipeline.service';
 import { ImageProcessingService } from '../../core/services/image-processing.service';
-import { NotificationService } from '../../core/services/notification.service';
 import { ToolRegistryService } from '../../core/services/tool-registry.service';
+import { JobProcessor, ToolSessionService } from '../../core/services/tool-session.service';
 
 /**
- * Shared state, lifecycle, and batch loop for every image tool.
+ * Shared base for a tool's **settings** page. State (files, outputs, progress)
+ * lives in {@link ToolSessionService} so it survives the navigation between the
+ * import, settings, and output pages.
  *
- * A concrete tool only needs to declare its `toolId` and implement
- * `processFile`. Optional hooks (`isFormValid`, `onFilesSelected`,
- * `errorMessage`) cover the few places tools differ.
+ * A concrete tool declares its `toolId` and implements `createProcessor`, which
+ * snapshots the current settings into a per-file processor. Optional hooks
+ * (`isFormValid`, `onFilesSelected`, `errorMessage`) cover the few differences.
  */
 @Directive()
-export abstract class BaseTool implements OnInit, OnDestroy {
+export abstract class BaseTool implements OnInit {
   protected readonly processing = inject(ImageProcessingService);
-  private readonly pipeline = inject(ImagePipelineService);
+  protected readonly session = inject(ToolSessionService);
   private readonly registry = inject(ToolRegistryService);
-  private readonly notifications = inject(NotificationService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   /** Registry id of the tool, e.g. `'resize'`. */
   protected abstract readonly toolId: string;
 
-  protected readonly selectedFiles = signal<File[]>([]);
-  protected readonly outputs = signal<ImageOutput[]>([]);
-  protected readonly isProcessing = signal(false);
-  protected readonly error = signal('');
-  protected readonly canProcess = computed(
-    () => this.selectedFiles().length > 0 && !this.isProcessing() && this.isFormValid(),
+  protected readonly files = this.session.files;
+  protected readonly isProcessing = this.session.isProcessing;
+  protected readonly error = this.session.error;
+
+  /** Index of the file shown in the preview (batch tools with a live preview). */
+  protected readonly selectedIndex = signal(0);
+  protected readonly selectedFile = computed<File | undefined>(() => {
+    const files = this.files();
+    return files.length === 0 ? undefined : files[Math.min(this.selectedIndex(), files.length - 1)];
+  });
+
+  protected readonly canSubmit = computed(
+    () => this.files().length > 0 && !this.isProcessing() && this.isFormValid(),
   );
 
   private cachedTool?: ImageToolDefinition;
@@ -38,74 +47,39 @@ export abstract class BaseTool implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    const files = this.pipeline.consume(this.tool.id, this.tool.acceptedTypes);
+    this.session.begin(this.tool.id);
 
-    if (files.length > 0) {
-      void this.setFiles(files);
-    }
-  }
-
-  protected async setFiles(files: File[]): Promise<void> {
-    const max = this.tool.maxFiles;
-    const limited = max != null ? files.slice(0, max) : files;
-
-    this.replaceOutputs([]);
-    this.error.set('');
-    this.selectedFiles.set(limited);
-
-    if (limited.length > 0) {
-      await this.onFilesSelected(limited);
-    }
-  }
-
-  protected async process(): Promise<void> {
-    if (!this.canProcess()) {
+    const files = this.files();
+    if (files.length === 0) {
+      void this.router.navigate(['../import'], { relativeTo: this.route });
       return;
     }
 
-    this.isProcessing.set(true);
-    this.error.set('');
-    this.replaceOutputs([]);
+    void this.onFilesSelected(files);
+  }
 
-    const files = this.selectedFiles();
-    this.notifications.startJob(files.length);
+  protected selectFile(index: number): void {
+    this.selectedIndex.set(index);
+  }
 
-    try {
-      const nextOutputs: ImageOutput[] = [];
-
-      for (const file of files) {
-        nextOutputs.push(await this.processFile(file));
-        this.notifications.advanceJob(nextOutputs.length);
-      }
-
-      this.outputs.set(nextOutputs);
-      this.notifications.finishJob(nextOutputs.length);
-    } catch (error) {
-      this.notifications.cancelJob();
-      this.error.set(error instanceof Error ? error.message : this.errorMessage);
-    } finally {
-      this.isProcessing.set(false);
+  /** Kick off processing and move straight to the output page. */
+  protected submit(): void {
+    if (!this.canSubmit()) {
+      return;
     }
+    void this.session.run(this.createProcessor(), this.errorMessage);
+    void this.router.navigate(['../output'], { relativeTo: this.route });
   }
 
-  ngOnDestroy(): void {
-    this.processing.revoke(this.outputs());
-  }
-
-  private replaceOutputs(outputs: ImageOutput[]): void {
-    this.processing.revoke(this.outputs());
-    this.outputs.set(outputs);
-  }
-
-  /** Produce one output for a single input file. */
-  protected abstract processFile(file: File): Promise<ImageOutput>;
+  /** Snapshot the current settings into a per-file processor. */
+  protected abstract createProcessor(): JobProcessor;
 
   /** Whether the settings form (if any) is valid. Override when a form exists. */
   protected isFormValid(): boolean {
     return true;
   }
 
-  /** Hook to react to a new selection, e.g. to prefill the form. */
+  /** Hook to react to the selected files, e.g. to prefill the form or preview. */
   protected onFilesSelected(_files: File[]): void | Promise<void> {}
 
   /** Fallback error message when processing throws a non-Error value. */

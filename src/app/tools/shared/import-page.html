@@ -1,0 +1,35 @@
+<app-step-indicator current="import" [toolRoute]="tool().route" />
+
+<section class="tool-header">
+  <div>
+    <div class="tool-title-row">
+      <h1>{{ tool().title }}</h1>
+      <span class="tool-badge" [class.batch]="tool().batch" [class.single]="!tool().batch">
+        {{ tool().batch ? 'Batch' : 'Single' }}
+      </span>
+    </div>
+  </div>
+  <p>{{ tool().description }}</p>
+</section>
+
+<app-file-dropzone
+  [acceptedTypes]="tool().acceptedTypes"
+  [multiple]="tool().maxFiles !== 1"
+  (filesSelected)="onFilesSelected($event)"
+/>
+
+@if (files().length > 0) {
+  <section class="file-list panel" aria-label="Imported files">
+    <h2>{{ files().length }} {{ files().length === 1 ? 'image' : 'images' }} ready</h2>
+    @for (file of files(); track file.name + file.size) {
+      <p>{{ file.name }}</p>
+    }
+  </section>
+}
+
+<div class="action-row step-actions">
+  <a class="button secondary" routerLink="/">Cancel</a>
+  <button class="button" type="button" [disabled]="files().length === 0" (click)="continue()">
+    Continue
+  </button>
+</div>

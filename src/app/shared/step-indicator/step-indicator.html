@@ -1,0 +1,27 @@
+<nav class="stepper" aria-label="Progress">
+  <ol class="stepper-list">
+    @for (step of steps(); track step.id) {
+      <li
+        class="stepper-item"
+        [class.is-done]="step.state === 'done'"
+        [class.is-current]="step.state === 'current'"
+      >
+        @if (step.state === 'done') {
+          <a class="stepper-link" [routerLink]="step.link">
+            <span class="stepper-num" aria-hidden="true">{{ step.index }}</span>
+            <span class="stepper-label">{{ step.label }}</span>
+          </a>
+        } @else {
+          <span
+            class="stepper-link"
+            [attr.aria-current]="step.state === 'current' ? 'step' : null"
+            [attr.aria-disabled]="step.state === 'upcoming' ? 'true' : null"
+          >
+            <span class="stepper-num" aria-hidden="true">{{ step.index }}</span>
+            <span class="stepper-label">{{ step.label }}</span>
+          </span>
+        }
+      </li>
+    }
+  </ol>
+</nav>

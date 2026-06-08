@@ -1,22 +1,22 @@
 <app-tool-shell
   [tool]="tool"
-  [selectedFiles]="selectedFiles()"
-  [outputs]="outputs()"
-  [isProcessing]="isProcessing()"
+  [files]="files()"
   [error]="error()"
-  [canProcess]="canProcess()"
+  [canSubmit]="canSubmit()"
   actionLabel="Apply adjustments"
-  (filesSelected)="setFiles($event)"
-  (process)="process()"
+  [selectable]="true"
+  [selectedIndex]="selectedIndex()"
+  (action)="submit()"
+  (fileSelected)="selectFile($event)"
 >
-  @if (previewUrl()) {
-    <section preview class="tool-preview panel" aria-label="Live preview">
-      <h2>Preview</h2>
-      <div class="preview-stage">
+  <section preview class="tool-preview panel" aria-label="Live preview">
+    <h2>Preview</h2>
+    <div class="preview-stage">
+      @if (previewUrl()) {
         <img [src]="previewUrl()" [style.filter]="cssFilter()" alt="Adjusted preview" />
-      </div>
-    </section>
-  }
+      }
+    </div>
+  </section>
 
   <div class="tool-fields" [formGroup]="form">
     <div class="field">

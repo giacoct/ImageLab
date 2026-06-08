@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
-import { ImageOutput } from '../../core/models/image-output.model';
+import { JobProcessor } from '../../core/services/tool-session.service';
 import { BaseTool } from '../shared/base-tool';
 import { ToolShell } from '../shared/tool-shell';
 import {
@@ -31,17 +31,20 @@ export class Compress extends BaseTool {
     return this.form.valid;
   }
 
-  protected override async processFile(file: File): Promise<ImageOutput> {
-    const value = this.form.getRawValue();
-    const original = await this.processing.getDimensions(file);
-    const dimensions = dimensionsForMaxSize(original.width, original.height, value.maxSize);
-    const format = outputFormatForFile(file);
+  protected override createProcessor(): JobProcessor {
+    const { maxSize, quality } = this.form.getRawValue();
 
-    return this.processing.renderToBlob(file, {
-      ...dimensions,
-      quality: clampQuality(value.quality),
-      format,
-      fileName: renameFile(file.name, 'compressed', format),
-    });
+    return async (file) => {
+      const original = await this.processing.getDimensions(file);
+      const dimensions = dimensionsForMaxSize(original.width, original.height, maxSize);
+      const format = outputFormatForFile(file);
+
+      return this.processing.renderToBlob(file, {
+        ...dimensions,
+        quality: clampQuality(quality),
+        format,
+        fileName: renameFile(file.name, 'compressed', format),
+      });
+    };
   }
 }

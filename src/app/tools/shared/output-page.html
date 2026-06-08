@@ -1,0 +1,27 @@
+<app-step-indicator current="output" [toolRoute]="tool().route" />
+
+<section class="tool-header">
+  <div>
+    <div class="tool-title-row">
+      <h1>{{ tool().title }}</h1>
+    </div>
+  </div>
+  <p>{{ tool().description }}</p>
+</section>
+
+@if (showProgressBar()) {
+  <app-progress-bar [percent]="percent()" [fileName]="currentFileName()" />
+} @else if (isProcessing()) {
+  <p class="processing-note" role="status">Processing…</p>
+}
+
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}
+
+<app-output-list [outputs]="outputs()" [currentToolId]="tool().id" />
+
+<div class="action-row step-actions">
+  <a class="button secondary" [routerLink]="tool().route + '/settings'">Back to settings</a>
+  <a class="button secondary" routerLink="/">New task</a>
+</div>

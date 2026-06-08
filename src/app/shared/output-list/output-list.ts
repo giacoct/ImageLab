@@ -4,8 +4,8 @@ import { Router } from '@angular/router';
 
 import { ImageOutput } from '../../core/models/image-output.model';
 import { DownloadService } from '../../core/services/download.service';
-import { ImagePipelineService } from '../../core/services/image-pipeline.service';
 import { ToolRegistryService } from '../../core/services/tool-registry.service';
+import { ToolSessionService } from '../../core/services/tool-session.service';
 import { formatBytes } from '../../tools/shared/image-tool-utils';
 
 @Component({
@@ -20,7 +20,7 @@ export class OutputList {
   readonly currentToolId = input('');
 
   private readonly downloads = inject(DownloadService);
-  private readonly pipeline = inject(ImagePipelineService);
+  private readonly session = inject(ToolSessionService);
   private readonly registry = inject(ToolRegistryService);
   private readonly router = inject(Router);
 
@@ -64,7 +64,7 @@ export class OutputList {
     return formatBytes(size);
   }
 
-  /** Send the whole set of outputs into the chosen tool. */
+  /** Carry the whole set of outputs into the chosen tool's settings page. */
   protected async sendToTool(targetToolId: string): Promise<void> {
     const tool = this.registry.findById(targetToolId);
 
@@ -72,7 +72,12 @@ export class OutputList {
       return;
     }
 
-    this.pipeline.queue(tool.id, this.outputs());
-    await this.router.navigateByUrl(tool.route);
+    const files = this.outputs().map(
+      (output) => new File([output.blob], output.fileName, { type: output.blob.type }),
+    );
+
+    this.session.begin(tool.id);
+    this.session.setFiles(files);
+    await this.router.navigateByUrl(`${tool.route}/settings`);
   }
 }

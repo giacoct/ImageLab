@@ -1,13 +1,10 @@
 <app-tool-shell
   [tool]="tool"
-  [selectedFiles]="selectedFiles()"
-  [outputs]="outputs()"
-  [isProcessing]="isProcessing()"
+  [files]="files()"
   [error]="error()"
-  [canProcess]="canProcess()"
+  [canSubmit]="canSubmit()"
   actionLabel="Convert images"
-  (filesSelected)="setFiles($event)"
-  (process)="process()"
+  (action)="submit()"
 >
   <div class="tool-fields" [formGroup]="form">
     <div class="field">

@@ -1,13 +1,10 @@
 <app-tool-shell
   [tool]="tool"
-  [selectedFiles]="selectedFiles()"
-  [outputs]="outputs()"
-  [isProcessing]="isProcessing()"
+  [files]="files()"
   [error]="error()"
-  [canProcess]="canProcess()"
+  [canSubmit]="canSubmit()"
   actionLabel="Strip metadata"
-  (filesSelected)="setFiles($event)"
-  (process)="process()"
+  (action)="submit()"
 >
   <p class="field-hint">
     Each image is re-encoded in its original format, dropping any embedded metadata.

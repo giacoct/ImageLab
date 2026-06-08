@@ -1,20 +1,4 @@
-<a class="back-link" routerLink="/">
-  <svg
-    viewBox="0 0 24 24"
-    width="16"
-    height="16"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="2.5"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    aria-hidden="true"
-  >
-    <line x1="19" y1="12" x2="5" y2="12" />
-    <polyline points="12 19 5 12 12 5" />
-  </svg>
-  Back to tools
-</a>
+<app-step-indicator current="settings" [toolRoute]="tool().route" />
 
 <section class="tool-header">
   <div>
@@ -30,19 +14,32 @@
 
 <div class="tool-workspace">
   <div class="input-column">
-    <app-file-dropzone
-      [acceptedTypes]="tool().acceptedTypes"
-      [multiple]="tool().maxFiles !== 1"
-      (filesSelected)="filesSelected.emit($event)"
-    />
-
     <ng-content select="[preview]" />
 
-    @if (selectedFiles().length > 0) {
+    @if (files().length > 0) {
       <section class="file-list panel" aria-label="Selected files">
-        <h2>Selected files</h2>
-        @for (file of selectedFiles(); track file.name + file.size) {
-          <p>{{ file.name }}</p>
+        <h2>{{ files().length }} {{ files().length === 1 ? 'image' : 'images' }}</h2>
+
+        @if (selectable()) {
+          <ul class="file-choices">
+            @for (file of files(); track file.name + file.size; let i = $index) {
+              <li>
+                <button
+                  type="button"
+                  class="file-choice"
+                  [class.is-selected]="i === selectedIndex()"
+                  [attr.aria-pressed]="i === selectedIndex()"
+                  (click)="fileSelected.emit(i)"
+                >
+                  {{ file.name }}
+                </button>
+              </li>
+            }
+          </ul>
+        } @else {
+          @for (file of files(); track file.name + file.size) {
+            <p>{{ file.name }}</p>
+          }
         }
       </section>
     }
@@ -57,10 +54,11 @@
       <p class="error" role="alert">{{ error() }}</p>
     }
 
-    <button class="button" type="button" [disabled]="!canProcess()" (click)="process.emit()">
-      <app-progress-ring>{{ isProcessing() ? 'Processing...' : actionLabel() }}</app-progress-ring>
-    </button>
+    <div class="action-row">
+      <a class="button secondary" [routerLink]="tool().route + '/import'">Back</a>
+      <button class="button" type="button" [disabled]="!canSubmit()" (click)="action.emit()">
+        {{ actionLabel() }}
+      </button>
+    </div>
   </section>
 </div>
-
-<app-output-list [outputs]="outputs()" [currentToolId]="tool().id" />

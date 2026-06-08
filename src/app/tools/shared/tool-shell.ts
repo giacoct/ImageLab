@@ -1,34 +1,32 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { ImageOutput } from '../../core/models/image-output.model';
 import { ImageToolDefinition } from '../../core/models/image-tool.model';
-import { FileDropzone } from '../../shared/file-dropzone/file-dropzone';
-import { OutputList } from '../../shared/output-list/output-list';
-import { ProgressRing } from '../../shared/progress-ring/progress-ring';
+import { StepIndicator } from '../../shared/step-indicator/step-indicator';
 
 /**
- * Common chrome for a tool page: back link, header, dropzone, selected-files
- * list, settings panel, and the output list. A tool projects its settings
- * fields into the panel and is notified via the `filesSelected` / `process`
- * outputs.
+ * Chrome for a tool's **settings** page: step indicator, header, the input
+ * column (an optional projected preview plus the selected-file list) and the
+ * settings panel with Back / action controls. A tool projects its preview into
+ * the `[preview]` slot and its form fields into the default slot.
  */
 @Component({
   selector: 'app-tool-shell',
-  imports: [RouterLink, FileDropzone, OutputList, ProgressRing],
+  imports: [RouterLink, StepIndicator],
   templateUrl: './tool-shell.html',
   styleUrl: './tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ToolShell {
   readonly tool = input.required<ImageToolDefinition>();
-  readonly selectedFiles = input.required<readonly File[]>();
-  readonly outputs = input.required<readonly ImageOutput[]>();
-  readonly isProcessing = input(false);
+  readonly files = input.required<readonly File[]>();
   readonly error = input('');
-  readonly canProcess = input(false);
+  readonly canSubmit = input(false);
   readonly actionLabel = input.required<string>();
+  /** When true the file list is a set of buttons that drive the preview. */
+  readonly selectable = input(false);
+  readonly selectedIndex = input(0);
 
-  readonly filesSelected = output<File[]>();
-  readonly process = output<void>();
+  readonly action = output<void>();
+  readonly fileSelected = output<number>();
 }

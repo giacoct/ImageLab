@@ -1,4 +1,4 @@
-<a class="back-link" routerLink="/">« Back to tools</a>
+<app-step-indicator current="settings" [toolRoute]="tool.route" />
 
 <section class="tool-header">
   <div>
@@ -7,12 +7,6 @@
   </div>
   <p>{{ tool.description }}</p>
 </section>
-
-<app-file-dropzone
-  [acceptedTypes]="tool.acceptedTypes"
-  [multiple]="false"
-  (filesSelected)="setFiles($event)"
-/>
 
 @if (hasImage()) {
   <div class="editor">
@@ -118,14 +112,13 @@
       @if (error()) {
         <p class="error" role="alert">{{ error() }}</p>
       }
-
-      <button class="button" type="button" [disabled]="!canProcess()" (click)="process()">
-        <app-progress-ring>{{
-          isProcessing() ? 'Processing...' : 'Export image'
-        }}</app-progress-ring>
-      </button>
     </aside>
   </div>
 }
 
-<app-output-list [outputs]="outputs()" [currentToolId]="tool.id" />
+<div class="action-row step-actions">
+  <a class="button secondary" [routerLink]="tool.route + '/import'">Back</a>
+  <button class="button" type="button" [disabled]="!canSubmit()" (click)="submit()">
+    Export image
+  </button>
+</div>

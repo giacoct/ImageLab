@@ -1,0 +1,19 @@
+<section class="progress" aria-label="Processing images">
+  <div
+    class="progress-track"
+    role="progressbar"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    [attr.aria-valuenow]="percent()"
+    [attr.aria-valuetext]="valueText()"
+  >
+    <div class="progress-fill" [style.width.%]="percent()"></div>
+  </div>
+  <p class="progress-label" aria-live="polite">
+    @if (fileName()) {
+      Processing <strong>{{ fileName() }}</strong> — {{ percent() }}%
+    } @else {
+      Processing — {{ percent() }}%
+    }
+  </p>
+</section>

@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 
-import { ImageOutput, OutputFormat } from '../../core/models/image-output.model';
+import { OutputFormat } from '../../core/models/image-output.model';
+import { JobProcessor } from '../../core/services/tool-session.service';
 import { BaseTool } from '../shared/base-tool';
 import { ToolShell } from '../shared/tool-shell';
 import { renameFile } from '../shared/image-tool-utils';
@@ -26,23 +27,25 @@ export class Convert extends BaseTool {
     return this.form.valid;
   }
 
-  protected override async processFile(file: File): Promise<ImageOutput> {
+  protected override createProcessor(): JobProcessor {
     const { format, size } = this.form.getRawValue();
 
-    if (format === 'image/x-icon') {
-      return this.processing.renderIco(file, {
-        size,
-        fileName: renameFile(file.name, 'icon', 'image/x-icon'),
+    return async (file) => {
+      if (format === 'image/x-icon') {
+        return this.processing.renderIco(file, {
+          size,
+          fileName: renameFile(file.name, 'icon', 'image/x-icon'),
+        });
+      }
+
+      const dimensions = await this.processing.getDimensions(file);
+
+      return this.processing.renderToBlob(file, {
+        ...dimensions,
+        quality: 1,
+        format,
+        fileName: renameFile(file.name, 'converted', format),
       });
-    }
-
-    const dimensions = await this.processing.getDimensions(file);
-
-    return this.processing.renderToBlob(file, {
-      ...dimensions,
-      quality: 1,
-      format,
-      fileName: renameFile(file.name, 'converted', format),
-    });
+    };
   }
 }

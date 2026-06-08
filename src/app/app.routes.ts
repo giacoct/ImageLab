@@ -1,4 +1,4 @@
-import { Routes } from '@angular/router';
+import { Route, Routes } from '@angular/router';
 
 import { IMAGE_TOOLS } from './core/services/tool-registry.service';
 
@@ -8,11 +8,26 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/home/home').then((m) => m.Home),
     title: 'ImageLab',
   },
-  ...IMAGE_TOOLS.map((tool) => ({
-    path: tool.route.replace(/^\//, ''),
-    loadComponent: tool.loadComponent,
-    title: `${tool.title} | ImageLab`,
-  })),
+  ...IMAGE_TOOLS.map(
+    (tool): Route => ({
+      path: tool.route.replace(/^\//, ''),
+      data: { toolId: tool.id },
+      title: `${tool.title} | ImageLab`,
+      children: [
+        { path: '', redirectTo: 'import', pathMatch: 'full' },
+        {
+          path: 'import',
+          loadComponent: () => import('./tools/shared/import-page').then((m) => m.ImportPage),
+        },
+        { path: 'settings', loadComponent: tool.loadComponent },
+        {
+          path: 'output',
+          loadComponent: () => import('./tools/shared/output-page').then((m) => m.OutputPage),
+        },
+        { path: '**', redirectTo: 'import' },
+      ],
+    }),
+  ),
   {
     path: '**',
     redirectTo: '',

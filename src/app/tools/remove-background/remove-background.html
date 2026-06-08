@@ -1,13 +1,13 @@
 <app-tool-shell
   [tool]="tool"
-  [selectedFiles]="selectedFiles()"
-  [outputs]="outputs()"
-  [isProcessing]="isProcessing()"
+  [files]="files()"
   [error]="error()"
-  [canProcess]="canProcess()"
+  [canSubmit]="canSubmit()"
   actionLabel="Remove background"
-  (filesSelected)="setFiles($event)"
-  (process)="process()"
+  [selectable]="true"
+  [selectedIndex]="selectedIndex()"
+  (action)="submit()"
+  (fileSelected)="selectFile($event)"
 >
   @if (previewReady()) {
     <section preview class="tool-preview panel" aria-label="Live preview">

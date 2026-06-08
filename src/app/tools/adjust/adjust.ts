@@ -1,9 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { map } from 'rxjs';
 
-import { ImageOutput } from '../../core/models/image-output.model';
+import { JobProcessor } from '../../core/services/tool-session.service';
 import { BaseTool } from '../shared/base-tool';
 import { ToolShell } from '../shared/tool-shell';
 import { outputFormatForFile, renameFile } from '../shared/image-tool-utils';
@@ -38,37 +45,39 @@ export class Adjust extends BaseTool {
   protected readonly previewUrl = signal<string | null>(null);
   protected readonly cssFilter = computed(() => buildCssFilter(this.formValue()));
 
+  constructor() {
+    super();
+
+    // Keep the preview pointed at the selected file; revoke the old object URL.
+    effect((onCleanup) => {
+      const file = this.selectedFile();
+      if (!file) {
+        this.previewUrl.set(null);
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      this.previewUrl.set(url);
+      onCleanup(() => URL.revokeObjectURL(url));
+    });
+  }
+
   protected override isFormValid(): boolean {
     return this.form.valid;
   }
 
-  protected override onFilesSelected(files: File[]): void {
-    this.setPreviewUrl(files[0] ? URL.createObjectURL(files[0]) : null);
-  }
-
-  override ngOnDestroy(): void {
-    this.setPreviewUrl(null);
-    super.ngOnDestroy();
-  }
-
-  private setPreviewUrl(url: string | null): void {
-    const previous = this.previewUrl();
-    if (previous) {
-      URL.revokeObjectURL(previous);
-    }
-    this.previewUrl.set(url);
-  }
-
-  protected override processFile(file: File): Promise<ImageOutput> {
+  protected override createProcessor(): JobProcessor {
     const value = this.form.getRawValue();
-    const format = outputFormatForFile(file);
 
-    return this.processing.renderAdjustments(file, {
-      ...value,
-      quality: 1,
-      format,
-      fileName: renameFile(file.name, 'adjusted', format),
-    });
+    return async (file) => {
+      const format = outputFormatForFile(file);
+
+      return this.processing.renderAdjustments(file, {
+        ...value,
+        quality: 1,
+        format,
+        fileName: renameFile(file.name, 'adjusted', format),
+      });
+    };
   }
 }
 

@@ -12,8 +12,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { debounceTime, map } from 'rxjs';
 
-import { ImageOutput } from '../../core/models/image-output.model';
 import { applyBackgroundKey } from '../../core/services/image-processing.service';
+import { JobProcessor } from '../../core/services/tool-session.service';
 import { BaseTool } from '../shared/base-tool';
 import { ToolShell } from '../shared/tool-shell';
 import { renameFile } from '../shared/image-tool-utils';
@@ -40,6 +40,7 @@ export class RemoveBackground extends BaseTool {
 
   private readonly canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('previewCanvas');
   private readonly source = signal<ImageData | null>(null);
+  private loadToken = 0;
   protected readonly previewReady = computed(() => this.source() !== null);
 
   private readonly keyParams = toSignal(
@@ -53,6 +54,22 @@ export class RemoveBackground extends BaseTool {
   constructor() {
     super();
 
+    // Decode a downscaled snapshot of the selected file for live keying.
+    effect(() => {
+      const file = this.selectedFile();
+      const token = ++this.loadToken;
+      if (!file) {
+        this.source.set(null);
+        return;
+      }
+      void loadPreviewData(file).then((data) => {
+        if (token === this.loadToken) {
+          this.source.set(data);
+        }
+      });
+    });
+
+    // Re-key whenever the snapshot, the parameters, or the canvas change.
     effect(() => {
       const data = this.source();
       const params = this.keyParams();
@@ -82,19 +99,16 @@ export class RemoveBackground extends BaseTool {
     return this.form.valid;
   }
 
-  protected override async onFilesSelected(files: File[]): Promise<void> {
-    this.source.set(files[0] ? await loadPreviewData(files[0]) : null);
-  }
-
-  protected override processFile(file: File): Promise<ImageOutput> {
+  protected override createProcessor(): JobProcessor {
     const value = this.form.getRawValue();
 
-    return this.processing.renderBackgroundRemoved(file, {
-      color: value.keyColor,
-      tolerance: value.tolerance,
-      edgeSmoothing: value.edgeSmoothing,
-      fileName: renameFile(file.name, 'transparent', 'image/png'),
-    });
+    return (file) =>
+      this.processing.renderBackgroundRemoved(file, {
+        color: value.keyColor,
+        tolerance: value.tolerance,
+        edgeSmoothing: value.edgeSmoothing,
+        fileName: renameFile(file.name, 'transparent', 'image/png'),
+      });
   }
 }
 

@@ -124,6 +124,55 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.file-choices {
+  display: grid;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.file-choice {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  overflow-wrap: anywhere;
+  padding: 0.5rem 0.7rem;
+  text-align: left;
+  width: 100%;
+}
+
+.file-choice:hover,
+.file-choice:focus-visible {
+  border-color: var(--accent);
+}
+
+.file-choice.is-selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  font-weight: 650;
+}
+
+.action-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.step-actions {
+  margin-top: 1.5rem;
+}
+
+.processing-note {
+  color: var(--muted);
+  margin: 1rem 0 2rem;
+}
+
 .tool-preview {
   display: grid;
   gap: 0.5rem;

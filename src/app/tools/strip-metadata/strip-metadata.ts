@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
-import { ImageOutput } from '../../core/models/image-output.model';
+import { JobProcessor } from '../../core/services/tool-session.service';
 import { BaseTool } from '../shared/base-tool';
 import { ToolShell } from '../shared/tool-shell';
 import { outputFormatForFile, renameFile } from '../shared/image-tool-utils';
@@ -15,15 +15,17 @@ import { outputFormatForFile, renameFile } from '../shared/image-tool-utils';
 export class StripMetadata extends BaseTool {
   protected readonly toolId = 'strip-metadata';
 
-  protected override async processFile(file: File): Promise<ImageOutput> {
-    const dimensions = await this.processing.getDimensions(file);
-    const format = outputFormatForFile(file);
+  protected override createProcessor(): JobProcessor {
+    return async (file) => {
+      const dimensions = await this.processing.getDimensions(file);
+      const format = outputFormatForFile(file);
 
-    return this.processing.renderToBlob(file, {
-      ...dimensions,
-      quality: 1,
-      format,
-      fileName: renameFile(file.name, 'clean', format),
-    });
+      return this.processing.renderToBlob(file, {
+        ...dimensions,
+        quality: 1,
+        format,
+        fileName: renameFile(file.name, 'clean', format),
+      });
+    };
   }
 }

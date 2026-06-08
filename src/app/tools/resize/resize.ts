@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  OnDestroy,
   computed,
   effect,
   signal,
@@ -9,11 +10,9 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { ImageOutput } from '../../core/models/image-output.model';
 import { NormalizedCrop, RenderTransform } from '../../core/services/image-processing.service';
-import { FileDropzone } from '../../shared/file-dropzone/file-dropzone';
-import { OutputList } from '../../shared/output-list/output-list';
-import { ProgressRing } from '../../shared/progress-ring/progress-ring';
+import { JobProcessor } from '../../core/services/tool-session.service';
+import { StepIndicator } from '../../shared/step-indicator/step-indicator';
 import { BaseTool } from '../shared/base-tool';
 import { outputFormatForFile, renameFile } from '../shared/image-tool-utils';
 
@@ -25,7 +24,7 @@ const FULL_CROP: NormalizedCrop = { x: 0, y: 0, width: 1, height: 1 };
 
 @Component({
   selector: 'app-resize-tool',
-  imports: [RouterLink, FileDropzone, OutputList, ProgressRing],
+  imports: [RouterLink, StepIndicator],
   templateUrl: './resize.html',
   styleUrls: ['../shared/tool-page.css', './resize.css'],
   host: {
@@ -34,7 +33,7 @@ const FULL_CROP: NormalizedCrop = { x: 0, y: 0, width: 1, height: 1 };
   },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Resize extends BaseTool {
+export class Resize extends BaseTool implements OnDestroy {
   protected readonly toolId = 'resize';
 
   protected readonly presets: readonly { value: AspectPreset; label: string }[] = [
@@ -222,28 +221,32 @@ export class Resize extends BaseTool {
     this.drag = null;
   }
 
-  protected override processFile(file: File): Promise<ImageOutput> {
-    const format = outputFormatForFile(file);
+  protected override createProcessor(): JobProcessor {
     const transform: RenderTransform = {
       rotateDegrees: this.rotateDegrees(),
       flipHorizontal: this.flipH(),
       flipVertical: this.flipV(),
     };
+    const crop = this.crop();
+    const outputWidth = this.outputWidth();
+    const outputHeight = this.outputHeight();
 
-    return this.processing.renderEdit(file, {
-      transform,
-      crop: this.crop(),
-      outputWidth: this.outputWidth(),
-      outputHeight: this.outputHeight(),
-      quality: 1,
-      format,
-      fileName: renameFile(file.name, 'edited', format),
-    });
+    return (file) => {
+      const format = outputFormatForFile(file);
+      return this.processing.renderEdit(file, {
+        transform,
+        crop,
+        outputWidth,
+        outputHeight,
+        quality: 1,
+        format,
+        fileName: renameFile(file.name, 'edited', format),
+      });
+    };
   }
 
-  override ngOnDestroy(): void {
+  ngOnDestroy(): void {
     this.releaseBitmap();
-    super.ngOnDestroy();
   }
 
   private releaseBitmap(): void {

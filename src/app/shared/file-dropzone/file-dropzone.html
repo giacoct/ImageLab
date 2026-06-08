@@ -6,6 +6,9 @@
   (drop)="handleDrop($event)"
 >
   <label class="dropzone-label">
+    <span class="dropzone-icon" aria-hidden="true">
+      <app-icon name="upload" [size]="30" />
+    </span>
     <span class="dropzone-title">Choose images</span>
     <span class="dropzone-copy">Drop files here or browse from your device.</span>
     <span class="dropzone-meta">{{ acceptedLabel() }}</span>

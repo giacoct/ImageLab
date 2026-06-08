@@ -7,11 +7,12 @@ import { DownloadService } from '../../core/services/download.service';
 import { ToolRegistryService } from '../../core/services/tool-registry.service';
 import { ToolSessionService } from '../../core/services/tool-session.service';
 import { formatBytes } from '../../tools/shared/image-tool-utils';
+import { Icon } from '../icon/icon';
 
 @Component({
   selector: 'app-output-list',
   templateUrl: './output-list.html',
-  imports: [NgTemplateOutlet],
+  imports: [NgTemplateOutlet, Icon],
   styleUrl: './output-list.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

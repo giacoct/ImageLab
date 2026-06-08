@@ -27,9 +27,29 @@
   transform: translateY(-2px);
 }
 
-.tool-badge {
-  align-self: start;
-  justify-self: start;
+.tool-card-top {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.tool-icon {
+  align-items: center;
+  border-radius: 0.6rem;
+  display: inline-flex;
+  height: 2.75rem;
+  justify-content: center;
+  width: 2.75rem;
+}
+
+.tool-icon.batch {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.tool-icon.single {
+  background: #fef3c7;
+  color: #92600e;
 }
 
 h2 {

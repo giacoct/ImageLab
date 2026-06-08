@@ -16,7 +16,10 @@
           <h3>{{ outputs().length }} images</h3>
           <p>{{ readableSize(totalSize()) }} · ZIP archive</p>
           <div class="action-row">
-            <button class="button" type="button" (click)="downloadZip()">Download ZIP</button>
+            <button class="button" type="button" (click)="downloadZip()">
+              <app-icon name="download" [size]="18" />
+              Download ZIP
+            </button>
             <ng-container [ngTemplateOutlet]="chainControl" />
           </div>
         </div>
@@ -29,7 +32,10 @@
             <h3>{{ output.fileName }}</h3>
             <p>{{ output.width }} x {{ output.height }} px | {{ readableSize(output.size) }}</p>
             <div class="action-row">
-              <button class="button" type="button" (click)="download(output)">Download</button>
+              <button class="button" type="button" (click)="download(output)">
+                <app-icon name="download" [size]="18" />
+                Download
+              </button>
               <ng-container [ngTemplateOutlet]="chainControl" />
             </div>
           </div>
@@ -48,6 +54,7 @@
         }
       </select>
       <button class="button secondary" type="button" (click)="sendToTool(chainTarget.value)">
+        <app-icon name="send" [size]="18" />
         Use
       </button>
     </div>

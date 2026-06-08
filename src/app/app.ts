@@ -6,10 +6,11 @@ import { filter } from 'rxjs';
 
 import { ToolRegistryService } from './core/services/tool-registry.service';
 import { ToolSessionService } from './core/services/tool-session.service';
+import { Icon } from './shared/icon/icon';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, NgOptimizedImage],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, NgOptimizedImage, Icon],
   templateUrl: './app.html',
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

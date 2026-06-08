@@ -3,6 +3,9 @@
 <section class="tool-header">
   <div>
     <div class="tool-title-row">
+      <span class="tool-icon" [class.batch]="tool().batch" [class.single]="!tool().batch">
+        <app-icon [name]="tool().id" [size]="22" />
+      </span>
       <h1>{{ tool().title }}</h1>
       <span class="tool-badge" [class.batch]="tool().batch" [class.single]="!tool().batch">
         {{ tool().batch ? 'Batch' : 'Single' }}
@@ -37,5 +40,6 @@
     (click)="continue()"
   >
     Continue
+    <app-icon name="arrow-right" [size]="18" />
   </button>
 </div>

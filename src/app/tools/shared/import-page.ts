@@ -15,6 +15,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ToolRegistryService } from '../../core/services/tool-registry.service';
 import { ToolSessionService } from '../../core/services/tool-session.service';
 import { FileDropzone } from '../../shared/file-dropzone/file-dropzone';
+import { Icon } from '../../shared/icon/icon';
 import { StepIndicator } from '../../shared/step-indicator/step-indicator';
 
 /**
@@ -23,7 +24,7 @@ import { StepIndicator } from '../../shared/step-indicator/step-indicator';
  */
 @Component({
   selector: 'app-import-page',
-  imports: [RouterLink, FileDropzone, StepIndicator],
+  imports: [RouterLink, FileDropzone, Icon, StepIndicator],
   templateUrl: './import-page.html',
   styleUrl: './tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,7 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 
+import { Icon } from '../icon/icon';
+
 @Component({
   selector: 'app-file-dropzone',
+  imports: [Icon],
   templateUrl: './file-dropzone.html',
   styleUrl: './file-dropzone.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

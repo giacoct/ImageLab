@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { RouterLink } from '@angular/router';
 
 import { ImageToolDefinition } from '../../core/models/image-tool.model';
+import { Icon } from '../../shared/icon/icon';
 import { StepIndicator } from '../../shared/step-indicator/step-indicator';
 
 /**
@@ -12,7 +13,7 @@ import { StepIndicator } from '../../shared/step-indicator/step-indicator';
  */
 @Component({
   selector: 'app-tool-shell',
-  imports: [RouterLink, StepIndicator],
+  imports: [RouterLink, Icon, StepIndicator],
   templateUrl: './tool-shell.html',
   styleUrl: './tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

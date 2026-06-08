@@ -3,6 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { ToolRegistryService } from '../../core/services/tool-registry.service';
 import { ToolSessionService } from '../../core/services/tool-session.service';
+import { Icon } from '../../shared/icon/icon';
 import { OutputList } from '../../shared/output-list/output-list';
 import { ProgressBar } from '../../shared/progress-bar/progress-bar';
 import { StepIndicator } from '../../shared/step-indicator/step-indicator';
@@ -13,7 +14,7 @@ import { StepIndicator } from '../../shared/step-indicator/step-indicator';
  */
 @Component({
   selector: 'app-output-page',
-  imports: [RouterLink, StepIndicator, ProgressBar, OutputList],
+  imports: [RouterLink, Icon, StepIndicator, ProgressBar, OutputList],
   templateUrl: './output-page.html',
   styleUrl: './tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

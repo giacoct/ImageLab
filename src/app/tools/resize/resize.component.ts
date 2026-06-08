@@ -14,6 +14,7 @@ import { ImageOutput } from '../../core/models/image-output.model';
 import { NormalizedCrop, RenderTransform } from '../../core/services/image-processing.service';
 import { FileDropzoneComponent } from '../../shared/file-dropzone/file-dropzone.component';
 import { OutputListComponent } from '../../shared/output-list/output-list.component';
+import { ProgressRingComponent } from '../../shared/progress-ring/progress-ring.component';
 import { BaseToolComponent } from '../shared/base-tool.component';
 import { outputFormatForFile, renameFile } from '../shared/image-tool-utils';
 
@@ -25,7 +26,7 @@ const FULL_CROP: NormalizedCrop = { x: 0, y: 0, width: 1, height: 1 };
 
 @Component({
   selector: 'app-resize-tool',
-  imports: [RouterLink, FileDropzoneComponent, OutputListComponent],
+  imports: [RouterLink, FileDropzoneComponent, OutputListComponent, ProgressRingComponent],
   template: `
     <a class="back-link" routerLink="/">« Back to tools</a>
 
@@ -149,7 +150,7 @@ const FULL_CROP: NormalizedCrop = { x: 0, y: 0, width: 1, height: 1 };
           }
 
           <button class="button" type="button" [disabled]="!canProcess()" (click)="process()">
-            {{ isProcessing() ? 'Processing...' : 'Export image' }}
+            <app-progress-ring>{{ isProcessing() ? 'Processing...' : 'Export image' }}</app-progress-ring>
           </button>
         </aside>
       </div>

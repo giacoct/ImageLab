@@ -1,0 +1,29 @@
+:host {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.btn-ring {
+  flex: 0 0 auto;
+  transform: rotate(-90deg);
+}
+
+.btn-ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 3;
+}
+
+.btn-ring-value {
+  fill: none;
+  stroke: #ffffff;
+  stroke-linecap: round;
+  stroke-width: 3;
+  transition: stroke-dashoffset 200ms ease;
+}
+
+.btn-ring-pct {
+  font-variant-numeric: tabular-nums;
+}

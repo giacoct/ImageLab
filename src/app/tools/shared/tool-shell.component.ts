@@ -5,6 +5,7 @@ import { ImageOutput } from '../../core/models/image-output.model';
 import { ImageToolDefinition } from '../../core/models/image-tool.model';
 import { FileDropzoneComponent } from '../../shared/file-dropzone/file-dropzone.component';
 import { OutputListComponent } from '../../shared/output-list/output-list.component';
+import { ProgressRingComponent } from '../../shared/progress-ring/progress-ring.component';
 
 /**
  * Common chrome for a tool page: back link, header, dropzone, selected-files
@@ -14,7 +15,7 @@ import { OutputListComponent } from '../../shared/output-list/output-list.compon
  */
 @Component({
   selector: 'app-tool-shell',
-  imports: [RouterLink, FileDropzoneComponent, OutputListComponent],
+  imports: [RouterLink, FileDropzoneComponent, OutputListComponent, ProgressRingComponent],
   template: `
     <a class="back-link" routerLink="/">
       <svg
@@ -76,7 +77,7 @@ import { OutputListComponent } from '../../shared/output-list/output-list.compon
         }
 
         <button class="button" type="button" [disabled]="!canProcess()" (click)="process.emit()">
-          {{ isProcessing() ? 'Processing...' : actionLabel() }}
+          <app-progress-ring>{{ isProcessing() ? 'Processing...' : actionLabel() }}</app-progress-ring>
         </button>
       </section>
     </div>

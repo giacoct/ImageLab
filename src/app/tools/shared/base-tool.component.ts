@@ -4,6 +4,7 @@ import { ImageOutput } from '../../core/models/image-output.model';
 import { ImageToolDefinition } from '../../core/models/image-tool.model';
 import { ImagePipelineService } from '../../core/services/image-pipeline.service';
 import { ImageProcessingService } from '../../core/services/image-processing.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { ToolRegistryService } from '../../core/services/tool-registry.service';
 
 /**
@@ -18,6 +19,7 @@ export abstract class BaseToolComponent implements OnInit, OnDestroy {
   protected readonly processing = inject(ImageProcessingService);
   private readonly pipeline = inject(ImagePipelineService);
   private readonly registry = inject(ToolRegistryService);
+  private readonly notifications = inject(NotificationService);
 
   /** Registry id of the tool, e.g. `'resize'`. */
   protected abstract readonly toolId: string;
@@ -65,15 +67,21 @@ export abstract class BaseToolComponent implements OnInit, OnDestroy {
     this.error.set('');
     this.replaceOutputs([]);
 
+    const files = this.selectedFiles();
+    this.notifications.startJob(files.length);
+
     try {
       const nextOutputs: ImageOutput[] = [];
 
-      for (const file of this.selectedFiles()) {
+      for (const file of files) {
         nextOutputs.push(await this.processFile(file));
+        this.notifications.advanceJob(nextOutputs.length);
       }
 
       this.outputs.set(nextOutputs);
+      this.notifications.finishJob(nextOutputs.length);
     } catch (error) {
+      this.notifications.cancelJob();
       this.error.set(error instanceof Error ? error.message : this.errorMessage);
     } finally {
       this.isProcessing.set(false);

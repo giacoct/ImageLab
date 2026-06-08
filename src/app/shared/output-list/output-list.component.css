@@ -26,24 +26,56 @@ h2 {
   color: var(--muted);
 }
 
-.output-grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
 .output-item {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
+  max-width: 360px;
   overflow: hidden;
 }
 
-.output-item img {
+.output-item > img {
   aspect-ratio: 4 / 3;
   background: var(--panel-subtle);
+  display: block;
   object-fit: contain;
   width: 100%;
+}
+
+/* Album preview: a fanned stack of the batch's images. */
+.album-stack {
+  aspect-ratio: 4 / 3;
+  background: var(--panel-subtle);
+  display: grid;
+  overflow: hidden;
+  place-items: center;
+  position: relative;
+}
+
+.album-img {
+  aspect-ratio: 4 / 3;
+  border: 3px solid #fff;
+  border-radius: 0.4rem;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.22);
+  grid-area: 1 / 1;
+  object-fit: cover;
+  transform: rotate(calc((var(--i) - 1.5) * 6deg))
+    translateX(calc((var(--i) - 1.5) * 8px));
+  width: 62%;
+  z-index: calc(10 - var(--i));
+}
+
+.album-badge {
+  background: var(--accent-strong);
+  border-radius: 999px;
+  bottom: 0.6rem;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 760;
+  padding: 0.25rem 0.7rem;
+  position: absolute;
+  right: 0.6rem;
+  z-index: 11;
 }
 
 .output-body {
@@ -52,10 +84,21 @@ h2 {
   padding: 1rem;
 }
 
-.chain-row {
-  display: grid;
+.action-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.action-row .button {
+  flex: 0 0 auto;
+}
+
+.chain-row {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.5rem;
 }
 
 .chain-row select {
@@ -63,6 +106,7 @@ h2 {
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   color: var(--ink);
+  flex: 1 1 auto;
   min-height: 2.75rem;
   min-width: 0;
   padding: 0.55rem 0.7rem;

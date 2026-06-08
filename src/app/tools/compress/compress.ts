@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { ImageOutput } from '../../core/models/image-output.model';
-import { BaseToolComponent } from '../shared/base-tool.component';
-import { ToolShellComponent } from '../shared/tool-shell.component';
+import { BaseTool } from '../shared/base-tool';
+import { ToolShell } from '../shared/tool-shell';
 import {
   clampQuality,
   dimensionsForMaxSize,
@@ -13,37 +13,12 @@ import {
 
 @Component({
   selector: 'app-compress-tool',
-  imports: [ToolShellComponent, ReactiveFormsModule],
-  template: `
-    <app-tool-shell
-      [tool]="tool"
-      [selectedFiles]="selectedFiles()"
-      [outputs]="outputs()"
-      [isProcessing]="isProcessing()"
-      [error]="error()"
-      [canProcess]="canProcess()"
-      actionLabel="Compress images"
-      (filesSelected)="setFiles($event)"
-      (process)="process()"
-    >
-      <div class="tool-fields" [formGroup]="form">
-        <div class="field">
-          <label for="maxSize">Maximum side</label>
-          <input id="maxSize" type="number" min="320" step="10" formControlName="maxSize" />
-          <span class="field-hint">Images smaller than this keep their original dimensions.</span>
-        </div>
-
-        <div class="field">
-          <label for="quality">Quality: {{ form.controls.quality.value }}%</label>
-          <input id="quality" type="range" min="10" max="95" step="5" formControlName="quality" />
-        </div>
-      </div>
-    </app-tool-shell>
-  `,
+  imports: [ToolShell, ReactiveFormsModule],
+  templateUrl: './compress.html',
   styleUrl: '../shared/tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CompressComponent extends BaseToolComponent {
+export class Compress extends BaseTool {
   private readonly fb = inject(NonNullableFormBuilder);
 
   protected readonly toolId = 'compress';

@@ -1,0 +1,55 @@
+@if (outputs().length > 0) {
+  <section class="outputs" aria-labelledby="outputs-title">
+    <div class="outputs-header">
+      <h2 id="outputs-title">Output</h2>
+    </div>
+
+    @if (isBatch()) {
+      <article class="output-item album-card">
+        <div class="album-stack" aria-hidden="true">
+          @for (output of stackPreview(); track output.url; let i = $index) {
+            <img class="album-img" [src]="output.url" alt="" [style.--i]="i" />
+          }
+          <span class="album-badge">{{ outputs().length }}</span>
+        </div>
+        <div class="output-body">
+          <h3>{{ outputs().length }} images</h3>
+          <p>{{ readableSize(totalSize()) }} · ZIP archive</p>
+          <div class="action-row">
+            <button class="button" type="button" (click)="downloadZip()">Download ZIP</button>
+            <ng-container [ngTemplateOutlet]="chainControl" />
+          </div>
+        </div>
+      </article>
+    } @else {
+      @for (output of outputs(); track output.url) {
+        <article class="output-item">
+          <img [src]="output.url" [alt]="output.fileName" />
+          <div class="output-body">
+            <h3>{{ output.fileName }}</h3>
+            <p>{{ output.width }} x {{ output.height }} px | {{ readableSize(output.size) }}</p>
+            <div class="action-row">
+              <button class="button" type="button" (click)="download(output)">Download</button>
+              <ng-container [ngTemplateOutlet]="chainControl" />
+            </div>
+          </div>
+        </article>
+      }
+    }
+  </section>
+}
+
+<ng-template #chainControl>
+  @if (chainTargets().length > 0) {
+    <div class="chain-row">
+      <select #chainTarget aria-label="Use these images in another tool">
+        @for (tool of chainTargets(); track tool.id) {
+          <option [value]="tool.id">{{ tool.title }}</option>
+        }
+      </select>
+      <button class="button secondary" type="button" (click)="sendToTool(chainTarget.value)">
+        Use
+      </button>
+    </div>
+  }
+</ng-template>

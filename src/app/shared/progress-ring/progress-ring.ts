@@ -11,28 +11,11 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
  */
 @Component({
   selector: 'app-progress-ring',
-  template: `
-    @if (active()) {
-      <svg class="btn-ring" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-        <circle class="btn-ring-track" cx="10" cy="10" [attr.r]="radius" />
-        <circle
-          class="btn-ring-value"
-          cx="10"
-          cy="10"
-          [attr.r]="radius"
-          [attr.stroke-dasharray]="circumference"
-          [attr.stroke-dashoffset]="dashOffset()"
-        />
-      </svg>
-      <span class="btn-ring-pct">{{ percent() }}%</span>
-    } @else {
-      <ng-content />
-    }
-  `,
-  styleUrl: './progress-ring.component.css',
+  templateUrl: './progress-ring.html',
+  styleUrl: './progress-ring.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProgressRingComponent {
+export class ProgressRing {
   private readonly notifications = inject(NotificationService);
 
   protected readonly radius = RADIUS;

@@ -1,0 +1,63 @@
+<app-tool-shell
+  [tool]="tool"
+  [selectedFiles]="selectedFiles()"
+  [outputs]="outputs()"
+  [isProcessing]="isProcessing()"
+  [error]="error()"
+  [canProcess]="canProcess()"
+  actionLabel="Apply adjustments"
+  (filesSelected)="setFiles($event)"
+  (process)="process()"
+>
+  @if (previewUrl()) {
+    <section preview class="tool-preview panel" aria-label="Live preview">
+      <h2>Preview</h2>
+      <div class="preview-stage">
+        <img [src]="previewUrl()" [style.filter]="cssFilter()" alt="Adjusted preview" />
+      </div>
+    </section>
+  }
+
+  <div class="tool-fields" [formGroup]="form">
+    <div class="field">
+      <label for="brightness">Brightness: {{ form.controls.brightness.value }}%</label>
+      <input id="brightness" type="range" min="0" max="200" step="1" formControlName="brightness" />
+    </div>
+
+    <div class="field">
+      <label for="contrast">Contrast: {{ form.controls.contrast.value }}%</label>
+      <input id="contrast" type="range" min="0" max="200" step="1" formControlName="contrast" />
+    </div>
+
+    <div class="field">
+      <label for="saturation">Saturation: {{ form.controls.saturation.value }}%</label>
+      <input id="saturation" type="range" min="0" max="200" step="1" formControlName="saturation" />
+    </div>
+
+    <div class="field">
+      <label for="grayscale">Grayscale: {{ form.controls.grayscale.value }}%</label>
+      <input id="grayscale" type="range" min="0" max="100" step="1" formControlName="grayscale" />
+    </div>
+
+    <div class="field">
+      <label for="sepia">Sepia: {{ form.controls.sepia.value }}%</label>
+      <input id="sepia" type="range" min="0" max="100" step="1" formControlName="sepia" />
+    </div>
+
+    <div class="field">
+      <label for="blur">Blur: {{ form.controls.blur.value }}px</label>
+      <input id="blur" type="range" min="0" max="20" step="1" formControlName="blur" />
+    </div>
+
+    <div class="field">
+      <label for="sharpen">Sharpen: {{ form.controls.sharpen.value }}%</label>
+      <input id="sharpen" type="range" min="0" max="100" step="1" formControlName="sharpen" />
+      <span class="field-hint">Sharpen is applied on export and not shown in the preview.</span>
+    </div>
+
+    <label class="check-row">
+      <input type="checkbox" formControlName="invert" />
+      Invert colors
+    </label>
+  </div>
+</app-tool-shell>

@@ -30,10 +30,8 @@
 }
 
 .brand-logo {
-  align-items: center;
-  justify-content: center;
-  display: inline-flex;
   height: 2.5rem;
+  width: auto;
 }
 
 .header-actions {

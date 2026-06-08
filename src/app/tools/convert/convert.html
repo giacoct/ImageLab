@@ -1,0 +1,37 @@
+<app-tool-shell
+  [tool]="tool"
+  [selectedFiles]="selectedFiles()"
+  [outputs]="outputs()"
+  [isProcessing]="isProcessing()"
+  [error]="error()"
+  [canProcess]="canProcess()"
+  actionLabel="Convert images"
+  (filesSelected)="setFiles($event)"
+  (process)="process()"
+>
+  <div class="tool-fields" [formGroup]="form">
+    <div class="field">
+      <label for="format">Output format</label>
+      <select id="format" formControlName="format">
+        <option value="image/jpeg">JPEG</option>
+        <option value="image/png">PNG</option>
+        <option value="image/webp">WebP</option>
+        <option value="image/x-icon">ICO icon</option>
+      </select>
+    </div>
+
+    @if (form.controls.format.value === 'image/x-icon') {
+      <div class="field">
+        <label for="size">Icon size</label>
+        <select id="size" formControlName="size">
+          <option [value]="16">16 x 16</option>
+          <option [value]="32">32 x 32</option>
+          <option [value]="48">48 x 48</option>
+          <option [value]="64">64 x 64</option>
+          <option [value]="128">128 x 128</option>
+          <option [value]="256">256 x 256</option>
+        </select>
+      </div>
+    }
+  </div>
+</app-tool-shell>

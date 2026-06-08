@@ -15,7 +15,7 @@ import { ToolRegistryService } from '../../core/services/tool-registry.service';
  * `errorMessage`) cover the few places tools differ.
  */
 @Directive()
-export abstract class BaseToolComponent implements OnInit, OnDestroy {
+export abstract class BaseTool implements OnInit, OnDestroy {
   protected readonly processing = inject(ImageProcessingService);
   private readonly pipeline = inject(ImagePipelineService);
   private readonly registry = inject(ToolRegistryService);

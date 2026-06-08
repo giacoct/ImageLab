@@ -1,0 +1,11 @@
+<div class="notif-stack" aria-live="polite">
+  @if (toast(); as message) {
+    <div class="notif toast" role="status">
+      <span class="toast-icon" aria-hidden="true">✓</span>
+      <p>{{ message }}</p>
+      <button class="toast-dismiss" type="button" aria-label="Dismiss" (click)="dismiss()">
+        ×
+      </button>
+    </div>
+  }
+</div>

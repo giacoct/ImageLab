@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  HostListener,
   computed,
   effect,
   signal,
@@ -12,10 +11,10 @@ import { RouterLink } from '@angular/router';
 
 import { ImageOutput } from '../../core/models/image-output.model';
 import { NormalizedCrop, RenderTransform } from '../../core/services/image-processing.service';
-import { FileDropzoneComponent } from '../../shared/file-dropzone/file-dropzone.component';
-import { OutputListComponent } from '../../shared/output-list/output-list.component';
-import { ProgressRingComponent } from '../../shared/progress-ring/progress-ring.component';
-import { BaseToolComponent } from '../shared/base-tool.component';
+import { FileDropzone } from '../../shared/file-dropzone/file-dropzone';
+import { OutputList } from '../../shared/output-list/output-list';
+import { ProgressRing } from '../../shared/progress-ring/progress-ring';
+import { BaseTool } from '../shared/base-tool';
 import { outputFormatForFile, renameFile } from '../shared/image-tool-utils';
 
 type AspectPreset = 'free' | 'original' | '1:1' | '4:3' | '16:9';
@@ -26,142 +25,16 @@ const FULL_CROP: NormalizedCrop = { x: 0, y: 0, width: 1, height: 1 };
 
 @Component({
   selector: 'app-resize-tool',
-  imports: [RouterLink, FileDropzoneComponent, OutputListComponent, ProgressRingComponent],
-  template: `
-    <a class="back-link" routerLink="/">« Back to tools</a>
-
-    <section class="tool-header">
-      <div>
-        <p class="eyebrow">Tool</p>
-        <h1>{{ tool.title }}</h1>
-      </div>
-      <p>{{ tool.description }}</p>
-    </section>
-
-    <app-file-dropzone
-      [acceptedTypes]="tool.acceptedTypes"
-      [multiple]="false"
-      (filesSelected)="setFiles($event)"
-    />
-
-    @if (hasImage()) {
-      <div class="editor">
-        <div class="editor-stage panel">
-          <div class="stage-canvas-wrap">
-            <canvas #previewCanvas class="stage-canvas"></canvas>
-            <div
-              class="crop-box"
-              [style.left.%]="crop().x * 100"
-              [style.top.%]="crop().y * 100"
-              [style.width.%]="crop().width * 100"
-              [style.height.%]="crop().height * 100"
-            >
-              <div class="crop-move" (pointerdown)="startDrag($event, 'move')"></div>
-              @for (handle of handles(); track handle) {
-                <span
-                  class="crop-handle h-{{ handle }}"
-                  (pointerdown)="startDrag($event, handle)"
-                ></span>
-              }
-            </div>
-          </div>
-        </div>
-
-        <aside class="editor-controls panel">
-          <div class="control-group">
-            <h2>Transform</h2>
-            <div class="button-row">
-              <button class="button secondary" type="button" (click)="rotate()">Rotate 90°</button>
-              <button
-                class="button secondary"
-                type="button"
-                [class.is-on]="flipH()"
-                (click)="toggleFlipH()"
-              >
-                Mirror
-              </button>
-              <button
-                class="button secondary"
-                type="button"
-                [class.is-on]="flipV()"
-                (click)="toggleFlipV()"
-              >
-                Flip
-              </button>
-            </div>
-          </div>
-
-          <div class="control-group">
-            <h2>Crop ratio</h2>
-            <div class="button-row">
-              @for (preset of presets; track preset.value) {
-                <button
-                  class="button secondary"
-                  type="button"
-                  [class.is-on]="aspect() === preset.value"
-                  (click)="setAspect(preset.value)"
-                >
-                  {{ preset.label }}
-                </button>
-              }
-            </div>
-          </div>
-
-          <div class="control-group">
-            <h2>Output size</h2>
-            <label class="check-row">
-              <input type="checkbox" [checked]="matchCrop()" (change)="toggleMatchCrop($event)" />
-              Match crop size ({{ cropPixels().width }} × {{ cropPixels().height }} px)
-            </label>
-
-            @if (!matchCrop()) {
-              <div class="settings-grid">
-                <div class="field">
-                  <label for="width">Width</label>
-                  <input
-                    id="width"
-                    type="number"
-                    min="1"
-                    [value]="outputWidth()"
-                    (input)="onWidthInput($event)"
-                  />
-                </div>
-                <div class="field">
-                  <label for="height">Height</label>
-                  <input
-                    id="height"
-                    type="number"
-                    min="1"
-                    [value]="outputHeight()"
-                    (input)="onHeightInput($event)"
-                  />
-                </div>
-              </div>
-
-              <label class="check-row">
-                <input type="checkbox" [checked]="lockAspect()" (change)="toggleLockAspect($event)" />
-                Lock aspect ratio
-              </label>
-            }
-          </div>
-
-          @if (error()) {
-            <p class="error" role="alert">{{ error() }}</p>
-          }
-
-          <button class="button" type="button" [disabled]="!canProcess()" (click)="process()">
-            <app-progress-ring>{{ isProcessing() ? 'Processing...' : 'Export image' }}</app-progress-ring>
-          </button>
-        </aside>
-      </div>
-    }
-
-    <app-output-list [outputs]="outputs()" [currentToolId]="tool.id" />
-  `,
-  styleUrls: ['../shared/tool-page.css', './resize.component.css'],
+  imports: [RouterLink, FileDropzone, OutputList, ProgressRing],
+  templateUrl: './resize.html',
+  styleUrls: ['../shared/tool-page.css', './resize.css'],
+  host: {
+    '(window:pointermove)': 'onPointerMove($event)',
+    '(window:pointerup)': 'onPointerUp()',
+  },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ResizeComponent extends BaseToolComponent {
+export class Resize extends BaseTool {
   protected readonly toolId = 'resize';
 
   protected readonly presets: readonly { value: AspectPreset; label: string }[] = [
@@ -263,7 +136,7 @@ export class ResizeComponent extends BaseToolComponent {
   }
 
   protected rotate(): void {
-    this.rotateDegrees.update((d) => (((d + 90) % 360) as 0 | 90 | 180 | 270));
+    this.rotateDegrees.update((d) => ((d + 90) % 360) as 0 | 90 | 180 | 270);
     this.resetCrop();
   }
 
@@ -324,10 +197,14 @@ export class ResizeComponent extends BaseToolComponent {
     if (!wrap || !canvas) {
       return;
     }
-    this.drag = { mode, startX: event.clientX, startY: event.clientY, rect: canvas.getBoundingClientRect() };
+    this.drag = {
+      mode,
+      startX: event.clientX,
+      startY: event.clientY,
+      rect: canvas.getBoundingClientRect(),
+    };
   }
 
-  @HostListener('window:pointermove', ['$event'])
   protected onPointerMove(event: PointerEvent): void {
     const drag = this.drag;
     if (!drag || drag.rect.width === 0 || drag.rect.height === 0) {
@@ -341,7 +218,6 @@ export class ResizeComponent extends BaseToolComponent {
     this.crop.update((c) => applyDrag(c, drag.mode, dx, dy, k));
   }
 
-  @HostListener('window:pointerup')
   protected onPointerUp(): void {
     this.drag = null;
   }

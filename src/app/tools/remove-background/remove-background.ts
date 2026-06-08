@@ -14,8 +14,8 @@ import { debounceTime, map } from 'rxjs';
 
 import { ImageOutput } from '../../core/models/image-output.model';
 import { applyBackgroundKey } from '../../core/services/image-processing.service';
-import { BaseToolComponent } from '../shared/base-tool.component';
-import { ToolShellComponent } from '../shared/tool-shell.component';
+import { BaseTool } from '../shared/base-tool';
+import { ToolShell } from '../shared/tool-shell';
 import { renameFile } from '../shared/image-tool-utils';
 
 /** Longest side of the downscaled preview, in pixels. */
@@ -23,67 +23,12 @@ const PREVIEW_MAX_SIDE = 480;
 
 @Component({
   selector: 'app-remove-background-tool',
-  imports: [ToolShellComponent, ReactiveFormsModule],
-  template: `
-    <app-tool-shell
-      [tool]="tool"
-      [selectedFiles]="selectedFiles()"
-      [outputs]="outputs()"
-      [isProcessing]="isProcessing()"
-      [error]="error()"
-      [canProcess]="canProcess()"
-      actionLabel="Remove background"
-      (filesSelected)="setFiles($event)"
-      (process)="process()"
-    >
-      @if (previewReady()) {
-        <section preview class="tool-preview panel" aria-label="Live preview">
-          <h2>Preview</h2>
-          <div class="preview-stage is-transparent">
-            <canvas #previewCanvas></canvas>
-          </div>
-          <span class="preview-hint">Preview is downscaled; export keys at full resolution.</span>
-        </section>
-      }
-
-      <div class="tool-fields" [formGroup]="form">
-        <div class="field">
-          <label for="keyColor">Key color</label>
-          <input id="keyColor" type="color" formControlName="keyColor" />
-        </div>
-
-        <div class="field">
-          <label for="tolerance">Tolerance: {{ form.controls.tolerance.value }}%</label>
-          <input
-            id="tolerance"
-            type="range"
-            min="1"
-            max="100"
-            step="1"
-            formControlName="tolerance"
-          />
-        </div>
-
-        <div class="field">
-          <label for="edgeSmoothing"
-            >Edge smoothing: {{ form.controls.edgeSmoothing.value }}%</label
-          >
-          <input
-            id="edgeSmoothing"
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            formControlName="edgeSmoothing"
-          />
-        </div>
-      </div>
-    </app-tool-shell>
-  `,
+  imports: [ToolShell, ReactiveFormsModule],
+  templateUrl: './remove-background.html',
   styleUrl: '../shared/tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class RemoveBackgroundComponent extends BaseToolComponent {
+export class RemoveBackground extends BaseTool {
   private readonly fb = inject(NonNullableFormBuilder);
 
   protected readonly toolId = 'remove-background';

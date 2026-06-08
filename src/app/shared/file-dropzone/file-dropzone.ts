@@ -2,31 +2,11 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 
 @Component({
   selector: 'app-file-dropzone',
-  template: `
-    <section
-      class="dropzone"
-      [class.is-dragging]="isDragging()"
-      (dragover)="handleDragOver($event)"
-      (dragleave)="handleDragLeave($event)"
-      (drop)="handleDrop($event)"
-    >
-      <label class="dropzone-label">
-        <span class="dropzone-title">Choose images</span>
-        <span class="dropzone-copy">Drop files here or browse from your device.</span>
-        <span class="dropzone-meta">{{ acceptedLabel() }}</span>
-        <input
-          type="file"
-          [attr.accept]="acceptAttribute()"
-          [multiple]="multiple()"
-          (change)="handleInput($event)"
-        />
-      </label>
-    </section>
-  `,
-  styleUrl: './file-dropzone.component.css',
+  templateUrl: './file-dropzone.html',
+  styleUrl: './file-dropzone.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FileDropzoneComponent {
+export class FileDropzone {
   readonly acceptedTypes = input<readonly string[]>(['image/jpeg', 'image/png', 'image/webp']);
   readonly multiple = input(true);
   readonly filesSelected = output<File[]>();

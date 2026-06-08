@@ -1,12 +1,13 @@
+import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
-import { NotificationsComponent } from './shared/notifications/notifications.component';
+import { Notifications } from './shared/notifications/notifications';
 import { ToolRegistryService } from './core/services/tool-registry.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, NotificationsComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, NgOptimizedImage, Notifications],
   templateUrl: './app.html',
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

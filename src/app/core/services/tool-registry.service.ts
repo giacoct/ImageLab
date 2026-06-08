@@ -11,8 +11,7 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxFiles: 1,
     batch: false,
-    loadComponent: () =>
-      import('../../tools/resize/resize.component').then((m) => m.ResizeComponent),
+    loadComponent: () => import('../../tools/resize/resize').then((m) => m.Resize),
   },
   {
     id: 'convert',
@@ -22,8 +21,7 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxFiles: null,
     batch: true,
-    loadComponent: () =>
-      import('../../tools/convert/convert.component').then((m) => m.ConvertComponent),
+    loadComponent: () => import('../../tools/convert/convert').then((m) => m.Convert),
   },
   {
     id: 'compress',
@@ -33,8 +31,7 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxFiles: null,
     batch: true,
-    loadComponent: () =>
-      import('../../tools/compress/compress.component').then((m) => m.CompressComponent),
+    loadComponent: () => import('../../tools/compress/compress').then((m) => m.Compress),
   },
   {
     id: 'strip-metadata',
@@ -45,9 +42,7 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     maxFiles: null,
     batch: true,
     loadComponent: () =>
-      import('../../tools/strip-metadata/strip-metadata.component').then(
-        (m) => m.StripMetadataComponent,
-      ),
+      import('../../tools/strip-metadata/strip-metadata').then((m) => m.StripMetadata),
   },
   {
     id: 'remove-background',
@@ -58,9 +53,7 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     maxFiles: null,
     batch: true,
     loadComponent: () =>
-      import('../../tools/remove-background/remove-background.component').then(
-        (m) => m.RemoveBackgroundComponent,
-      ),
+      import('../../tools/remove-background/remove-background').then((m) => m.RemoveBackground),
   },
   {
     id: 'adjust',
@@ -70,8 +63,7 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxFiles: null,
     batch: true,
-    loadComponent: () =>
-      import('../../tools/adjust/adjust.component').then((m) => m.AdjustComponent),
+    loadComponent: () => import('../../tools/adjust/adjust').then((m) => m.Adjust),
   },
 ];
 

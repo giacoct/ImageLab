@@ -8,14 +8,14 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { debounceTime, map } from 'rxjs';
 
-import { ImageOutput } from '../../core/models/image-output.model';
 import { applyBackgroundKey } from '../../core/services/image-processing.service';
-import { BaseToolComponent } from '../shared/base-tool.component';
-import { ToolShellComponent } from '../shared/tool-shell.component';
+import { JobProcessor } from '../../core/services/tool-session.service';
+import { BaseTool } from '../shared/base-tool';
+import { ToolShell } from '../shared/tool-shell';
 import { renameFile } from '../shared/image-tool-utils';
 
 /** Longest side of the downscaled preview, in pixels. */
@@ -23,67 +23,12 @@ const PREVIEW_MAX_SIDE = 480;
 
 @Component({
   selector: 'app-remove-background-tool',
-  imports: [ToolShellComponent, ReactiveFormsModule],
-  template: `
-    <app-tool-shell
-      [tool]="tool"
-      [selectedFiles]="selectedFiles()"
-      [outputs]="outputs()"
-      [isProcessing]="isProcessing()"
-      [error]="error()"
-      [canProcess]="canProcess()"
-      actionLabel="Remove background"
-      (filesSelected)="setFiles($event)"
-      (process)="process()"
-    >
-      @if (previewReady()) {
-        <section preview class="tool-preview panel" aria-label="Live preview">
-          <h2>Preview</h2>
-          <div class="preview-stage is-transparent">
-            <canvas #previewCanvas></canvas>
-          </div>
-          <span class="preview-hint">Preview is downscaled; export keys at full resolution.</span>
-        </section>
-      }
-
-      <div class="tool-fields" [formGroup]="form">
-        <div class="field">
-          <label for="keyColor">Key color</label>
-          <input id="keyColor" type="color" formControlName="keyColor" />
-        </div>
-
-        <div class="field">
-          <label for="tolerance">Tolerance: {{ form.controls.tolerance.value }}%</label>
-          <input
-            id="tolerance"
-            type="range"
-            min="1"
-            max="100"
-            step="1"
-            formControlName="tolerance"
-          />
-        </div>
-
-        <div class="field">
-          <label for="edgeSmoothing"
-            >Edge smoothing: {{ form.controls.edgeSmoothing.value }}%</label
-          >
-          <input
-            id="edgeSmoothing"
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            formControlName="edgeSmoothing"
-          />
-        </div>
-      </div>
-    </app-tool-shell>
-  `,
+  imports: [ToolShell, ReactiveFormsModule],
+  templateUrl: './remove-background.html',
   styleUrl: '../shared/tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class RemoveBackgroundComponent extends BaseToolComponent {
+export class RemoveBackground extends BaseTool {
   private readonly fb = inject(NonNullableFormBuilder);
 
   protected readonly toolId = 'remove-background';
@@ -95,6 +40,7 @@ export class RemoveBackgroundComponent extends BaseToolComponent {
 
   private readonly canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('previewCanvas');
   private readonly source = signal<ImageData | null>(null);
+  private loadToken = 0;
   protected readonly previewReady = computed(() => this.source() !== null);
 
   private readonly keyParams = toSignal(
@@ -108,6 +54,24 @@ export class RemoveBackgroundComponent extends BaseToolComponent {
   constructor() {
     super();
 
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.session.markStale());
+
+    // Decode a downscaled snapshot of the selected file for live keying.
+    effect(() => {
+      const file = this.selectedFile();
+      const token = ++this.loadToken;
+      if (!file) {
+        this.source.set(null);
+        return;
+      }
+      void loadPreviewData(file).then((data) => {
+        if (token === this.loadToken) {
+          this.source.set(data);
+        }
+      });
+    });
+
+    // Re-key whenever the snapshot, the parameters, or the canvas change.
     effect(() => {
       const data = this.source();
       const params = this.keyParams();
@@ -137,19 +101,16 @@ export class RemoveBackgroundComponent extends BaseToolComponent {
     return this.form.valid;
   }
 
-  protected override async onFilesSelected(files: File[]): Promise<void> {
-    this.source.set(files[0] ? await loadPreviewData(files[0]) : null);
-  }
-
-  protected override processFile(file: File): Promise<ImageOutput> {
+  protected override createProcessor(): JobProcessor {
     const value = this.form.getRawValue();
 
-    return this.processing.renderBackgroundRemoved(file, {
-      color: value.keyColor,
-      tolerance: value.tolerance,
-      edgeSmoothing: value.edgeSmoothing,
-      fileName: renameFile(file.name, 'transparent', 'image/png'),
-    });
+    return (file) =>
+      this.processing.renderBackgroundRemoved(file, {
+        color: value.keyColor,
+        tolerance: value.tolerance,
+        edgeSmoothing: value.edgeSmoothing,
+        fileName: renameFile(file.name, 'transparent', 'image/png'),
+      });
   }
 }
 

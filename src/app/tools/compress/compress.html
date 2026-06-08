@@ -1,0 +1,21 @@
+<app-tool-shell
+  [tool]="tool"
+  [files]="files()"
+  [error]="error()"
+  [canSubmit]="canSubmit()"
+  actionLabel="Compress images"
+  (action)="submit()"
+>
+  <div class="tool-fields" [formGroup]="form">
+    <div class="field">
+      <label for="maxSize">Maximum side</label>
+      <input id="maxSize" type="number" min="320" step="10" formControlName="maxSize" />
+      <span class="field-hint">Images smaller than this keep their original dimensions.</span>
+    </div>
+
+    <div class="field">
+      <label for="quality">Quality: {{ form.controls.quality.value }}%</label>
+      <input id="quality" type="range" min="10" max="95" step="5" formControlName="quality" />
+    </div>
+  </div>
+</app-tool-shell>

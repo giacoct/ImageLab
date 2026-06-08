@@ -1,0 +1,124 @@
+<app-step-indicator current="settings" [toolRoute]="tool.route" />
+
+<section class="tool-header">
+  <div>
+    <p class="eyebrow">Tool</p>
+    <h1>{{ tool.title }}</h1>
+  </div>
+  <p>{{ tool.description }}</p>
+</section>
+
+@if (hasImage()) {
+  <div class="editor">
+    <div class="editor-stage panel">
+      <div class="stage-canvas-wrap">
+        <canvas #previewCanvas class="stage-canvas"></canvas>
+        <div
+          class="crop-box"
+          [style.left.%]="crop().x * 100"
+          [style.top.%]="crop().y * 100"
+          [style.width.%]="crop().width * 100"
+          [style.height.%]="crop().height * 100"
+        >
+          <div class="crop-move" (pointerdown)="startDrag($event, 'move')"></div>
+          @for (handle of handles(); track handle) {
+            <span
+              class="crop-handle h-{{ handle }}"
+              (pointerdown)="startDrag($event, handle)"
+            ></span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <aside class="editor-controls panel">
+      <div class="control-group">
+        <h2>Transform</h2>
+        <div class="button-row">
+          <button class="button secondary" type="button" (click)="rotate()">Rotate 90°</button>
+          <button
+            class="button secondary"
+            type="button"
+            [class.is-on]="flipH()"
+            (click)="toggleFlipH()"
+          >
+            Mirror
+          </button>
+          <button
+            class="button secondary"
+            type="button"
+            [class.is-on]="flipV()"
+            (click)="toggleFlipV()"
+          >
+            Flip
+          </button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h2>Crop ratio</h2>
+        <div class="button-row">
+          @for (preset of presets; track preset.value) {
+            <button
+              class="button secondary"
+              type="button"
+              [class.is-on]="aspect() === preset.value"
+              (click)="setAspect(preset.value)"
+            >
+              {{ preset.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h2>Output size</h2>
+        <label class="check-row">
+          <input type="checkbox" [checked]="matchCrop()" (change)="toggleMatchCrop($event)" />
+          Match crop size ({{ cropPixels().width }} × {{ cropPixels().height }} px)
+        </label>
+
+        @if (!matchCrop()) {
+          <div class="settings-grid">
+            <div class="field">
+              <label for="width">Width</label>
+              <input
+                id="width"
+                type="number"
+                min="1"
+                [value]="outputWidth()"
+                (input)="onWidthInput($event)"
+              />
+            </div>
+            <div class="field">
+              <label for="height">Height</label>
+              <input
+                id="height"
+                type="number"
+                min="1"
+                [value]="outputHeight()"
+                (input)="onHeightInput($event)"
+              />
+            </div>
+          </div>
+
+          <label class="check-row">
+            <input type="checkbox" [checked]="lockAspect()" (change)="toggleLockAspect($event)" />
+            Lock aspect ratio
+          </label>
+        }
+      </div>
+
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+    </aside>
+  </div>
+}
+
+<div class="action-row step-actions">
+  <a class="button secondary" [routerLink]="tool.route + '/import'">Back</a>
+  <button class="button" type="button" [disabled]="!canSubmit()" (click)="submit()">
+    Export image
+  </button>
+</div>

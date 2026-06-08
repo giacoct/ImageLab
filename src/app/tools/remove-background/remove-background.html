@@ -1,0 +1,45 @@
+<app-tool-shell
+  [tool]="tool"
+  [files]="files()"
+  [error]="error()"
+  [canSubmit]="canSubmit()"
+  actionLabel="Remove background"
+  [selectable]="true"
+  [selectedIndex]="selectedIndex()"
+  (action)="submit()"
+  (fileSelected)="selectFile($event)"
+>
+  @if (previewReady()) {
+    <section preview class="tool-preview panel" aria-label="Live preview">
+      <h2>Preview</h2>
+      <div class="preview-stage is-transparent">
+        <canvas #previewCanvas></canvas>
+      </div>
+      <span class="preview-hint">Preview is downscaled; export keys at full resolution.</span>
+    </section>
+  }
+
+  <div class="tool-fields" [formGroup]="form">
+    <div class="field">
+      <label for="keyColor">Key color</label>
+      <input id="keyColor" type="color" formControlName="keyColor" />
+    </div>
+
+    <div class="field">
+      <label for="tolerance">Tolerance: {{ form.controls.tolerance.value }}%</label>
+      <input id="tolerance" type="range" min="1" max="100" step="1" formControlName="tolerance" />
+    </div>
+
+    <div class="field">
+      <label for="edgeSmoothing">Edge smoothing: {{ form.controls.edgeSmoothing.value }}%</label>
+      <input
+        id="edgeSmoothing"
+        type="range"
+        min="0"
+        max="100"
+        step="1"
+        formControlName="edgeSmoothing"
+      />
+    </div>
+  </div>
+</app-tool-shell>

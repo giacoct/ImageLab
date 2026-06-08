@@ -1,0 +1,12 @@
+<app-tool-shell
+  [tool]="tool"
+  [files]="files()"
+  [error]="error()"
+  [canSubmit]="canSubmit()"
+  actionLabel="Strip metadata"
+  (action)="submit()"
+>
+  <p class="field-hint">
+    Each image is re-encoded in its original format, dropping any embedded metadata.
+  </p>
+</app-tool-shell>

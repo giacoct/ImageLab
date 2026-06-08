@@ -1,0 +1,64 @@
+<app-step-indicator current="settings" [toolRoute]="tool().route" />
+
+<section class="tool-header">
+  <div>
+    <div class="tool-title-row">
+      <h1>{{ tool().title }}</h1>
+      <span class="tool-badge" [class.batch]="tool().batch" [class.single]="!tool().batch">
+        {{ tool().batch ? 'Batch' : 'Single' }}
+      </span>
+    </div>
+  </div>
+  <p>{{ tool().description }}</p>
+</section>
+
+<div class="tool-workspace">
+  <div class="input-column">
+    <ng-content select="[preview]" />
+
+    @if (files().length > 0) {
+      <section class="file-list panel" aria-label="Selected files">
+        <h2>{{ files().length }} {{ files().length === 1 ? 'image' : 'images' }}</h2>
+
+        @if (selectable()) {
+          <ul class="file-choices">
+            @for (file of files(); track file.name + file.size; let i = $index) {
+              <li>
+                <button
+                  type="button"
+                  class="file-choice"
+                  [class.is-selected]="i === selectedIndex()"
+                  [attr.aria-pressed]="i === selectedIndex()"
+                  (click)="fileSelected.emit(i)"
+                >
+                  {{ file.name }}
+                </button>
+              </li>
+            }
+          </ul>
+        } @else {
+          @for (file of files(); track file.name + file.size) {
+            <p>{{ file.name }}</p>
+          }
+        }
+      </section>
+    }
+  </div>
+
+  <section class="settings panel">
+    <h2>Settings</h2>
+
+    <ng-content />
+
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+
+    <div class="action-row">
+      <a class="button secondary" [routerLink]="tool().route + '/import'">Back</a>
+      <button class="button" type="button" [disabled]="!canSubmit()" (click)="action.emit()">
+        {{ actionLabel() }}
+      </button>
+    </div>
+  </section>
+</div>

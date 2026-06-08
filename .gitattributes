@@ -1,0 +1,10 @@
+# Normalize all text files to LF in the repository and on checkout, so line
+# endings are deterministic across platforms and Prettier stays happy.
+* text=auto eol=lf
+
+# Known binaries: never apply line-ending conversion.
+*.png binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.webp binary

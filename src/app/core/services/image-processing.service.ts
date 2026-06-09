@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 
+import ImageTracer from 'imagetracerjs';
+
 import { CanvasOutputFormat, ImageDimensions, ImageOutput } from '../models/image-output.model';
-import { imageToSvg } from '../utils/svg-vectorize';
 
 export interface RenderTransform {
   rotateDegrees: 0 | 90 | 180 | 270;
@@ -36,8 +37,10 @@ export interface IcoRenderOptions {
 export interface SvgRenderOptions {
   /** Number of palette colors to posterize to before tracing. */
   colors: number;
-  /** Longest side of the traced grid; larger keeps more detail but grows the file. */
+  /** Longest side of the sampled grid; larger keeps finer detail but grows the file. */
   maxDimension: number;
+  /** Speckle filter: drop traced paths shorter than this many nodes. */
+  pathOmit: number;
   fileName: string;
 }
 
@@ -133,15 +136,20 @@ export class ImageProcessingService {
     return this.createOutput(options.fileName, iconBlob, canvas.width, canvas.height);
   }
 
-  /** Posterize and trace an image into a vector SVG of flat color regions. */
+  /**
+   * Vectorize an image into a color SVG. The bitmap is sampled at a capped
+   * resolution and traced by imagetracerjs, which fits straight lines and
+   * quadratic splines to each color region so edges come out smooth rather
+   * than as pixel staircases.
+   */
   async renderSvg(file: File, options: SvgRenderOptions): Promise<ImageOutput> {
     const image = await this.loadImage(file);
     const sourceWidth = image.width;
     const sourceHeight = image.height;
 
-    const scale = Math.min(1, options.maxDimension / Math.max(sourceWidth, sourceHeight));
-    const gridWidth = Math.max(1, Math.round(sourceWidth * scale));
-    const gridHeight = Math.max(1, Math.round(sourceHeight * scale));
+    const downscale = Math.min(1, options.maxDimension / Math.max(sourceWidth, sourceHeight));
+    const gridWidth = Math.max(1, Math.round(sourceWidth * downscale));
+    const gridHeight = Math.max(1, Math.round(sourceHeight * downscale));
 
     const canvas = document.createElement('canvas');
     canvas.width = gridWidth;
@@ -159,10 +167,19 @@ export class ImageProcessingService {
     image.release();
 
     const imageData = context.getImageData(0, 0, gridWidth, gridHeight);
-    const svg = imageToSvg(
-      { data: imageData.data, width: gridWidth, height: gridHeight },
-      { colors: options.colors, displayWidth: sourceWidth, displayHeight: sourceHeight },
-    );
+    // Scale the vector output back up to the source pixel dimensions.
+    const svg = ImageTracer.imagedataToSVG(imageData, {
+      numberofcolors: Math.max(2, Math.min(64, Math.round(options.colors))),
+      colorsampling: 2,
+      colorquantcycles: 3,
+      pathomit: Math.max(0, Math.round(options.pathOmit)),
+      ltres: 1,
+      qtres: 1,
+      rightangleenhance: true,
+      roundcoords: 1,
+      blurradius: 0,
+      scale: gridWidth > 0 ? sourceWidth / gridWidth : 1,
+    });
 
     const blob = new Blob([svg], { type: 'image/svg+xml' });
     return this.createOutput(options.fileName, blob, sourceWidth, sourceHeight);

@@ -19,8 +19,8 @@ export class ConvertSvg extends BaseTool {
 
   protected readonly toolId = 'convert-svg';
   protected readonly form = this.fb.group({
-    colors: this.fb.control(8),
-    detail: this.fb.control(256),
+    colors: this.fb.control(16),
+    detail: this.fb.control(320),
   });
 
   constructor() {
@@ -34,11 +34,14 @@ export class ConvertSvg extends BaseTool {
 
   protected override createProcessor(): JobProcessor {
     const { colors, detail } = this.form.getRawValue();
+    // Higher detail samples at a larger grid and keeps smaller shapes.
+    const pathOmit = detail >= 480 ? 4 : detail >= 280 ? 8 : 12;
 
     return (file) =>
       this.processing.renderSvg(file, {
         colors,
         maxDimension: detail,
+        pathOmit,
         fileName: renameWithExtension(file.name, 'vector', 'svg'),
       });
   }

@@ -10,12 +10,11 @@
     <div class="field">
       <label for="colors">Colors</label>
       <select id="colors" formControlName="colors">
-        <option [value]="2">2</option>
         <option [value]="4">4</option>
-        <option [value]="6">6</option>
         <option [value]="8">8</option>
-        <option [value]="12">12</option>
         <option [value]="16">16</option>
+        <option [value]="24">24</option>
+        <option [value]="32">32</option>
       </select>
       <span class="field-hint">Fewer colors give a flatter, more stylized vector.</span>
     </div>
@@ -23,9 +22,9 @@
     <div class="field">
       <label for="detail">Detail</label>
       <select id="detail" formControlName="detail">
-        <option [value]="128">Low</option>
-        <option [value]="256">Medium</option>
-        <option [value]="384">High</option>
+        <option [value]="160">Low</option>
+        <option [value]="320">Medium</option>
+        <option [value]="512">High</option>
       </select>
       <span class="field-hint">Higher detail traces finer shapes but grows the file size.</span>
     </div>

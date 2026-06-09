@@ -14,6 +14,10 @@ export interface VectorizeOptions {
   filterSpeckle: number;
   /** Curve fitting: smooth splines vs straight polygon edges. */
   mode: VectorizeMode;
+  /** Angle (degrees) under which a corner is kept; higher = rounder curves. */
+  cornerThreshold: number;
+  /** Minimum traced segment length; higher discards jitter for smoother paths. */
+  lengthThreshold: number;
   fileName: string;
 }
 
@@ -34,6 +38,8 @@ export class VectorizeService {
     form.append('color_precision', String(options.colorPrecision));
     form.append('filter_speckle', String(options.filterSpeckle));
     form.append('mode', options.mode);
+    form.append('corner_threshold', String(options.cornerThreshold));
+    form.append('length_threshold', String(options.lengthThreshold));
 
     const [blob, dimensions] = await Promise.all([
       firstValueFrom(this.http.post('/api/vectorize', form, { responseType: 'blob' })),

@@ -33,14 +33,24 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+def _clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
+
+
 @app.post("/vectorize")
 async def vectorize(
     file: UploadFile,
-    color_precision: int = Form(6),
-    filter_speckle: int = Form(4),
-    corner_threshold: int = Form(60),
     mode: str = Form("spline"),
     hierarchical: str = Form("stacked"),
+    color_precision: int = Form(6),
+    filter_speckle: int = Form(4),
+    # Curve-fitting quality knobs. Defaults favor smooth, faithful curves.
+    corner_threshold: int = Form(60),
+    length_threshold: float = Form(4.0),
+    splice_threshold: int = Form(45),
+    path_precision: int = Form(8),
+    max_iterations: int = Form(10),
+    layer_difference: int = Form(16),
 ) -> Response:
     image_format = CONTENT_TYPE_TO_FORMAT.get((file.content_type or "").lower())
     if image_format is None:
@@ -67,9 +77,14 @@ async def vectorize(
             colormode="color",
             mode=mode,
             hierarchical=hierarchical,
-            filter_speckle=max(0, filter_speckle),
-            color_precision=max(1, min(8, color_precision)),
-            corner_threshold=max(0, min(180, corner_threshold)),
+            filter_speckle=int(_clamp(filter_speckle, 0, 64)),
+            color_precision=int(_clamp(color_precision, 1, 8)),
+            layer_difference=int(_clamp(layer_difference, 0, 256)),
+            corner_threshold=int(_clamp(corner_threshold, 0, 180)),
+            length_threshold=_clamp(length_threshold, 3.5, 10.0),
+            splice_threshold=int(_clamp(splice_threshold, 0, 180)),
+            path_precision=int(_clamp(path_precision, 1, 10)),
+            max_iterations=int(_clamp(max_iterations, 1, 40)),
         )
     except Exception as error:  # noqa: BLE001 - surface a clean 500 to the client
         raise HTTPException(status_code=500, detail="Vectorization failed.") from error

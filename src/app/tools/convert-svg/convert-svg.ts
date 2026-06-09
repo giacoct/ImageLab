@@ -24,7 +24,16 @@ export class ConvertSvg extends BaseTool {
     colorPrecision: this.fb.control(6),
     filterSpeckle: this.fb.control(4),
     mode: this.fb.control<VectorizeMode>('spline'),
+    // 'smoothness' maps to a (corner_threshold, length_threshold) pair below.
+    smoothness: this.fb.control<'crisp' | 'balanced' | 'smooth'>('balanced'),
   });
+
+  /** Curve-fitting presets: rounder curves need a higher corner + length threshold. */
+  private readonly smoothnessPresets = {
+    crisp: { cornerThreshold: 30, lengthThreshold: 4 },
+    balanced: { cornerThreshold: 60, lengthThreshold: 4 },
+    smooth: { cornerThreshold: 100, lengthThreshold: 6 },
+  } as const;
 
   constructor() {
     super();
@@ -36,13 +45,16 @@ export class ConvertSvg extends BaseTool {
   }
 
   protected override createProcessor(): JobProcessor {
-    const { colorPrecision, filterSpeckle, mode } = this.form.getRawValue();
+    const { colorPrecision, filterSpeckle, mode, smoothness } = this.form.getRawValue();
+    const { cornerThreshold, lengthThreshold } = this.smoothnessPresets[smoothness];
 
     return (file) =>
       this.vectorize.toSvg(file, {
         colorPrecision,
         filterSpeckle,
         mode,
+        cornerThreshold,
+        lengthThreshold,
         fileName: renameWithExtension(file.name, 'vector', 'svg'),
       });
   }

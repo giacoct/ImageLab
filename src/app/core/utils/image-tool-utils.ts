@@ -26,8 +26,13 @@ export function extensionForFormat(format: OutputFormat): string {
 }
 
 export function renameFile(fileName: string, suffix: string, format: OutputFormat): string {
+  return renameWithExtension(fileName, suffix, extensionForFormat(format));
+}
+
+/** Like {@link renameFile} but for formats outside the canvas/ICO set (e.g. SVG). */
+export function renameWithExtension(fileName: string, suffix: string, extension: string): string {
   const baseName = fileName.replace(/\.[^/.]+$/, '');
-  return `${baseName}-${suffix}.${extensionForFormat(format)}`;
+  return `${baseName}-${suffix}.${extension}`;
 }
 
 export function outputFormatForFile(file: File): CanvasOutputFormat {

@@ -24,6 +24,17 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     loadComponent: () => import('../../tools/convert/convert').then((m) => m.Convert),
   },
   {
+    id: 'convert-svg',
+    title: 'Convert to SVG',
+    description:
+      'Trace images into scalable SVG vectors by posterizing them into flat color shapes.',
+    route: '/tools/convert-svg',
+    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    maxFiles: null,
+    batch: true,
+    loadComponent: () => import('../../tools/convert-svg/convert-svg').then((m) => m.ConvertSvg),
+  },
+  {
     id: 'compress',
     title: 'Compress images',
     description: 'Reduce file size while keeping the original image format.',

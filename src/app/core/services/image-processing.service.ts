@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 
 import { CanvasOutputFormat, ImageDimensions, ImageOutput } from '../models/image-output.model';
+import { imageToSvg } from '../utils/svg-vectorize';
 
 export interface RenderTransform {
   rotateDegrees: 0 | 90 | 180 | 270;
@@ -29,6 +30,14 @@ export interface BackgroundRemovalOptions extends BackgroundKeyOptions {
 
 export interface IcoRenderOptions {
   size: number;
+  fileName: string;
+}
+
+export interface SvgRenderOptions {
+  /** Number of palette colors to posterize to before tracing. */
+  colors: number;
+  /** Longest side of the traced grid; larger keeps more detail but grows the file. */
+  maxDimension: number;
   fileName: string;
 }
 
@@ -122,6 +131,41 @@ export class ImageProcessingService {
     const iconBlob = await createIcoBlob(pngBlob, size);
 
     return this.createOutput(options.fileName, iconBlob, canvas.width, canvas.height);
+  }
+
+  /** Posterize and trace an image into a vector SVG of flat color regions. */
+  async renderSvg(file: File, options: SvgRenderOptions): Promise<ImageOutput> {
+    const image = await this.loadImage(file);
+    const sourceWidth = image.width;
+    const sourceHeight = image.height;
+
+    const scale = Math.min(1, options.maxDimension / Math.max(sourceWidth, sourceHeight));
+    const gridWidth = Math.max(1, Math.round(sourceWidth * scale));
+    const gridHeight = Math.max(1, Math.round(sourceHeight * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = gridWidth;
+    canvas.height = gridHeight;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      image.release();
+      throw new Error('Canvas rendering is not available in this browser.');
+    }
+
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(image.source, 0, 0, gridWidth, gridHeight);
+    image.release();
+
+    const imageData = context.getImageData(0, 0, gridWidth, gridHeight);
+    const svg = imageToSvg(
+      { data: imageData.data, width: gridWidth, height: gridHeight },
+      { colors: options.colors, displayWidth: sourceWidth, displayHeight: sourceHeight },
+    );
+
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    return this.createOutput(options.fileName, blob, sourceWidth, sourceHeight);
   }
 
   /** Apply rotate/flip, crop, and resize in a single pass for the image editor. */

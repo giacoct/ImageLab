@@ -44,52 +44,35 @@ workflow.
 
 This host serves the static app via nginx on **port 4200** (80/8080/4200 are in
 use). The vectorizer runs on **127.0.0.1:4201**, reachable only via the proxy.
-Pick a deploy directory and let the **deploy user own it** so CI can sync and
-build the venv without `sudo`.
 
-1. **Create the directory, owned by the deploy user** (the SSH user CI uses):
+`setup-host.sh` automates the whole bootstrap. Copy it (or the `server/` dir)
+to the host and run:
 
-   ```bash
-   sudo mkdir -p /opt/imagelab/server
-   sudo chown -R "$USER":"$USER" /opt/imagelab/server     # run as the deploy user
-   ```
+```bash
+scp server/setup-host.sh <user>@<host>:
+ssh <user>@<host>
+sudo ./setup-host.sh install   # apply everything (idempotent)
+./setup-host.sh                # check mode: verify the setup, read-only
+```
 
-   Set the GitHub repo secret **`BACKEND_DEPLOY_PATH`** to this path
-   (e.g. `/opt/imagelab/server`).
+Install mode, run as the deploy user with sudo, takes care of:
 
-2. **Install the systemd unit** — edit `imagelab-vectorizer.service` so `User=`
-   and the paths match the deploy user/dir, then:
+1. the deploy directory (`/opt/imagelab/server`, owned by the deploy user so
+   CI can rsync and build the venv without root),
+2. the systemd unit (generated with the right user/paths, enabled),
+3. a `sudoers` rule so CI may run exactly
+   `sudo systemctl restart imagelab-vectorizer` without a password,
+4. the nginx `location /api/` proxy inside the existing `listen 4200` server
+   block (config is backed up, validated with `nginx -t`, and restored if the
+   patch fails),
+5. and, when run next to `app.py`, an immediate first deploy (venv + service
+   start) so you don't have to wait for CI.
 
-   ```bash
-   sudo cp imagelab-vectorizer.service /etc/systemd/system/
-   sudo systemctl daemon-reload
-   sudo systemctl enable imagelab-vectorizer
-   ```
+Defaults: deploy user = the invoking user, path `/opt/imagelab/server`.
+Override with env vars: `DEPLOY_USER=deploy DEPLOY_PATH=/srv/x sudo -E ./setup-host.sh install`.
 
-3. **Allow CI to restart the service without a password** (`sudo visudo -f
-   /etc/sudoers.d/imagelab`), using your `which systemctl` path:
+Finally, set the GitHub repo secret **`BACKEND_DEPLOY_PATH`** to the same path
+(e.g. `/opt/imagelab/server`) — the workflow needs it to know where to rsync.
 
-   ```
-   <deploy_user> ALL=(root) NOPASSWD: /usr/bin/systemctl restart imagelab-vectorizer
-   ```
-
-4. **Proxy `/api` from nginx** — add inside the existing
-   `server { listen 4200; ... }` block, then reload:
-
-   ```nginx
-   location /api/ {
-       proxy_pass http://127.0.0.1:4201/;   # trailing slash strips the /api prefix
-       client_max_body_size 12m;
-   }
-   ```
-
-   ```bash
-   sudo nginx -t && sudo systemctl reload nginx
-   ```
-
-The next push to `master` populates the venv and starts the service; thereafter
-`http://<host>:4200/api/vectorize` reaches the service's `/vectorize`.
-
-> Changing the systemd unit, nginx config, or sudoers is the only work not
-> automated (it's host configuration, not app code). Re-run the relevant step
-> above if you change those files.
+Re-run `./setup-host.sh` (check mode) any time to diagnose the host; it also
+verifies the live `/health` endpoints once the service is deployed.

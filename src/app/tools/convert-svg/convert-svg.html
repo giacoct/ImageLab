@@ -8,25 +8,32 @@
 >
   <div class="tool-fields" [formGroup]="form">
     <div class="field">
-      <label for="colors">Colors</label>
-      <select id="colors" formControlName="colors">
-        <option [value]="4">4</option>
-        <option [value]="8">8</option>
-        <option [value]="16">16</option>
-        <option [value]="24">24</option>
-        <option [value]="32">32</option>
+      <label for="mode">Style</label>
+      <select id="mode" formControlName="mode">
+        <option value="spline">Smooth (curves)</option>
+        <option value="polygon">Sharp (straight edges)</option>
       </select>
-      <span class="field-hint">Fewer colors give a flatter, more stylized vector.</span>
+      <span class="field-hint">Smooth fits curves; sharp keeps angular, polygonal edges.</span>
     </div>
 
     <div class="field">
-      <label for="detail">Detail</label>
-      <select id="detail" formControlName="detail">
-        <option [value]="160">Low</option>
-        <option [value]="320">Medium</option>
-        <option [value]="512">High</option>
+      <label for="colorPrecision">Color detail</label>
+      <select id="colorPrecision" formControlName="colorPrecision">
+        <option [value]="3">Low</option>
+        <option [value]="6">Medium</option>
+        <option [value]="8">High</option>
       </select>
-      <span class="field-hint">Higher detail traces finer shapes but grows the file size.</span>
+      <span class="field-hint">Higher keeps more distinct colors; lower flattens the palette.</span>
+    </div>
+
+    <div class="field">
+      <label for="filterSpeckle">Cleanup</label>
+      <select id="filterSpeckle" formControlName="filterSpeckle">
+        <option [value]="0">None</option>
+        <option [value]="4">Light</option>
+        <option [value]="10">Strong</option>
+      </select>
+      <span class="field-hint">Discards tiny specks for cleaner shapes and smaller files.</span>
     </div>
   </div>
 </app-tool-shell>

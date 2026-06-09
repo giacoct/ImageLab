@@ -1,0 +1,14 @@
+[Unit]
+Description=ImageLab Vectorizer (FastAPI + VTracer)
+After=network.target
+
+[Service]
+# Adjust User and paths to match your server.
+User=www-data
+WorkingDirectory=/opt/imagelab/server
+ExecStart=/opt/imagelab/server/.venv/bin/uvicorn app:app --host 127.0.0.1 --port 4201
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

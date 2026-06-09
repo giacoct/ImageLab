@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 
 import { JobProcessor } from '../../core/services/tool-session.service';
+import { VectorizeMode, VectorizeService } from '../../core/services/vectorize.service';
 import { BaseTool } from '../../pages/settings/base-tool';
 import { ToolShell } from '../../pages/settings/tool-shell';
 import { renameWithExtension } from '../../core/utils/image-tool-utils';
@@ -16,11 +17,13 @@ import { renameWithExtension } from '../../core/utils/image-tool-utils';
 })
 export class ConvertSvg extends BaseTool {
   private readonly fb = inject(NonNullableFormBuilder);
+  private readonly vectorize = inject(VectorizeService);
 
   protected readonly toolId = 'convert-svg';
   protected readonly form = this.fb.group({
-    colors: this.fb.control(16),
-    detail: this.fb.control(320),
+    colorPrecision: this.fb.control(6),
+    filterSpeckle: this.fb.control(4),
+    mode: this.fb.control<VectorizeMode>('spline'),
   });
 
   constructor() {
@@ -33,20 +36,18 @@ export class ConvertSvg extends BaseTool {
   }
 
   protected override createProcessor(): JobProcessor {
-    const { colors, detail } = this.form.getRawValue();
-    // Higher detail samples at a larger grid and keeps smaller shapes.
-    const pathOmit = detail >= 480 ? 4 : detail >= 280 ? 8 : 12;
+    const { colorPrecision, filterSpeckle, mode } = this.form.getRawValue();
 
     return (file) =>
-      this.processing.renderSvg(file, {
-        colors,
-        maxDimension: detail,
-        pathOmit,
+      this.vectorize.toSvg(file, {
+        colorPrecision,
+        filterSpeckle,
+        mode,
         fileName: renameWithExtension(file.name, 'vector', 'svg'),
       });
   }
 
   protected override get errorMessage(): string {
-    return 'The images could not be vectorized.';
+    return 'The vectorizer service could not be reached.';
   }
 }

@@ -12,9 +12,10 @@ import { RouterLink } from '@angular/router';
 
 import { NormalizedCrop, RenderTransform } from '../../core/services/image-processing.service';
 import { JobProcessor } from '../../core/services/tool-session.service';
+import { Icon } from '../../shared/icon/icon';
 import { StepIndicator } from '../../shared/step-indicator/step-indicator';
-import { BaseTool } from '../shared/base-tool';
-import { outputFormatForFile, renameFile } from '../shared/image-tool-utils';
+import { BaseTool } from '../../pages/settings/base-tool';
+import { outputFormatForFile, renameFile } from '../../core/utils/image-tool-utils';
 
 type AspectPreset = 'free' | 'original' | '1:1' | '4:3' | '16:9';
 type DragMode = 'move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
@@ -24,9 +25,9 @@ const FULL_CROP: NormalizedCrop = { x: 0, y: 0, width: 1, height: 1 };
 
 @Component({
   selector: 'app-resize-tool',
-  imports: [RouterLink, StepIndicator],
+  imports: [RouterLink, Icon, StepIndicator],
   templateUrl: './resize.html',
-  styleUrls: ['../shared/tool-page.css', './resize.css'],
+  styleUrls: ['../../pages/tool-page.css', './resize.css'],
   host: {
     '(window:pointermove)': 'onPointerMove($event)',
     '(window:pointerup)': 'onPointerUp()',

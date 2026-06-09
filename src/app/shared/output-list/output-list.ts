@@ -6,7 +6,7 @@ import { ImageOutput } from '../../core/models/image-output.model';
 import { DownloadService } from '../../core/services/download.service';
 import { ToolRegistryService } from '../../core/services/tool-registry.service';
 import { ToolSessionService } from '../../core/services/tool-session.service';
-import { formatBytes } from '../../tools/shared/image-tool-utils';
+import { formatBytes } from '../../core/utils/image-tool-utils';
 import { Icon } from '../icon/icon';
 
 @Component({

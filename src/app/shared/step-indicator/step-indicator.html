@@ -4,6 +4,7 @@
       <li
         class="stepper-item"
         [class.is-current]="step.isCurrent"
+        [class.is-done]="step.done"
         [class.is-enabled]="step.enabled && !step.isCurrent"
       >
         @if (step.isCurrent) {
@@ -13,8 +14,17 @@
           </span>
         } @else if (step.enabled) {
           <a class="stepper-link" [routerLink]="step.link">
-            <span class="stepper-num" aria-hidden="true">{{ step.index }}</span>
+            <span class="stepper-num" aria-hidden="true">
+              @if (step.done) {
+                <app-icon name="check" [size]="16" />
+              } @else {
+                {{ step.index }}
+              }
+            </span>
             <span class="stepper-label">{{ step.label }}</span>
+            @if (step.done) {
+              <span class="visually-hidden">(completed)</span>
+            }
           </a>
         } @else {
           <span class="stepper-link" aria-disabled="true">

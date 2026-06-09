@@ -1,5 +1,5 @@
 import { NgOptimizedImage } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
@@ -21,6 +21,17 @@ export class App {
   private readonly router = inject(Router);
 
   protected readonly tools = this.registry.tools;
+
+  /** Whether the header help bubble is pinned open (click/keyboard toggle). */
+  protected readonly helpOpen = signal(false);
+
+  protected toggleHelp(): void {
+    this.helpOpen.update((open) => !open);
+  }
+
+  protected closeHelp(): void {
+    this.helpOpen.set(false);
+  }
 
   constructor() {
     // Leaving a tool's context (home, tool selection) discards its session so

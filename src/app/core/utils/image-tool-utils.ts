@@ -1,4 +1,4 @@
-import { CanvasOutputFormat, OutputFormat } from '../../core/models/image-output.model';
+import { CanvasOutputFormat, OutputFormat } from '../models/image-output.model';
 
 export function formatBytes(size: number): string {
   if (size < 1024) {

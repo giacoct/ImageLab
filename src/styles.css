@@ -10,7 +10,23 @@
   --accent-strong: #075c57;
   --accent-soft: #dff2ef;
   --danger: #b42318;
+  --danger-bg: #fff1f0;
+  --danger-border: #ffd4cf;
+  --border-strong: #c7d2cf;
+  --disabled: #a7b6b2;
   --shadow: 0 18px 40px rgb(21 32 29 / 0.08);
+
+  /* Per-mode accents, shared by the Batch/Single badges and tool icon tiles. */
+  --batch-bg: #dbeafe;
+  --batch-fg: #1e40af;
+  --single-bg: #fde047;
+  --single-bg-soft: #fef3c7;
+  --single-fg: #854d0e;
+
+  /* Motion */
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --speed: 160ms;
+
   color-scheme: light;
   font-family:
     Inter,
@@ -24,6 +40,20 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* Visually hidden but available to screen readers. */
+.visually-hidden {
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 html {
@@ -45,6 +75,11 @@ button,
 a,
 input,
 select {
+  outline-offset: 3px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
@@ -82,9 +117,21 @@ img {
   border-color: var(--accent-strong);
 }
 
+.button {
+  transition:
+    background-color var(--speed) var(--ease),
+    border-color var(--speed) var(--ease),
+    transform var(--speed) var(--ease),
+    box-shadow var(--speed) var(--ease);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
 .button:disabled {
-  background: #a7b6b2;
-  border-color: #a7b6b2;
+  background: var(--disabled);
+  border-color: var(--disabled);
 }
 
 .button.secondary {
@@ -96,7 +143,7 @@ img {
 .button.secondary:hover,
 .button.secondary:focus-visible {
   background: var(--panel-subtle);
-  border-color: #c7d2cf;
+  border-color: var(--border-strong);
 }
 
 .tool-badge {
@@ -111,13 +158,31 @@ img {
 }
 
 .tool-badge.batch {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--batch-bg);
+  color: var(--batch-fg);
 }
 
 .tool-badge.single {
-  background: #fde047;
-  color: #854d0e;
+  background: var(--single-bg);
+  color: var(--single-fg);
+}
+
+/* Tinted square that holds a tool's glyph (home cards + tool page headers). */
+.tool-icon {
+  align-items: center;
+  border-radius: 0.6rem;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.tool-icon.batch {
+  background: var(--batch-bg);
+  color: var(--batch-fg);
+}
+
+.tool-icon.single {
+  background: var(--single-bg-soft);
+  color: var(--single-fg);
 }
 
 .field {
@@ -153,4 +218,32 @@ img {
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   box-shadow: var(--shadow);
+}
+
+/* Shared entrance animation for content blocks. */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-in {
+  animation: fade-in-up 0.45s var(--ease) both;
+}
+
+/* Honour users who prefer less motion: drop transitions and animations. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

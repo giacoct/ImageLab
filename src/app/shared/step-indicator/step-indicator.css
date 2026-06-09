@@ -22,7 +22,13 @@
   background: var(--border);
   content: '';
   height: 2px;
+  transition: background-color var(--speed) var(--ease);
   width: 1.5rem;
+}
+
+/* The connector leading out of a completed step reads as accent. */
+.stepper-item.is-done:not(:last-child)::after {
+  background: var(--accent);
 }
 
 .stepper-link {
@@ -34,6 +40,9 @@
   gap: 0.5rem;
   padding: 0.35rem 0.8rem 0.35rem 0.4rem;
   text-decoration: none;
+  transition:
+    background-color var(--speed) var(--ease),
+    color var(--speed) var(--ease);
 }
 
 a.stepper-link:hover,
@@ -51,12 +60,25 @@ a.stepper-link:focus-visible {
   font-size: 0.85rem;
   height: 1.6rem;
   justify-content: center;
+  transition:
+    background-color var(--speed) var(--ease),
+    color var(--speed) var(--ease);
   width: 1.6rem;
 }
 
 .is-enabled .stepper-num {
   background: var(--accent-soft);
   color: var(--accent-strong);
+}
+
+/* Completed steps: filled accent circle with a check. */
+.is-done .stepper-link {
+  color: var(--accent-strong);
+}
+
+.is-done .stepper-num {
+  background: var(--accent);
+  color: #fff;
 }
 
 .is-current .stepper-link {

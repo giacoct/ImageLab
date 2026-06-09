@@ -2,8 +2,15 @@
 
 <section class="tool-header">
   <div>
-    <p class="eyebrow">Tool</p>
-    <h1>{{ tool.title }}</h1>
+    <div class="tool-title-row">
+      <span class="tool-icon" [class.batch]="tool.batch" [class.single]="!tool.batch">
+        <app-icon [name]="tool.id" [size]="22" />
+      </span>
+      <h1>{{ tool.title }}</h1>
+      <span class="tool-badge" [class.batch]="tool.batch" [class.single]="!tool.batch">
+        {{ tool.batch ? 'Batch' : 'Single' }}
+      </span>
+    </div>
   </div>
   <p>{{ tool.description }}</p>
 </section>
@@ -117,8 +124,12 @@
 }
 
 <div class="action-row step-actions">
-  <a class="button secondary" [routerLink]="tool.route + '/import'">Back</a>
+  <a class="button secondary" [routerLink]="tool.route + '/import'">
+    <app-icon name="arrow-left" [size]="18" />
+    Back
+  </a>
   <button class="button" type="button" [disabled]="!canSubmit()" (click)="submit()">
+    <app-icon name="sparkles" [size]="18" />
     Export image
   </button>
 </div>

@@ -14,9 +14,9 @@ import { debounceTime, map } from 'rxjs';
 
 import { applyBackgroundKey } from '../../core/services/image-processing.service';
 import { JobProcessor } from '../../core/services/tool-session.service';
-import { BaseTool } from '../shared/base-tool';
-import { ToolShell } from '../shared/tool-shell';
-import { renameFile } from '../shared/image-tool-utils';
+import { BaseTool } from '../../pages/settings/base-tool';
+import { ToolShell } from '../../pages/settings/tool-shell';
+import { renameFile } from '../../core/utils/image-tool-utils';
 
 /** Longest side of the downscaled preview, in pixels. */
 const PREVIEW_MAX_SIDE = 480;
@@ -25,7 +25,7 @@ const PREVIEW_MAX_SIDE = 480;
   selector: 'app-remove-background-tool',
   imports: [ToolShell, ReactiveFormsModule],
   templateUrl: './remove-background.html',
-  styleUrl: '../shared/tool-page.css',
+  styleUrl: '../../pages/tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RemoveBackground extends BaseTool {

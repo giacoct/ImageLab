@@ -16,7 +16,7 @@ import { StepIndicator } from '../../shared/step-indicator/step-indicator';
   selector: 'app-output-page',
   imports: [RouterLink, Icon, StepIndicator, ProgressBar, OutputList],
   templateUrl: './output-page.html',
-  styleUrl: './tool-page.css',
+  styleUrl: '../tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OutputPage implements OnInit {

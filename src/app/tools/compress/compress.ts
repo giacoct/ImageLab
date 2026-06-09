@@ -3,20 +3,20 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { JobProcessor } from '../../core/services/tool-session.service';
-import { BaseTool } from '../shared/base-tool';
-import { ToolShell } from '../shared/tool-shell';
+import { BaseTool } from '../../pages/settings/base-tool';
+import { ToolShell } from '../../pages/settings/tool-shell';
 import {
   clampQuality,
   dimensionsForMaxSize,
   outputFormatForFile,
   renameFile,
-} from '../shared/image-tool-utils';
+} from '../../core/utils/image-tool-utils';
 
 @Component({
   selector: 'app-compress-tool',
   imports: [ToolShell, ReactiveFormsModule],
   templateUrl: './compress.html',
-  styleUrl: '../shared/tool-page.css',
+  styleUrl: '../../pages/tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Compress extends BaseTool {

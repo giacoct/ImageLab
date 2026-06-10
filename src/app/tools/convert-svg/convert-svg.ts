@@ -3,7 +3,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 
 import { JobProcessor } from '../../core/services/tool-session.service';
-import { VectorizeMode, VectorizeService } from '../../core/services/vectorize.service';
+import {
+  VectorizeMode,
+  VectorizePreset,
+  VectorizeService,
+} from '../../core/services/vectorize.service';
 import { BaseTool } from '../../pages/settings/base-tool';
 import { ToolShell } from '../../pages/settings/tool-shell';
 import { renameWithExtension } from '../../core/utils/image-tool-utils';
@@ -21,8 +25,10 @@ export class ConvertSvg extends BaseTool {
 
   protected readonly toolId = 'convert-svg';
   protected readonly form = this.fb.group({
+    preset: this.fb.control<VectorizePreset>('auto'),
+    // Custom defaults follow user testing: medium color detail, strong cleanup.
     colorPrecision: this.fb.control(6),
-    filterSpeckle: this.fb.control(4),
+    filterSpeckle: this.fb.control(10),
     mode: this.fb.control<VectorizeMode>('spline'),
     // 'smoothness' maps to a (corner_threshold, length_threshold) pair below.
     smoothness: this.fb.control<'crisp' | 'balanced' | 'smooth'>('balanced'),
@@ -45,11 +51,12 @@ export class ConvertSvg extends BaseTool {
   }
 
   protected override createProcessor(): JobProcessor {
-    const { colorPrecision, filterSpeckle, mode, smoothness } = this.form.getRawValue();
+    const { preset, colorPrecision, filterSpeckle, mode, smoothness } = this.form.getRawValue();
     const { cornerThreshold, lengthThreshold } = this.smoothnessPresets[smoothness];
 
     return (file) =>
       this.vectorize.toSvg(file, {
+        preset,
         colorPrecision,
         filterSpeckle,
         mode,

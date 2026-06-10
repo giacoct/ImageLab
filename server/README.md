@@ -4,10 +4,14 @@ A small FastAPI service that wraps [VTracer](https://github.com/visioncortex/vtr
 to convert raster images into compact, smooth color SVGs. The Angular app's
 **Convert to SVG** tool calls it at `/api/vectorize`.
 
-`POST /vectorize` accepts a multipart `file` (PNG/JPEG/WebP) plus optional form
-fields — `color_precision`, `filter_speckle`, `corner_threshold`, `mode`
-(`spline`/`polygon`), `hierarchical` (`stacked`/`cutout`) — and returns
-`image/svg+xml`. `GET /health` returns `{"status":"ok"}`.
+`POST /vectorize` accepts a multipart `file` (PNG/JPEG/WebP) and returns
+`image/svg+xml`. With `preset=auto` the service analyzes the image itself:
+flat art (logos/illustrations) is upscaled and de-antialiased before tracing,
+photos get noise suppression and harder layer merging. With `preset=manual`
+the individual form fields apply — `mode` (`spline`/`polygon`),
+`hierarchical` (`stacked`/`cutout`), `color_precision`, `filter_speckle`,
+`corner_threshold`, `length_threshold`, `splice_threshold`, `path_precision`,
+`max_iterations`, `layer_difference`. `GET /health` returns `{"status":"ok"}`.
 
 ## Local development
 

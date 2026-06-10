@@ -6,8 +6,11 @@ import { ImageOutput } from '../models/image-output.model';
 import { ImageProcessingService } from './image-processing.service';
 
 export type VectorizeMode = 'spline' | 'polygon';
+export type VectorizePreset = 'auto' | 'manual';
 
 export interface VectorizeOptions {
+  /** `auto` lets the backend analyze the image and pick every setting. */
+  preset: VectorizePreset;
   /** Significant bits per RGB channel; higher keeps more distinct colors. */
   colorPrecision: number;
   /** Discard color patches smaller than this many pixels (speckle cleanup). */
@@ -35,11 +38,14 @@ export class VectorizeService {
   async toSvg(file: File, options: VectorizeOptions): Promise<ImageOutput> {
     const form = new FormData();
     form.append('file', file);
-    form.append('color_precision', String(options.colorPrecision));
-    form.append('filter_speckle', String(options.filterSpeckle));
-    form.append('mode', options.mode);
-    form.append('corner_threshold', String(options.cornerThreshold));
-    form.append('length_threshold', String(options.lengthThreshold));
+    form.append('preset', options.preset);
+    if (options.preset === 'manual') {
+      form.append('color_precision', String(options.colorPrecision));
+      form.append('filter_speckle', String(options.filterSpeckle));
+      form.append('mode', options.mode);
+      form.append('corner_threshold', String(options.cornerThreshold));
+      form.append('length_threshold', String(options.lengthThreshold));
+    }
 
     const [blob, dimensions] = await Promise.all([
       firstValueFrom(this.http.post('/api/vectorize', form, { responseType: 'blob' })),

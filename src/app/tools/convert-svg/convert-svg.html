@@ -8,46 +8,61 @@
 >
   <div class="tool-fields" [formGroup]="form">
     <div class="field">
-      <label for="mode">Style</label>
-      <select id="mode" formControlName="mode">
-        <option value="spline">Smooth (curves)</option>
-        <option value="polygon">Sharp (straight edges)</option>
+      <label for="preset">Settings</label>
+      <select id="preset" formControlName="preset">
+        <option value="auto">Automatic (recommended)</option>
+        <option value="manual">Custom</option>
       </select>
-      <span class="field-hint">Smooth fits curves; sharp keeps angular, polygonal edges.</span>
+      <span class="field-hint"
+        >Automatic analyzes each image and picks the best tracing settings for it.</span
+      >
     </div>
 
-    @if (form.controls.mode.value === 'spline') {
+    @if (form.controls.preset.value === 'manual') {
       <div class="field">
-        <label for="smoothness">Smoothness</label>
-        <select id="smoothness" formControlName="smoothness">
-          <option value="crisp">Crisp</option>
-          <option value="balanced">Balanced</option>
-          <option value="smooth">Smooth</option>
+        <label for="mode">Style</label>
+        <select id="mode" formControlName="mode">
+          <option value="spline">Smooth (curves)</option>
+          <option value="polygon">Sharp (straight edges)</option>
+        </select>
+        <span class="field-hint">Smooth fits curves; sharp keeps angular, polygonal edges.</span>
+      </div>
+
+      @if (form.controls.mode.value === 'spline') {
+        <div class="field">
+          <label for="smoothness">Smoothness</label>
+          <select id="smoothness" formControlName="smoothness">
+            <option value="crisp">Crisp</option>
+            <option value="balanced">Balanced</option>
+            <option value="smooth">Smooth</option>
+          </select>
+          <span class="field-hint"
+            >Rounder curves with fewer nodes, or crisper, more faithful corners.</span
+          >
+        </div>
+      }
+
+      <div class="field">
+        <label for="colorPrecision">Color detail</label>
+        <select id="colorPrecision" formControlName="colorPrecision">
+          <option [value]="3">Low</option>
+          <option [value]="6">Medium</option>
+          <option [value]="8">High</option>
         </select>
         <span class="field-hint"
-          >Rounder curves with fewer nodes, or crisper, more faithful corners.</span
+          >Higher keeps more distinct colors; lower flattens the palette.</span
         >
       </div>
+
+      <div class="field">
+        <label for="filterSpeckle">Cleanup</label>
+        <select id="filterSpeckle" formControlName="filterSpeckle">
+          <option [value]="0">None</option>
+          <option [value]="4">Light</option>
+          <option [value]="10">Strong</option>
+        </select>
+        <span class="field-hint">Discards tiny specks for cleaner shapes and smaller files.</span>
+      </div>
     }
-
-    <div class="field">
-      <label for="colorPrecision">Color detail</label>
-      <select id="colorPrecision" formControlName="colorPrecision">
-        <option [value]="3">Low</option>
-        <option [value]="6">Medium</option>
-        <option [value]="8">High</option>
-      </select>
-      <span class="field-hint">Higher keeps more distinct colors; lower flattens the palette.</span>
-    </div>
-
-    <div class="field">
-      <label for="filterSpeckle">Cleanup</label>
-      <select id="filterSpeckle" formControlName="filterSpeckle">
-        <option [value]="0">None</option>
-        <option [value]="4">Light</option>
-        <option [value]="10">Strong</option>
-      </select>
-      <span class="field-hint">Discards tiny specks for cleaner shapes and smaller files.</span>
-    </div>
   </div>
 </app-tool-shell>

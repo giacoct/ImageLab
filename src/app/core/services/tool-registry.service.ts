@@ -78,6 +78,16 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
       import('../../tools/remove-background/remove-background').then((m) => m.RemoveBackground),
   },
   {
+    id: 'watermark',
+    title: 'Watermark',
+    description: 'Stamp a text watermark onto images, with a live preview of size and placement.',
+    route: '/tools/watermark',
+    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    maxFiles: null,
+    batch: true,
+    loadComponent: () => import('../../tools/watermark/watermark').then((m) => m.Watermark),
+  },
+  {
     id: 'adjust',
     title: 'Adjust & filters',
     description: 'Tune brightness, contrast, and color, or apply blur, sharpen, and tints.',

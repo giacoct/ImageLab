@@ -1,0 +1,66 @@
+<app-tool-shell
+  [tool]="tool"
+  [files]="files()"
+  [error]="error()"
+  [canSubmit]="canSubmit()"
+  actionLabel="Apply watermark"
+  [selectable]="true"
+  [selectedIndex]="selectedIndex()"
+  (action)="submit()"
+  (fileSelected)="selectFile($event)"
+>
+  @if (previewReady()) {
+    <section preview class="tool-preview panel" aria-label="Live preview">
+      <h2>Preview</h2>
+      <div class="preview-stage">
+        <canvas #previewCanvas></canvas>
+      </div>
+      <span class="preview-hint">Preview is downscaled; export renders at full resolution.</span>
+    </section>
+  }
+
+  <div class="tool-fields" [formGroup]="form">
+    <div class="field">
+      <label for="text">Watermark text</label>
+      <input id="text" type="text" maxlength="120" formControlName="text" />
+    </div>
+
+    <div class="field">
+      <label for="position">Position</label>
+      <select id="position" formControlName="position">
+        <option value="top-left">Top left</option>
+        <option value="top-right">Top right</option>
+        <option value="center">Center</option>
+        <option value="bottom-left">Bottom left</option>
+        <option value="bottom-right">Bottom right</option>
+      </select>
+    </div>
+
+    <div class="settings-grid">
+      <div class="field">
+        <label for="sizePercent">Size: {{ form.controls.sizePercent.value }}%</label>
+        <input
+          id="sizePercent"
+          type="range"
+          min="1"
+          max="20"
+          step="1"
+          formControlName="sizePercent"
+        />
+      </div>
+      <div class="field">
+        <label for="opacity">Opacity: {{ form.controls.opacity.value }}%</label>
+        <input id="opacity" type="range" min="5" max="100" step="5" formControlName="opacity" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="color">Color</label>
+      <input id="color" type="color" formControlName="color" />
+    </div>
+
+    <span class="field-hint"
+      >The text size scales with each image, so a batch gets a consistent look.</span
+    >
+  </div>
+</app-tool-shell>

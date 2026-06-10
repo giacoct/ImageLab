@@ -48,6 +48,29 @@ export interface EditOptions {
   fileName: string;
 }
 
+export type WatermarkPosition =
+  | 'top-left'
+  | 'top-right'
+  | 'center'
+  | 'bottom-left'
+  | 'bottom-right';
+
+export interface WatermarkStyle {
+  text: string;
+  position: WatermarkPosition;
+  /** Font size as a percentage of the image's shorter side. */
+  sizePercent: number;
+  /** 0–100. */
+  opacity: number;
+  color: string;
+}
+
+export interface WatermarkRenderOptions extends WatermarkStyle {
+  format: CanvasOutputFormat;
+  quality: number;
+  fileName: string;
+}
+
 export interface AdjustmentOptions {
   brightness: number;
   contrast: number;
@@ -217,6 +240,26 @@ export class ImageProcessingService {
     return this.createOutput(options.fileName, blob, canvas.width, canvas.height);
   }
 
+  async renderWatermarked(file: File, options: WatermarkRenderOptions): Promise<ImageOutput> {
+    const image = await this.loadImage(file);
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      image.release();
+      throw new Error('Canvas rendering is not available in this browser.');
+    }
+
+    context.drawImage(image.source, 0, 0);
+    image.release();
+    drawWatermark(context, canvas.width, canvas.height, options);
+
+    const blob = await this.canvasToBlob(canvas, options.format, options.quality);
+    return this.createOutput(options.fileName, blob, canvas.width, canvas.height);
+  }
+
   revoke(outputs: readonly ImageOutput[]): void {
     for (const output of outputs) {
       URL.revokeObjectURL(output.url);
@@ -359,6 +402,51 @@ function clamp(value: number, min: number, max: number): number {
  */
 export function applyBackgroundKey(imageData: ImageData, options: BackgroundKeyOptions): void {
   keyBackgroundPixels(imageData.data, options);
+}
+
+/**
+ * Draw a watermark text onto a canvas. Shared by the export pass and the live
+ * preview so both render identically (the size scales with the image).
+ */
+export function drawWatermark(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  style: WatermarkStyle,
+): void {
+  const text = style.text.trim();
+  if (!text) {
+    return;
+  }
+
+  const fontSize = Math.max(8, Math.round((Math.min(width, height) * style.sizePercent) / 100));
+  const margin = Math.round(fontSize * 0.75);
+
+  context.save();
+  context.globalAlpha = Math.max(0, Math.min(1, style.opacity / 100));
+  context.fillStyle = style.color;
+  context.font = `600 ${fontSize}px system-ui, 'Segoe UI', sans-serif`;
+  // A soft shadow keeps light text readable on light areas (and vice versa).
+  context.shadowColor = 'rgba(0, 0, 0, 0.4)';
+  context.shadowBlur = Math.max(1, fontSize / 8);
+
+  let x: number;
+  let y: number;
+  if (style.position === 'center') {
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    x = width / 2;
+    y = height / 2;
+  } else {
+    const [vertical, horizontal] = style.position.split('-') as ['top' | 'bottom', 'left' | 'right'];
+    context.textAlign = horizontal;
+    context.textBaseline = vertical;
+    x = horizontal === 'left' ? margin : width - margin;
+    y = vertical === 'top' ? margin : height - margin;
+  }
+
+  context.fillText(text, x, y, Math.max(1, width - margin * 2));
+  context.restore();
 }
 
 function buildFilterString(options: AdjustmentOptions): string {

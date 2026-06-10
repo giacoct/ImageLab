@@ -27,6 +27,33 @@ export function extensionForFormat(format: OutputFormat): string {
   }
 }
 
+/**
+ * Decode a file and return a downscaled `ImageData` snapshot (longest side
+ * `maxSide`) for live previews, or `null` when the canvas is unavailable.
+ */
+export async function loadPreviewImageData(file: File, maxSide: number): Promise<ImageData | null> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+
+  if (!context) {
+    bitmap.close();
+    return null;
+  }
+
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = 'high';
+  context.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+  return context.getImageData(0, 0, width, height);
+}
+
 let avifSupport: Promise<boolean> | null = null;
 
 /**

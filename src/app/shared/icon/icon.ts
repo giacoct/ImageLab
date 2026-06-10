@@ -7,10 +7,13 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 export type IconName =
   | 'resize'
   | 'convert'
+  | 'convert-svg'
   | 'compress'
   | 'strip-metadata'
   | 'remove-background'
   | 'adjust'
+  | 'scale'
+  | 'watermark'
   | 'upload'
   | 'download'
   | 'arrow-right'
@@ -66,6 +69,21 @@ export type IconName =
           <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
           <path d="m7 22-4-4 4-4" />
           <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+        }
+        @case ('convert-svg') {
+          <circle cx="19" cy="5" r="2" />
+          <circle cx="5" cy="19" r="2" />
+          <path d="M5 17A12 12 0 0 1 17 5" />
+        }
+        @case ('scale') {
+          <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M16 3h5v5" />
+          <path d="M14 10 21 3" />
+        }
+        @case ('watermark') {
+          <polyline points="4 7 4 4 20 4 20 7" />
+          <line x1="9" y1="20" x2="15" y2="20" />
+          <line x1="12" y1="4" x2="12" y2="20" />
         }
         @case ('compress') {
           <polyline points="4 14 10 14 10 20" />

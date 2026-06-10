@@ -45,9 +45,9 @@
       <div class="field">
         <label for="colorPrecision">Color detail</label>
         <select id="colorPrecision" formControlName="colorPrecision">
-          <option [value]="3">Low</option>
-          <option [value]="6">Medium</option>
-          <option [value]="8">High</option>
+          <option [ngValue]="3">Low</option>
+          <option [ngValue]="6">Medium</option>
+          <option [ngValue]="8">High</option>
         </select>
         <span class="field-hint"
           >Higher keeps more distinct colors; lower flattens the palette.</span
@@ -57,9 +57,9 @@
       <div class="field">
         <label for="filterSpeckle">Cleanup</label>
         <select id="filterSpeckle" formControlName="filterSpeckle">
-          <option [value]="0">None</option>
-          <option [value]="4">Light</option>
-          <option [value]="10">Strong</option>
+          <option [ngValue]="0">None</option>
+          <option [ngValue]="4">Light</option>
+          <option [ngValue]="10">Strong</option>
         </select>
         <span class="field-hint">Discards tiny specks for cleaner shapes and smaller files.</span>
       </div>

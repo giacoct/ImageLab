@@ -111,17 +111,37 @@ export class ImageProcessingService {
 
   async renderIco(file: File, options: IcoRenderOptions): Promise<ImageOutput> {
     const size = Math.max(16, Math.min(256, Math.round(options.size)));
-    const canvas = await this.renderToCanvas(file, {
-      width: size,
-      height: size,
-      format: 'image/png',
-      quality: 1,
-      fileName: options.fileName,
-    });
+    const image = await this.loadImage(file);
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      image.release();
+      throw new Error('Canvas rendering is not available in this browser.');
+    }
+
+    // Letterbox onto a transparent square so non-square images keep their
+    // aspect ratio instead of being stretched.
+    const scale = Math.min(size / image.width, size / image.height);
+    const drawWidth = Math.max(1, Math.round(image.width * scale));
+    const drawHeight = Math.max(1, Math.round(image.height * scale));
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(
+      image.source,
+      Math.round((size - drawWidth) / 2),
+      Math.round((size - drawHeight) / 2),
+      drawWidth,
+      drawHeight,
+    );
+    image.release();
+
     const pngBlob = await this.canvasToBlob(canvas, 'image/png', 1);
     const iconBlob = await createIcoBlob(pngBlob, size);
 
-    return this.createOutput(options.fileName, iconBlob, canvas.width, canvas.height);
+    return this.createOutput(options.fileName, iconBlob, size, size);
   }
 
   /** Apply rotate/flip, crop, and resize in a single pass for the image editor. */

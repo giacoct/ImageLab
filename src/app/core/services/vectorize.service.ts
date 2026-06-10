@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
@@ -48,7 +48,7 @@ export class VectorizeService {
     }
 
     const [blob, dimensions] = await Promise.all([
-      firstValueFrom(this.http.post('/api/vectorize', form, { responseType: 'blob' })),
+      this.postVectorize(form),
       this.processing.getDimensions(file),
     ]);
 
@@ -61,4 +61,34 @@ export class VectorizeService {
       height: dimensions.height,
     };
   }
+
+  /** POST to the backend, translating HTTP failures into readable errors. */
+  private async postVectorize(form: FormData): Promise<Blob> {
+    try {
+      return await firstValueFrom(this.http.post('/api/vectorize', form, { responseType: 'blob' }));
+    } catch (error) {
+      throw new Error(await describeVectorizeError(error));
+    }
+  }
+}
+
+/** Build a user-facing message, preferring the backend's own `detail` text. */
+async function describeVectorizeError(error: unknown): Promise<string> {
+  if (error instanceof HttpErrorResponse) {
+    if (error.status === 0) {
+      return 'The vectorizer service is not reachable. Please try again later.';
+    }
+    if (error.error instanceof Blob) {
+      try {
+        const detail: unknown = JSON.parse(await error.error.text()).detail;
+        if (typeof detail === 'string' && detail.length > 0) {
+          return detail;
+        }
+      } catch {
+        // Not a JSON body — fall through to the generic message.
+      }
+    }
+    return `The vectorizer service failed (HTTP ${error.status}).`;
+  }
+  return 'The image could not be vectorized.';
 }

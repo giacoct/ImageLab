@@ -104,23 +104,6 @@ h2 {
   flex: 0 0 auto;
 }
 
-.chain-row {
-  display: flex;
-  flex: 1 1 auto;
-  gap: 0.5rem;
-}
-
-.chain-row select {
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  color: var(--ink);
-  flex: 1 1 auto;
-  min-height: 2.75rem;
-  min-width: 0;
-  padding: 0.55rem 0.7rem;
-}
-
 h3 {
   color: var(--ink);
   font-size: 1rem;
@@ -132,4 +115,113 @@ h3 {
     align-items: stretch;
     flex-direction: column;
   }
+}
+
+/* Tool picker overlay — mirrors the home page tool grid. */
+.picker-backdrop {
+  align-items: center;
+  animation: fade-in-up 0.2s var(--ease) both;
+  background: rgba(15, 32, 29, 0.45);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 50;
+}
+
+.picker {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  max-width: 56rem;
+  overflow: hidden;
+  width: 100%;
+}
+
+.picker-header {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+}
+
+.picker-header h2 {
+  font-size: 1.2rem;
+}
+
+.picker-close {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--muted);
+  display: inline-flex;
+  height: 2.25rem;
+  justify-content: center;
+  width: 2.25rem;
+}
+
+.picker-close:hover,
+.picker-close:focus-visible {
+  border-color: var(--border-strong);
+  color: var(--ink);
+}
+
+.picker-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+.picker-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  gap: 0.6rem;
+  min-height: 11rem;
+  padding: 1.1rem;
+  text-align: left;
+  transition:
+    border-color var(--speed) var(--ease),
+    transform var(--speed) var(--ease),
+    box-shadow var(--speed) var(--ease);
+}
+
+.picker-card:hover,
+.picker-card:focus-visible {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+  transform: translateY(-3px);
+}
+
+.picker-card-top {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.picker-card .tool-icon {
+  height: 2.75rem;
+  width: 2.75rem;
+}
+
+.picker-card h3 {
+  font-size: 1.1rem;
+}
+
+.picker-card p {
+  color: var(--muted);
+  line-height: 1.5;
 }

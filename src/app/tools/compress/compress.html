@@ -8,14 +8,37 @@
 >
   <div class="tool-fields" [formGroup]="form">
     <div class="field">
+      <label for="mode">Compression goal</label>
+      <select id="mode" formControlName="mode">
+        <option value="quality">Fixed quality</option>
+        <option value="target">Target file size</option>
+      </select>
+      <span class="field-hint"
+        >Fixed quality applies one setting; target size finds the quality that fits a size
+        budget.</span
+      >
+    </div>
+
+    <div class="field">
       <label for="maxSize">Maximum side</label>
       <input id="maxSize" type="number" min="320" step="10" formControlName="maxSize" />
       <span class="field-hint">Images smaller than this keep their original dimensions.</span>
     </div>
 
-    <div class="field">
-      <label for="quality">Quality: {{ form.controls.quality.value }}%</label>
-      <input id="quality" type="range" min="10" max="95" step="5" formControlName="quality" />
-    </div>
+    @if (form.controls.mode.value === 'quality') {
+      <div class="field">
+        <label for="quality">Quality: {{ form.controls.quality.value }}%</label>
+        <input id="quality" type="range" min="10" max="95" step="5" formControlName="quality" />
+      </div>
+    } @else {
+      <div class="field">
+        <label for="targetKb">Target size (KB)</label>
+        <input id="targetKb" type="number" min="10" step="10" formControlName="targetKb" />
+        <span class="field-hint"
+          >Each image is compressed to fit under this size. PNG images are scaled down instead,
+          since PNG has no quality setting.</span
+        >
+      </div>
+    }
   </div>
 </app-tool-shell>

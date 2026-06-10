@@ -1,11 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 
 import { OutputFormat } from '../../core/models/image-output.model';
 import { JobProcessor } from '../../core/services/tool-session.service';
 import { BaseTool } from '../../pages/settings/base-tool';
 import { ToolShell } from '../../pages/settings/tool-shell';
-import { renameFile } from '../../core/utils/image-tool-utils';
+import { renameFile, supportsAvifOutput } from '../../core/utils/image-tool-utils';
 
 @Component({
   selector: 'app-convert-tool',
@@ -23,9 +23,13 @@ export class Convert extends BaseTool {
     size: this.fb.control(256),
   });
 
+  /** AVIF encoding is Chromium-only; the option is shown when supported. */
+  protected readonly avifSupported = signal(false);
+
   constructor() {
     super();
     this.registerForm(this.form);
+    void supportsAvifOutput().then((supported) => this.avifSupported.set(supported));
   }
 
   protected override isFormValid(): boolean {

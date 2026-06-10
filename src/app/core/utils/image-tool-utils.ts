@@ -20,9 +20,32 @@ export function extensionForFormat(format: OutputFormat): string {
       return 'png';
     case 'image/webp':
       return 'webp';
+    case 'image/avif':
+      return 'avif';
     case 'image/x-icon':
       return 'ico';
   }
+}
+
+let avifSupport: Promise<boolean> | null = null;
+
+/**
+ * Whether this browser can *encode* AVIF via `canvas.toBlob`. Chromium can;
+ * the canvas silently falls back to PNG elsewhere, which is what the
+ * blob-type check detects. The probe runs once and is cached.
+ */
+export function supportsAvifOutput(): Promise<boolean> {
+  avifSupport ??= new Promise((resolve) => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1;
+      canvas.height = 1;
+      canvas.toBlob((blob) => resolve(blob?.type === 'image/avif'), 'image/avif');
+    } catch {
+      resolve(false);
+    }
+  });
+  return avifSupport;
 }
 
 export function renameFile(fileName: string, suffix: string, format: OutputFormat): string {

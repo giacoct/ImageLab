@@ -7,7 +7,7 @@ export interface ImageOutput {
   height: number;
 }
 
-export type CanvasOutputFormat = 'image/jpeg' | 'image/png' | 'image/webp';
+export type CanvasOutputFormat = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/avif';
 export type OutputFormat = CanvasOutputFormat | 'image/x-icon';
 
 export interface ImageDimensions {

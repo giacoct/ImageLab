@@ -16,7 +16,8 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
   {
     id: 'convert',
     title: 'Convert format',
-    description: 'Export images as JPEG, PNG, WebP, or ICO icons using browser-native conversion.',
+    description:
+      'Export images as JPEG, PNG, WebP, AVIF, or ICO icons using browser-native conversion.',
     route: '/tools/convert',
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxFiles: null,

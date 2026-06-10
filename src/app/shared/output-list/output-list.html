@@ -4,54 +4,67 @@
       <h2 id="outputs-title">Output</h2>
     </div>
 
-    @if (isBatch()) {
-      <article class="output-item album-card">
-        <div class="album-stack" aria-hidden="true">
-          @for (output of stackPreview(); track output.url; let i = $index) {
-            <img class="album-img" [src]="output.url" alt="" [style.--i]="i" />
-          }
-          <span class="album-badge">{{ outputs().length }}</span>
-        </div>
-        <div class="output-body">
-          <h3>{{ outputs().length }} images</h3>
-          <p>{{ readableSize(totalSize()) }} · ZIP archive</p>
-          <div class="action-row">
-            <button class="button" type="button" (click)="downloadZip()">
-              <app-icon name="download" [size]="18" />
-              Download
-            </button>
-            @if (albumChainTargets().length > 0) {
-              <button class="button secondary" type="button" (click)="openAlbumPicker()">
-                <app-icon name="send" [size]="18" />
-                Chain tool
-              </button>
+    <div class="output-grid">
+      @if (isBatch()) {
+        <article class="output-item album-card">
+          <div class="album-stack" aria-hidden="true">
+            @for (output of stackPreview(); track output.url; let i = $index) {
+              <img class="album-img" [src]="output.url" alt="" [style.--i]="i" />
             }
+            <span class="album-badge">
+              <app-icon name="folder" [size]="14" />
+              {{ outputs().length }}
+            </span>
           </div>
-        </div>
-      </article>
-    }
+          <div class="output-body">
+            <span class="kind-tag kind-tag--album">
+              <app-icon name="folder" [size]="13" />
+              Album
+            </span>
+            <h3>{{ outputs().length }} images</h3>
+            <p>{{ readableSize(totalSize()) }} · ZIP archive</p>
+            <div class="action-row">
+              <button class="button" type="button" (click)="downloadZip()">
+                <app-icon name="download" [size]="18" />
+                Download
+              </button>
+              @if (albumChainTargets().length > 0) {
+                <button class="button secondary" type="button" (click)="openAlbumPicker()">
+                  <app-icon name="send" [size]="18" />
+                  Chain tool
+                </button>
+              }
+            </div>
+          </div>
+        </article>
+      }
 
-    @for (output of outputs(); track output.url) {
-      <article class="output-item">
-        <img [src]="output.url" [alt]="output.fileName" />
-        <div class="output-body">
-          <h3>{{ output.fileName }}</h3>
-          <p>{{ output.width }} x {{ output.height }} px | {{ readableSize(output.size) }}</p>
-          <div class="action-row">
-            <button class="button" type="button" (click)="download(output)">
-              <app-icon name="download" [size]="18" />
-              Download
-            </button>
-            @if (singleChainTargets(output).length > 0) {
-              <button class="button secondary" type="button" (click)="openSinglePicker(output)">
-                <app-icon name="send" [size]="18" />
-                Chain tool
+      @for (output of outputs(); track output.url) {
+        <article class="output-item file-card">
+          <img [src]="output.url" [alt]="output.fileName" />
+          <div class="output-body">
+            <span class="kind-tag kind-tag--file">
+              <app-icon name="image" [size]="13" />
+              File
+            </span>
+            <h3>{{ output.fileName }}</h3>
+            <p>{{ output.width }} x {{ output.height }} px | {{ readableSize(output.size) }}</p>
+            <div class="action-row">
+              <button class="button" type="button" (click)="download(output)">
+                <app-icon name="download" [size]="18" />
+                Download
               </button>
-            }
+              @if (singleChainTargets(output).length > 0) {
+                <button class="button secondary" type="button" (click)="openSinglePicker(output)">
+                  <app-icon name="send" [size]="18" />
+                  Chain tool
+                </button>
+              }
+            </div>
           </div>
-        </div>
-      </article>
-    }
+        </article>
+      }
+    </div>
   </section>
 }
 
@@ -67,7 +80,7 @@
       <div class="picker-header">
         <h2>Choose the next tool</h2>
         <button class="picker-close" type="button" aria-label="Close" (click)="closePicker()">
-          <app-icon name="arrow-left" [size]="18" />
+          <app-icon name="close" [size]="18" />
         </button>
       </div>
       <div class="picker-grid">

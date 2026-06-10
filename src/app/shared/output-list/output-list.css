@@ -27,11 +27,17 @@ h2 {
   color: var(--muted);
 }
 
+/* Compact, responsive grid of output cards (album + individual files). */
+.output-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
+
 .output-item {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  max-width: 360px;
   overflow: hidden;
   transition:
     border-color var(--speed) var(--ease),
@@ -42,6 +48,16 @@ h2 {
 .output-item:hover {
   box-shadow: var(--shadow);
   transform: translateY(-2px);
+}
+
+/* The album reads as a folder: accent frame + tinted body + a "folder tab". */
+.album-card {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.album-card .output-body {
+  background: var(--accent-soft);
 }
 
 .output-item > img {
@@ -75,13 +91,16 @@ h2 {
 }
 
 .album-badge {
+  align-items: center;
   background: var(--accent-strong);
   border-radius: 999px;
   bottom: 0.6rem;
   color: #fff;
+  display: inline-flex;
   font-size: 0.85rem;
   font-weight: 760;
-  padding: 0.25rem 0.7rem;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
   position: absolute;
   right: 0.6rem;
   z-index: 11;
@@ -89,25 +108,57 @@ h2 {
 
 .output-body {
   display: grid;
-  gap: 0.65rem;
-  padding: 1rem;
+  gap: 0.5rem;
+  padding: 0.8rem;
+}
+
+/* Tag that names the card's kind: an accent "Album" pill vs a quiet "File" pill. */
+.kind-tag {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 760;
+  gap: 0.3rem;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.55rem;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.kind-tag--album {
+  background: var(--accent);
+  color: #fff;
+}
+
+.kind-tag--file {
+  background: var(--panel-subtle);
+  color: var(--muted);
 }
 
 .action-row {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
+/* Compact buttons so two fit a narrow card, wrapping to stack when they can't. */
 .action-row .button {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  font-size: 0.9rem;
+  min-height: 2.4rem;
+  padding: 0.5rem 0.7rem;
 }
 
 h3 {
   color: var(--ink);
-  font-size: 1rem;
+  font-size: 0.92rem;
   overflow-wrap: anywhere;
+}
+
+.output-body p {
+  font-size: 0.85rem;
 }
 
 @media (max-width: 560px) {

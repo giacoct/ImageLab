@@ -283,7 +283,10 @@ export class Resize extends BaseTool implements OnDestroy {
 }
 
 /** Fraction-space height/width factor that preserves a pixel aspect ratio. */
-function ratioFactor(preset: AspectPreset, transformed: { width: number; height: number }): number {
+export function ratioFactor(
+  preset: AspectPreset,
+  transformed: { width: number; height: number },
+): number {
   const [rw, rh] =
     preset === '1:1'
       ? [1, 1]
@@ -297,7 +300,7 @@ function ratioFactor(preset: AspectPreset, transformed: { width: number; height:
 }
 
 /** Largest centered crop with the given fraction-space height factor `k`. */
-function centeredCrop(k: number): NormalizedCrop {
+export function centeredCrop(k: number): NormalizedCrop {
   const width = k <= 1 ? 1 : 1 / k;
   const height = k <= 1 ? k : 1;
   return { x: (1 - width) / 2, y: (1 - height) / 2, width, height };
@@ -307,7 +310,7 @@ function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
 
-function applyDrag(
+export function applyDrag(
   crop: NormalizedCrop,
   mode: DragMode,
   dx: number,

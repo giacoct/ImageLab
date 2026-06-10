@@ -29,12 +29,12 @@ export class DownloadService {
   }
 }
 
-interface ZipEntry {
+export interface ZipEntry {
   name: string;
   blob: Blob;
 }
 
-function dedupeNames(outputs: readonly ImageOutput[]): ZipEntry[] {
+export function dedupeNames(outputs: readonly ImageOutput[]): ZipEntry[] {
   const seen = new Map<string, number>();
 
   return outputs.map((output) => {
@@ -53,7 +53,7 @@ function dedupeNames(outputs: readonly ImageOutput[]): ZipEntry[] {
 }
 
 /** Minimal ZIP writer using the STORE method (no compression). */
-async function createZip(entries: ZipEntry[]): Promise<Blob> {
+export async function createZip(entries: ZipEntry[]): Promise<Blob> {
   const encoder = new TextEncoder();
   const localParts: BlobPart[] = [];
   const centralParts: BlobPart[] = [];

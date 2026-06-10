@@ -4,8 +4,37 @@
   [error]="error()"
   [canSubmit]="canSubmit()"
   actionLabel="Strip metadata"
+  [selectable]="files().length > 1"
+  [selectedIndex]="selectedIndex()"
   (action)="submit()"
+  (fileSelected)="selectFile($event)"
 >
+  @if (selectedFile(); as file) {
+    <section preview class="tool-preview panel" aria-label="Embedded metadata">
+      <h2>Embedded metadata</h2>
+      @if (exifEntries(); as entries) {
+        @if (entries.length > 0) {
+          <dl class="exif-list">
+            @for (entry of entries; track entry.label) {
+              <div class="exif-row">
+                <dt>{{ entry.label }}</dt>
+                <dd>{{ entry.value }}</dd>
+              </div>
+            }
+          </dl>
+          <span class="preview-hint">Everything above is removed from the rebuilt image.</span>
+        } @else {
+          <p class="field-hint">
+            No EXIF metadata found in {{ file.name }}. The image is still re-encoded, which drops
+            any other embedded chunks (comments, color profiles, thumbnails).
+          </p>
+        }
+      } @else {
+        <p class="field-hint">Reading metadata…</p>
+      }
+    </section>
+  }
+
   <p class="field-hint">
     Each image is re-encoded in its original format, dropping any embedded metadata.
   </p>

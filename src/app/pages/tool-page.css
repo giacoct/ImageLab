@@ -257,6 +257,32 @@ h2 {
   font-size: 0.85rem;
 }
 
+/* Embedded-metadata summary (Strip metadata preview). */
+.exif-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.exif-row {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.exif-row dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.exif-row dd {
+  color: var(--ink);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .error {
   background: var(--danger-bg);
   border: 1px solid var(--danger-border);

@@ -1,6 +1,10 @@
 import { Injectable } from '@angular/core';
 
 import { CanvasOutputFormat, ImageDimensions, ImageOutput } from '../models/image-output.model';
+import { BackgroundKeyOptions, keyBackgroundPixels } from '../workers/pixel-ops';
+import { keyBackgroundImageData, sharpenImageData } from '../workers/pixel-worker.client';
+
+export type { BackgroundKeyOptions } from '../workers/pixel-ops';
 
 export interface RenderTransform {
   rotateDegrees: 0 | 90 | 180 | 270;
@@ -15,12 +19,6 @@ export interface RenderOptions {
   quality: number;
   fileName: string;
   transform?: RenderTransform;
-}
-
-export interface BackgroundKeyOptions {
-  color: string;
-  tolerance: number;
-  edgeSmoothing: number;
 }
 
 export interface BackgroundRemovalOptions extends BackgroundKeyOptions {
@@ -102,8 +100,8 @@ export class ImageProcessingService {
     image.release();
 
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    applyBackgroundKey(imageData, options);
-    context.putImageData(imageData, 0, 0);
+    const keyed = await keyBackgroundImageData(imageData, options);
+    context.putImageData(keyed, 0, 0);
     const blob = await this.canvasToBlob(canvas, 'image/png', 1);
 
     return this.createOutput(options.fileName, blob, canvas.width, canvas.height);
@@ -210,7 +208,9 @@ export class ImageProcessingService {
     image.release();
 
     if (options.sharpen > 0) {
-      applySharpen(context, canvas.width, canvas.height, options.sharpen / 100);
+      const source = context.getImageData(0, 0, canvas.width, canvas.height);
+      const sharpened = await sharpenImageData(source, options.sharpen / 100);
+      context.putImageData(sharpened, 0, 0);
     }
 
     const blob = await this.canvasToBlob(canvas, options.format, options.quality);
@@ -348,58 +348,17 @@ export class ImageProcessingService {
   }
 }
 
-function hexToRgb(hex: string): { red: number; green: number; blue: number } {
-  const normalized = hex.replace('#', '');
-  const value = Number.parseInt(
-    normalized.length === 3 ? expandShortHex(normalized) : normalized,
-    16,
-  );
-
-  if (Number.isNaN(value)) {
-    return { red: 255, green: 255, blue: 255 };
-  }
-
-  return {
-    red: (value >> 16) & 255,
-    green: (value >> 8) & 255,
-    blue: value & 255,
-  };
-}
-
-function expandShortHex(hex: string): string {
-  return hex
-    .split('')
-    .map((value) => `${value}${value}`)
-    .join('');
-}
-
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
 /**
- * Key out a background color by turning matching pixels transparent, mutating
- * the `ImageData` in place. Shared by the export pass and the live preview.
+ * Key out a background color synchronously, mutating the `ImageData` in
+ * place. Used by the live preview on small snapshots; full-resolution exports
+ * go through the pixel worker instead.
  */
 export function applyBackgroundKey(imageData: ImageData, options: BackgroundKeyOptions): void {
-  const key = hexToRgb(options.color);
-  const data = imageData.data;
-  const transparentLimit = (Math.max(0, Math.min(100, options.tolerance)) / 100) * 441.672;
-  const smoothingRange = (Math.max(0, Math.min(100, options.edgeSmoothing)) / 100) * 180;
-
-  for (let index = 0; index < data.length; index += 4) {
-    const distance = colorDistance(data[index], data[index + 1], data[index + 2], key);
-
-    if (distance <= transparentLimit) {
-      data[index + 3] = 0;
-      continue;
-    }
-
-    if (smoothingRange > 0 && distance <= transparentLimit + smoothingRange) {
-      const alphaScale = (distance - transparentLimit) / smoothingRange;
-      data[index + 3] = Math.round(data[index + 3] * alphaScale);
-    }
-  }
+  keyBackgroundPixels(imageData.data, options);
 }
 
 function buildFilterString(options: AdjustmentOptions): string {
@@ -415,53 +374,6 @@ function buildFilterString(options: AdjustmentOptions): string {
   if (options.blur > 0) parts.push(`blur(${options.blur}px)`);
 
   return parts.join(' ');
-}
-
-function applySharpen(
-  context: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  amount: number,
-): void {
-  const source = context.getImageData(0, 0, width, height);
-  const output = context.createImageData(width, height);
-  const src = source.data;
-  const out = output.data;
-  const center = 1 + 4 * amount;
-
-  const sampleAt = (x: number, y: number): number =>
-    (Math.max(0, Math.min(height - 1, y)) * width + Math.max(0, Math.min(width - 1, x))) * 4;
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const index = (y * width + x) * 4;
-      const up = sampleAt(x, y - 1);
-      const down = sampleAt(x, y + 1);
-      const left = sampleAt(x - 1, y);
-      const right = sampleAt(x + 1, y);
-
-      for (let channel = 0; channel < 3; channel++) {
-        const value =
-          src[index + channel] * center -
-          amount *
-            (src[up + channel] + src[down + channel] + src[left + channel] + src[right + channel]);
-        out[index + channel] = value < 0 ? 0 : value > 255 ? 255 : value;
-      }
-
-      out[index + 3] = src[index + 3];
-    }
-  }
-
-  context.putImageData(output, 0, 0);
-}
-
-function colorDistance(
-  red: number,
-  green: number,
-  blue: number,
-  key: { red: number; green: number; blue: number },
-): number {
-  return Math.hypot(red - key.red, green - key.green, blue - key.blue);
 }
 
 async function createIcoBlob(pngBlob: Blob, size: number): Promise<Blob> {

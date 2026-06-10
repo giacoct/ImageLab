@@ -17,6 +17,7 @@ import io
 
 import vtracer
 from fastapi import FastAPI, Form, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
 from PIL import Image, ImageFilter, ImageOps, UnidentifiedImageError
 
@@ -174,6 +175,10 @@ async def vectorize(
     if hierarchical not in VALID_HIERARCHICAL:
         raise HTTPException(status_code=400, detail=f"Invalid hierarchical: {hierarchical!r}.")
 
+    # Reject by declared size before reading the body into memory.
+    if file.size is not None and file.size > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Image exceeds the 10 MB limit.")
+
     data = await file.read()
     if not data:
         raise HTTPException(status_code=400, detail="Empty upload.")
@@ -181,25 +186,33 @@ async def vectorize(
         raise HTTPException(status_code=413, detail="Image exceeds the 10 MB limit.")
 
     try:
+        # Tracing is CPU-bound; run it off the event loop so concurrent
+        # requests and /health keep responding while an image is traced.
         if preset == "auto":
-            png, params, original_size, traced_size = _prepare_auto(data)
-            svg = vtracer.convert_raw_image_to_svg(png, img_format="png", **params)
+            png, params, original_size, traced_size = await run_in_threadpool(
+                _prepare_auto, data
+            )
+            svg = await run_in_threadpool(
+                lambda: vtracer.convert_raw_image_to_svg(png, img_format="png", **params)
+            )
             svg = _restore_dimensions(svg, original_size, traced_size)
         else:
-            svg = vtracer.convert_raw_image_to_svg(
-                data,
-                img_format=image_format,
-                colormode="color",
-                mode=mode,
-                hierarchical=hierarchical,
-                filter_speckle=int(_clamp(filter_speckle, 0, 64)),
-                color_precision=int(_clamp(color_precision, 1, 8)),
-                layer_difference=int(_clamp(layer_difference, 0, 256)),
-                corner_threshold=int(_clamp(corner_threshold, 0, 180)),
-                length_threshold=_clamp(length_threshold, 3.5, 10.0),
-                splice_threshold=int(_clamp(splice_threshold, 0, 180)),
-                path_precision=int(_clamp(path_precision, 1, 10)),
-                max_iterations=int(_clamp(max_iterations, 1, 40)),
+            svg = await run_in_threadpool(
+                lambda: vtracer.convert_raw_image_to_svg(
+                    data,
+                    img_format=image_format,
+                    colormode="color",
+                    mode=mode,
+                    hierarchical=hierarchical,
+                    filter_speckle=int(_clamp(filter_speckle, 0, 64)),
+                    color_precision=int(_clamp(color_precision, 1, 8)),
+                    layer_difference=int(_clamp(layer_difference, 0, 256)),
+                    corner_threshold=int(_clamp(corner_threshold, 0, 180)),
+                    length_threshold=_clamp(length_threshold, 3.5, 10.0),
+                    splice_threshold=int(_clamp(splice_threshold, 0, 180)),
+                    path_precision=int(_clamp(path_precision, 1, 10)),
+                    max_iterations=int(_clamp(max_iterations, 1, 40)),
+                )
             )
     except HTTPException:
         raise

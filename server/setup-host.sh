@@ -29,12 +29,36 @@ bad()  { printf '\033[31mFAIL\033[0m  %s\n' "$*"; FAILURES=$((FAILURES + 1)); }
 warn() { printf '\033[33mwarn\033[0m  %s\n' "$*"; }
 die()  { printf '\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
+# Poll an HTTP endpoint for up to `tries` seconds (services need a moment to bind).
+http_ok() {
+  local url="$1" tries="${2:-5}" i
+  for i in $(seq 1 "$tries"); do
+    curl -fsS --max-time 2 "$url" >/dev/null 2>&1 && return 0
+    sleep 1
+  done
+  return 1
+}
+
 [ -n "$SYSTEMCTL" ] || die "systemctl not found — run this on the Linux host, not locally."
 
 # ---------------------------------------------------------------- helpers ---
 
+# Resolve the *active* nginx config that declares the :$WEB_PORT server block.
+# Only enabled/included locations are considered, symlinks are resolved to the
+# real file, and our own .bak backups are skipped so detection stays stable.
 nginx_conf_for_port() {
-  grep -rlE "listen[^;]*\b$WEB_PORT\b" /etc/nginx 2>/dev/null | head -n 1
+  local f real
+  for f in /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf /etc/nginx/nginx.conf; do
+    [ -e "$f" ] || continue
+    case "$f" in *.bak*|*~) continue ;; esac
+    real="$(readlink -f "$f")"
+    [ -f "$real" ] || continue
+    if grep -qE "listen[^;]*\b$WEB_PORT\b" "$real"; then
+      printf '%s\n' "$real"
+      return 0
+    fi
+  done
+  return 1
 }
 
 unit_content() {
@@ -115,13 +139,13 @@ check() {
     warn "backend venv missing — the first CI deploy (or install mode) creates it"
   fi
 
-  if curl -fsS --max-time 3 "http://127.0.0.1:$API_PORT/health" >/dev/null 2>&1; then
+  if http_ok "http://127.0.0.1:$API_PORT/health" 5; then
     ok "backend healthy on 127.0.0.1:$API_PORT"
   else
-    warn "backend not answering on :$API_PORT (fine if not yet deployed)"
+    warn "backend not answering on :$API_PORT (try: journalctl -u $SERVICE -n 30)"
   fi
 
-  if curl -fsS --max-time 3 "http://127.0.0.1:$WEB_PORT/api/health" >/dev/null 2>&1; then
+  if http_ok "http://127.0.0.1:$WEB_PORT/api/health" 3; then
     ok "end-to-end OK: :$WEB_PORT/api/health reaches the backend through nginx"
   else
     warn "proxy route :$WEB_PORT/api/health not answering yet"
@@ -175,11 +199,13 @@ install_all() {
   elif grep -q 'location /api/' "$conf"; then
     ok "nginx /api proxy already configured ($conf)"
   else
-    backup="$conf.bak.$(date +%s)"
+    backup_dir=/var/backups/imagelab
+    mkdir -p "$backup_dir"
+    backup="$backup_dir/$(basename "$conf").$(date +%s)"
     cp "$conf" "$backup"
     awk -v port="$WEB_PORT" -v apiport="$API_PORT" '
       { print }
-      !done && $0 ~ "listen[^;]*" port {
+      !done && $0 ~ "listen[^;]*" port "[^0-9]" {
         print "    location /api/ {"
         print "        proxy_pass http://127.0.0.1:" apiport "/;   # trailing slash strips the /api prefix"
         print "        client_max_body_size 12m;"
@@ -213,7 +239,13 @@ install_all() {
   fi
   if [ -x "$DEPLOY_PATH/.venv/bin/uvicorn" ]; then
     "$SYSTEMCTL" restart "$SERVICE"
-    ok "service (re)started"
+    if http_ok "http://127.0.0.1:$API_PORT/health" 10; then
+      ok "service restarted and healthy on :$API_PORT"
+    else
+      bad "service started but not answering on :$API_PORT — recent logs:"
+      "$SYSTEMCTL" --no-pager --full status "$SERVICE" 2>&1 | sed -n '1,4p'
+      journalctl -u "$SERVICE" --no-pager -n 15 2>/dev/null || true
+    fi
   else
     warn "service not started — the first CI deploy will create the venv and start it"
   fi

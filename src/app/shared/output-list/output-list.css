@@ -54,6 +54,8 @@ h2 {
 .album-card {
   border-color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent);
+  display: flex;
+  flex-direction: column;
   grid-column: span 2;
 }
 
@@ -79,11 +81,13 @@ h2 {
   width: 70%;
 }
 
-/* Album preview: a fanned stack of the batch's images. */
+/* Album preview: a fanned stack of the batch's images. Flexes to fill the card
+   so the album ends up the same height as the file cards beside it. */
 .album-stack {
-  aspect-ratio: 4 / 3;
   background: var(--panel-subtle);
   display: grid;
+  flex: 1 1 auto;
+  min-height: 8rem;
   overflow: hidden;
   place-items: center;
   position: relative;
@@ -95,9 +99,10 @@ h2 {
   border-radius: 0.4rem;
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.22);
   grid-area: 1 / 1;
+  max-height: 80%;
   object-fit: cover;
-  transform: rotate(calc((var(--i) - 1.5) * 6deg)) translateX(calc((var(--i) - 1.5) * 8px));
-  width: 62%;
+  transform: rotate(calc((var(--i) - 1.5) * 6deg)) translateX(calc((var(--i) - 1.5) * 14px));
+  width: 46%;
   z-index: calc(10 - var(--i));
 }
 

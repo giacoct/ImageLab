@@ -35,13 +35,47 @@
         </article>
       }
 
-      @for (output of outputs(); track output.url) {
-        <article class="output-item file-card">
+      @for (output of outputs(); track output.url; let i = $index) {
+        <article
+          class="output-item file-card"
+          [class.is-drag-over]="dragOverIndex() === i"
+          [class.is-dragging]="dragIndex() === i"
+          [attr.draggable]="isBatch() && editingIndex() === null ? true : null"
+          (dragstart)="onDragStart($event, i)"
+          (dragover)="onDragOver($event, i)"
+          (drop)="onDrop($event, i)"
+          (dragend)="onDragEnd()"
+        >
           <div class="photo-stage">
             <img class="photo-img" [src]="output.url" [alt]="output.fileName" />
           </div>
           <div class="output-body">
-            <h3>{{ output.fileName }}</h3>
+            @if (editingIndex() === i) {
+              <input
+                #renameInput
+                class="rename-input"
+                type="text"
+                autofocus
+                [value]="output.fileName"
+                aria-label="New file name"
+                (keydown.enter)="commitRename(i, renameInput.value)"
+                (keydown.escape)="cancelRename()"
+                (blur)="commitRename(i, renameInput.value)"
+              />
+            } @else {
+              <h3 class="file-name-row">
+                <span class="file-name">{{ output.fileName }}</span>
+                <button
+                  class="rename-button"
+                  type="button"
+                  aria-label="Rename file"
+                  title="Rename"
+                  (click)="startRename(i)"
+                >
+                  <app-icon name="edit" [size]="14" />
+                </button>
+              </h3>
+            }
             <p>{{ output.width }} x {{ output.height }} px | {{ readableSize(output.size) }}</p>
             <div class="action-row">
               <button class="button" type="button" (click)="download(output)">

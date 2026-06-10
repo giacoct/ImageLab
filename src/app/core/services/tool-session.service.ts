@@ -143,6 +143,26 @@ export class ToolSessionService {
     }
   }
 
+  /** Rename a produced output (does not invalidate the render). */
+  renameOutput(index: number, fileName: string): void {
+    this.outputs.update((outputs) =>
+      outputs.map((output, i) => (i === index ? { ...output, fileName } : output)),
+    );
+  }
+
+  /** Reorder produced outputs, e.g. before zipping (does not invalidate them). */
+  moveOutput(from: number, to: number): void {
+    this.outputs.update((outputs) => {
+      if (from < 0 || from >= outputs.length || to < 0 || to >= outputs.length || from === to) {
+        return outputs;
+      }
+      const next = [...outputs];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  }
+
   reset(): void {
     this.runId++; // cancel any in-flight job
     this.reuse.clear();

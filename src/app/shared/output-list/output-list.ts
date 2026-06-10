@@ -40,6 +40,66 @@ export class OutputList {
   protected readonly pickerTools = signal<readonly ImageToolDefinition[]>([]);
   private pickerSelection: readonly ImageOutput[] = [];
 
+  /** Inline-rename state: index of the card being renamed. */
+  protected readonly editingIndex = signal<number | null>(null);
+
+  /** Drag-reorder state. */
+  protected readonly dragIndex = signal<number | null>(null);
+  protected readonly dragOverIndex = signal<number | null>(null);
+
+  protected startRename(index: number): void {
+    this.editingIndex.set(index);
+  }
+
+  protected cancelRename(): void {
+    this.editingIndex.set(null);
+  }
+
+  protected commitRename(index: number, value: string): void {
+    if (this.editingIndex() !== index) {
+      return;
+    }
+    this.editingIndex.set(null);
+
+    const current = this.outputs()[index];
+    if (!current) {
+      return;
+    }
+    const fileName = normalizeFileName(value, current.fileName);
+    if (fileName !== current.fileName) {
+      this.session.renameOutput(index, fileName);
+    }
+  }
+
+  protected onDragStart(event: DragEvent, index: number): void {
+    this.dragIndex.set(index);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  protected onDragOver(event: DragEvent, index: number): void {
+    if (this.dragIndex() === null) {
+      return;
+    }
+    event.preventDefault();
+    this.dragOverIndex.set(index);
+  }
+
+  protected onDrop(event: DragEvent, index: number): void {
+    event.preventDefault();
+    const from = this.dragIndex();
+    if (from !== null && from !== index) {
+      this.session.moveOutput(from, index);
+    }
+    this.onDragEnd();
+  }
+
+  protected onDragEnd(): void {
+    this.dragIndex.set(null);
+    this.dragOverIndex.set(null);
+  }
+
   protected download(output: ImageOutput): void {
     this.downloads.download(output);
   }
@@ -112,4 +172,20 @@ export class OutputList {
         types.every((type) => tool.acceptedTypes.includes(type)),
     );
   }
+}
+
+/**
+ * Sanitize a user-typed file name: fall back to the old name when emptied,
+ * and re-append the original extension when it was dropped.
+ */
+function normalizeFileName(value: string, fallback: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+  if (trimmed.includes('.')) {
+    return trimmed;
+  }
+  const dot = fallback.lastIndexOf('.');
+  return dot === -1 ? trimmed : `${trimmed}${fallback.slice(dot)}`;
 }

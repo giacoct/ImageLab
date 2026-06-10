@@ -1,28 +1,44 @@
 # ImageLab
 
-Browser-based image tools that run entirely on your device. Images are never
-uploaded to a server — all processing happens locally using native browser APIs.
+Browser-based image tools. Almost all processing happens locally on your device
+using native browser APIs — the one exception is **Convert to SVG**, which sends
+the image to a small self-hosted vectorizer service (see [`server/`](server/README.md)).
 
 ## Tools
 
-- **Resize** – change dimensions, optionally preserving aspect ratio.
-- **Convert** – export images as JPEG, PNG, or WebP.
+- **Resize & transform** – rotate, flip, crop, and resize a single image with a
+  live preview.
+- **Convert format** – export images as JPEG, PNG, WebP, or ICO icons
+  (16–256 px).
+- **Convert to SVG** – trace images into scalable vector SVGs (VTracer backend;
+  automatic or manual settings).
 - **Compress** – reduce file size while keeping the original format.
-- **Create ICO icons** – turn images into `.ico` files (16–256 px).
-- **Rotate and flip** – rotate, mirror, or flip without changing the format.
 - **Strip metadata** – rebuild images without embedded metadata.
-- **Remove background** – key out a color and export a transparent PNG.
+- **Remove background** – key out a color and export a transparent PNG, with a
+  live preview.
+- **Adjust & filters** – brightness, contrast, saturation, grayscale, sepia,
+  invert, blur, and sharpen.
 
-Every tool supports batch processing, and the output of one tool can be sent
-straight into another (tool chaining).
+Every tool except Resize supports batch processing, and the output of one tool
+can be sent straight into another (tool chaining). Batch results can be
+downloaded individually or as a single ZIP.
 
 Output keeps the source format and 100% quality, except **Convert** (you choose
-the format), **Compress** (you choose the quality), and **Remove background**
-(always PNG).
+the format), **Compress** (you choose the quality), **Remove background**
+(always PNG), and **Convert to SVG** (always SVG).
 
 ## Development
 
-Start a local dev server at `http://localhost:4200/`:
+Start the full local dev environment — the Angular dev server at
+`http://localhost:4200/` plus the FastAPI vectorizer backend on port 4201
+(bootstrapped automatically on first run):
+
+```bash
+npm run dev
+```
+
+Or start only the frontend (every tool except Convert to SVG works without the
+backend):
 
 ```bash
 npm start
@@ -44,7 +60,17 @@ Run the unit tests (Vitest, via the Angular CLI):
 npm test
 ```
 
+## Deployment
+
+Pushing to `master` triggers GitHub Actions
+([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)), which builds
+the app and rsyncs both the frontend and the backend to the server over
+Tailscale. The one-time host bootstrap is automated by
+[`server/setup-host.sh`](server/setup-host.sh) — see
+[`server/README.md`](server/README.md).
+
 ## Tech stack
 
-Angular 21 (standalone components, signals, lazy-loaded routes), TypeScript, and
-the browser Canvas API. No third-party image-processing dependencies.
+Angular 22 (standalone components, signals, lazy-loaded routes), TypeScript, and
+the browser Canvas API. No third-party image-processing dependencies in the
+browser; vectorization is delegated to a FastAPI + VTracer backend.

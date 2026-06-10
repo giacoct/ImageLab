@@ -1,0 +1,41 @@
+<app-tool-shell
+  [tool]="tool"
+  [files]="files()"
+  [error]="error()"
+  [canSubmit]="canSubmit()"
+  actionLabel="Scale images"
+  (action)="submit()"
+>
+  <div class="tool-fields" [formGroup]="form">
+    <div class="field">
+      <label for="mode">Scaling mode</label>
+      <select id="mode" formControlName="mode">
+        <option value="percent">By percentage</option>
+        <option value="fit">Fit within a box</option>
+      </select>
+      <span class="field-hint"
+        >Percentage scales every image uniformly; fit shrinks each image to stay inside a bounding
+        box, preserving its aspect ratio.</span
+      >
+    </div>
+
+    @if (form.controls.mode.value === 'percent') {
+      <div class="field">
+        <label for="percent">Scale: {{ form.controls.percent.value }}%</label>
+        <input id="percent" type="range" min="1" max="200" step="1" formControlName="percent" />
+      </div>
+    } @else {
+      <div class="settings-grid">
+        <div class="field">
+          <label for="fitWidth">Max width</label>
+          <input id="fitWidth" type="number" min="16" step="10" formControlName="fitWidth" />
+        </div>
+        <div class="field">
+          <label for="fitHeight">Max height</label>
+          <input id="fitHeight" type="number" min="16" step="10" formControlName="fitHeight" />
+        </div>
+      </div>
+      <span class="field-hint">Images already inside the box keep their original size.</span>
+    }
+  </div>
+</app-tool-shell>

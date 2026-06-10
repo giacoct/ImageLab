@@ -14,6 +14,16 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     loadComponent: () => import('../../tools/resize/resize').then((m) => m.Resize),
   },
   {
+    id: 'scale',
+    title: 'Batch scale',
+    description: 'Scale many images by percentage, or fit each one inside a bounding box.',
+    route: '/tools/scale',
+    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    maxFiles: null,
+    batch: true,
+    loadComponent: () => import('../../tools/scale/scale').then((m) => m.Scale),
+  },
+  {
     id: 'convert',
     title: 'Convert format',
     description:

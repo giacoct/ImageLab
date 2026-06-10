@@ -50,22 +50,33 @@ h2 {
   transform: translateY(-2px);
 }
 
-/* The album reads as a folder: accent frame + tinted body + a "folder tab". */
+/* The album sits one tier above the files: wider, accent frame, tinted body. */
 .album-card {
   border-color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent);
+  grid-column: span 2;
 }
 
 .album-card .output-body {
   background: var(--accent-soft);
 }
 
-.output-item > img {
+/* A single photo, framed like an album image but laid flat (no fan). */
+.photo-stage {
   aspect-ratio: 4 / 3;
   background: var(--panel-subtle);
-  display: block;
-  object-fit: contain;
-  width: 100%;
+  display: grid;
+  overflow: hidden;
+  place-items: center;
+}
+
+.photo-img {
+  aspect-ratio: 4 / 3;
+  border: 3px solid #fff;
+  border-radius: 0.4rem;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.22);
+  object-fit: cover;
+  width: 70%;
 }
 
 /* Album preview: a fanned stack of the batch's images. */
@@ -112,30 +123,6 @@ h2 {
   padding: 0.8rem;
 }
 
-/* Tag that names the card's kind: an accent "Album" pill vs a quiet "File" pill. */
-.kind-tag {
-  align-items: center;
-  border-radius: 999px;
-  display: inline-flex;
-  font-size: 0.68rem;
-  font-weight: 760;
-  gap: 0.3rem;
-  letter-spacing: 0.05em;
-  padding: 0.2rem 0.55rem;
-  text-transform: uppercase;
-  width: fit-content;
-}
-
-.kind-tag--album {
-  background: var(--accent);
-  color: #fff;
-}
-
-.kind-tag--file {
-  background: var(--panel-subtle);
-  color: var(--muted);
-}
-
 .action-row {
   align-items: center;
   display: flex;
@@ -165,6 +152,13 @@ h3 {
   .outputs-header {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+/* On the narrowest layouts the grid drops to one column; don't span past it. */
+@media (max-width: 430px) {
+  .album-card {
+    grid-column: auto;
   }
 }
 

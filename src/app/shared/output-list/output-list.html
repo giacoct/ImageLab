@@ -17,10 +17,6 @@
             </span>
           </div>
           <div class="output-body">
-            <span class="kind-tag kind-tag--album">
-              <app-icon name="folder" [size]="13" />
-              Album
-            </span>
             <h3>{{ outputs().length }} images</h3>
             <p>{{ readableSize(totalSize()) }} · ZIP archive</p>
             <div class="action-row">
@@ -41,12 +37,10 @@
 
       @for (output of outputs(); track output.url) {
         <article class="output-item file-card">
-          <img [src]="output.url" [alt]="output.fileName" />
+          <div class="photo-stage">
+            <img class="photo-img" [src]="output.url" [alt]="output.fileName" />
+          </div>
           <div class="output-body">
-            <span class="kind-tag kind-tag--file">
-              <app-icon name="image" [size]="13" />
-              File
-            </span>
             <h3>{{ output.fileName }}</h3>
             <p>{{ output.width }} x {{ output.height }} px | {{ readableSize(output.size) }}</p>
             <div class="action-row">

@@ -62,3 +62,30 @@ jobs:
             -e "ssh -i ~/.ssh/deploy_key" \
             dist/ImageLab/browser/ \
             $SSH_USER@$SSH_HOST:$DEPLOY_PATH
+
+      # 7. Deploy the vectorizer backend (FastAPI + VTracer)
+      - name: Deploy backend
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          BACKEND_DEPLOY_PATH: ${{ secrets.BACKEND_DEPLOY_PATH }}
+        run: |
+          # Reuses the SSH key + host config written in the previous step.
+          # Sync the backend source, never touching the server-side virtualenv.
+          rsync -avz --delete \
+            --exclude '.venv' --exclude '__pycache__' --exclude '*.pyc' \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            server/ \
+            $SSH_USER@$SSH_HOST:$BACKEND_DEPLOY_PATH
+
+          # Create/refresh the venv, install deps, and restart the service.
+          # Requires a one-time host setup (systemd unit + nginx + sudoers) —
+          # see server/README.md.
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" "
+            set -e
+            cd '$BACKEND_DEPLOY_PATH'
+            python3 -m venv .venv
+            .venv/bin/pip install --quiet --upgrade pip
+            .venv/bin/pip install --quiet -r requirements.txt
+            sudo systemctl restart imagelab-vectorizer
+          "

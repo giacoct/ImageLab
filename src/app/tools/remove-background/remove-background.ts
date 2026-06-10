@@ -8,7 +8,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { debounceTime, map } from 'rxjs';
 
@@ -54,7 +54,7 @@ export class RemoveBackground extends BaseTool {
   constructor() {
     super();
 
-    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.session.markStale());
+    this.registerForm(this.form);
 
     // Decode a downscaled snapshot of the selected file for live keying.
     effect(() => {

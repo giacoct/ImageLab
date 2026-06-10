@@ -1,10 +1,20 @@
 import { Directive, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Observable } from 'rxjs';
 
 import { ImageToolDefinition } from '../../core/models/image-tool.model';
 import { ImageProcessingService } from '../../core/services/image-processing.service';
 import { ToolRegistryService } from '../../core/services/tool-registry.service';
+import { ToolSettingsStore } from '../../core/services/tool-settings.store';
 import { JobProcessor, ToolSessionService } from '../../core/services/tool-session.service';
+
+/** The slice of a reactive `FormGroup` that settings persistence needs. */
+interface PersistableForm {
+  valueChanges: Observable<unknown>;
+  getRawValue(): object;
+  patchValue(value: object, options?: { emitEvent?: boolean }): void;
+}
 
 /**
  * Shared base for a tool's **settings** page. State (files, outputs, progress)
@@ -22,6 +32,7 @@ export abstract class BaseTool implements OnInit {
   private readonly registry = inject(ToolRegistryService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly settings = inject(ToolSettingsStore);
 
   /** Registry id of the tool, e.g. `'resize'`. */
   protected abstract readonly toolId: string;
@@ -60,6 +71,22 @@ export abstract class BaseTool implements OnInit {
 
   protected selectFile(index: number): void {
     this.selectedIndex.set(index);
+  }
+
+  /**
+   * Wire a settings form into the session: restore the last-used values from
+   * storage, then mark outputs stale and persist on every change. Call from
+   * the tool's constructor.
+   */
+  protected registerForm(form: PersistableForm): void {
+    const saved = this.settings.load(this.toolId);
+    if (saved) {
+      form.patchValue(saved);
+    }
+    form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.session.markStale();
+      this.settings.save(this.toolId, form.getRawValue());
+    });
   }
 
   /**

@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { JobProcessor } from '../../core/services/tool-session.service';
@@ -30,7 +29,7 @@ export class Compress extends BaseTool {
 
   constructor() {
     super();
-    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.session.markStale());
+    this.registerForm(this.form);
   }
 
   protected override isFormValid(): boolean {

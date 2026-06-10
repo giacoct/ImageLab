@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 
 import { OutputFormat } from '../../core/models/image-output.model';
@@ -26,7 +25,7 @@ export class Convert extends BaseTool {
 
   constructor() {
     super();
-    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.session.markStale());
+    this.registerForm(this.form);
   }
 
   protected override isFormValid(): boolean {

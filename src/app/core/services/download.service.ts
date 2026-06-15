@@ -8,6 +8,21 @@ export class DownloadService {
     this.triggerDownload(output.url, output.fileName);
   }
 
+  /** Download an arbitrary blob (e.g. extracted text) under the given name. */
+  downloadBlob(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    try {
+      this.triggerDownload(url, fileName);
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    }
+  }
+
+  /** Download a UTF-8 text file. */
+  downloadText(text: string, fileName: string): void {
+    this.downloadBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }), fileName);
+  }
+
   /** Bundle every output into a single ZIP archive and download it. */
   async downloadZip(outputs: readonly ImageOutput[], zipName: string): Promise<void> {
     const blob = await createZip(dedupeNames(outputs));

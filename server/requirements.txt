@@ -3,3 +3,4 @@ uvicorn[standard]>=0.30
 vtracer>=0.6.11
 python-multipart>=0.0.9
 pillow>=10.0
+pytesseract>=0.3.10

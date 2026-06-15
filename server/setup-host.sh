@@ -91,6 +91,12 @@ check() {
     bad "python3 venv support missing (e.g. apt install python3-venv)"
   fi
 
+  if command -v tesseract >/dev/null 2>&1; then
+    ok "tesseract OCR binary present ($(tesseract --version 2>&1 | head -1))"
+  else
+    bad "tesseract OCR binary missing (apt install tesseract-ocr)"
+  fi
+
   if [ -d "$DEPLOY_PATH" ]; then
     owner="$(stat -c %U "$DEPLOY_PATH")"
     if [ "$owner" = "$DEPLOY_USER" ]; then
@@ -173,6 +179,17 @@ install_all() {
   # 1. Deploy directory, owned by the CI deploy user.
   install -d -o "$DEPLOY_USER" -g "$(id -gn "$DEPLOY_USER")" "$DEPLOY_PATH"
   ok "deploy dir $DEPLOY_PATH ready"
+
+  # 1b. OCR engine — a system package; pip can't provide the tesseract binary.
+  if command -v tesseract >/dev/null 2>&1; then
+    ok "tesseract OCR binary already present"
+  elif command -v apt-get >/dev/null 2>&1; then
+    apt-get install -y tesseract-ocr >/dev/null 2>&1 \
+      && ok "installed tesseract-ocr" \
+      || bad "failed to install tesseract-ocr"
+  else
+    warn "install the 'tesseract-ocr' package manually (no apt-get found)"
+  fi
 
   # 2. Systemd unit (rewritten on every install so user/path changes apply).
   unit_content > "$UNIT_FILE"

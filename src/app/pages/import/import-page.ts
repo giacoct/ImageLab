@@ -8,6 +8,7 @@ import {
   effect,
   inject,
   input,
+  signal,
   viewChild,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
@@ -42,6 +43,11 @@ export class ImportPage {
 
   protected readonly tool = computed(() => this.registry.findById(this.toolId())!);
   protected readonly files = this.session.files;
+  protected readonly canReorder = computed(() => this.files().length > 1);
+
+  /** Drag-reorder state for the imported-file list. */
+  protected readonly dragIndex = signal<number | null>(null);
+  protected readonly dragOverIndex = signal<number | null>(null);
 
   constructor() {
     // Start (or resume) the session for this tool. `begin` only clears state
@@ -65,5 +71,34 @@ export class ImportPage {
     if (this.files().length > 0) {
       void this.router.navigateByUrl(`${this.tool().route}/settings`);
     }
+  }
+
+  protected onDragStart(event: DragEvent, index: number): void {
+    this.dragIndex.set(index);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  protected onDragOver(event: DragEvent, index: number): void {
+    if (this.dragIndex() === null) {
+      return;
+    }
+    event.preventDefault();
+    this.dragOverIndex.set(index);
+  }
+
+  protected onDrop(event: DragEvent, index: number): void {
+    event.preventDefault();
+    const from = this.dragIndex();
+    if (from !== null && from !== index) {
+      this.session.moveFile(from, index);
+    }
+    this.onDragEnd();
+  }
+
+  protected onDragEnd(): void {
+    this.dragIndex.set(null);
+    this.dragOverIndex.set(null);
   }
 }

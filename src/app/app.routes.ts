@@ -22,7 +22,9 @@ export const routes: Routes = [
         { path: 'settings', loadComponent: tool.loadComponent },
         {
           path: 'output',
-          loadComponent: () => import('./pages/output/output-page').then((m) => m.OutputPage),
+          loadComponent:
+            tool.outputComponent ??
+            (() => import('./pages/output/output-page').then((m) => m.OutputPage)),
         },
         { path: '**', redirectTo: 'import' },
       ],

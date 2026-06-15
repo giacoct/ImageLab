@@ -1,0 +1,33 @@
+<app-tool-shell
+  [tool]="tool"
+  [files]="files()"
+  [error]="error()"
+  [canSubmit]="canSubmit()"
+  [selectable]="true"
+  [selectedIndex]="selectedIndex()"
+  actionLabel="Extract text"
+  (action)="submit()"
+  (fileSelected)="selectFile($event)"
+>
+  <div preview class="tool-preview panel">
+    <h2>Preview</h2>
+    <div class="preview-stage">
+      @if (previewUrl(); as url) {
+        <img [src]="url" alt="Selected image" />
+      }
+    </div>
+    <p class="preview-hint">Text is recognized when you continue, then shown selectable on the image.</p>
+  </div>
+
+  <div class="tool-fields" [formGroup]="form">
+    <div class="field">
+      <label for="lang">Language</label>
+      <select id="lang" formControlName="lang">
+        @for (language of languages; track language.code) {
+          <option [value]="language.code">{{ language.label }}</option>
+        }
+      </select>
+      <span class="field-hint">Pick the language the text is written in for the best accuracy.</span>
+    </div>
+  </div>
+</app-tool-shell>

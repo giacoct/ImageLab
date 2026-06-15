@@ -1,0 +1,50 @@
+.ocr-results {
+  animation: fade-in-up 0.4s var(--ease) both;
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.ocr-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+/* Image on the left, text controls on the right; stacks on narrow screens. */
+.ocr-card {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 16rem);
+  padding: 1rem;
+}
+
+.ocr-card-image {
+  display: flex;
+  justify-content: center;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.ocr-card-side {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.ocr-card-side .file-name {
+  overflow-wrap: anywhere;
+}
+
+.ocr-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 720px) {
+  .ocr-card {
+    grid-template-columns: 1fr;
+  }
+}

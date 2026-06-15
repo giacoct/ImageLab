@@ -98,14 +98,28 @@ export abstract class BaseTool implements OnInit {
     if (!this.canSubmit()) {
       return;
     }
-    if (!this.session.outputsFresh()) {
-      void this.session.run(this.createProcessor(), this.errorMessage);
+    if (!this.session.resultsFresh()) {
+      void this.runJob();
     }
     void this.router.navigate(['../output'], { relativeTo: this.route });
   }
 
-  /** Snapshot the current settings into a per-file processor. */
-  protected abstract createProcessor(): JobProcessor;
+  /**
+   * Produce the results for the current files. Defaults to the image pipeline
+   * ({@link createProcessor} → {@link ToolSessionService.run}); tools whose
+   * result isn't a set of images (e.g. OCR text) override this instead.
+   */
+  protected runJob(): Promise<void> {
+    return this.session.run(this.createProcessor(), this.errorMessage);
+  }
+
+  /**
+   * Snapshot the current settings into a per-file image processor. Image tools
+   * override this; tools that override {@link runJob} need not.
+   */
+  protected createProcessor(): JobProcessor {
+    throw new Error('createProcessor must be implemented by image-producing tools.');
+  }
 
   /** Whether the settings form (if any) is valid. Override when a form exists. */
   protected isFormValid(): boolean {

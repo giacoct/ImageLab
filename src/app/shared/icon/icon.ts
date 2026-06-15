@@ -14,6 +14,7 @@ export type IconName =
   | 'adjust'
   | 'scale'
   | 'watermark'
+  | 'ocr'
   | 'upload'
   | 'download'
   | 'arrow-right'
@@ -85,6 +86,15 @@ export type IconName =
           <polyline points="4 7 4 4 20 4 20 7" />
           <line x1="9" y1="20" x2="15" y2="20" />
           <line x1="12" y1="4" x2="12" y2="20" />
+        }
+        @case ('ocr') {
+          <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+          <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+          <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+          <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+          <line x1="7" y1="8" x2="15" y2="8" />
+          <line x1="7" y1="12" x2="17" y2="12" />
+          <line x1="7" y1="16" x2="13" y2="16" />
         }
         @case ('compress') {
           <polyline points="4 14 10 14 10 20" />

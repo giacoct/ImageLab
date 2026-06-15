@@ -1,8 +1,9 @@
-# ImageLab Vectorizer service
+# ImageLab backend service
 
-A small FastAPI service that wraps [VTracer](https://github.com/visioncortex/vtracer)
-to convert raster images into compact, smooth color SVGs. The Angular app's
-**Convert to SVG** tool calls it at `/api/vectorize`.
+A small FastAPI service behind the Angular app at `/api`. It wraps
+[VTracer](https://github.com/visioncortex/vtracer) for vectorization and
+[Tesseract](https://github.com/tesseract-ocr/tesseract) (via
+[`pytesseract`](https://pypi.org/project/pytesseract/)) for OCR.
 
 `POST /vectorize` accepts a multipart `file` (PNG/JPEG/WebP) and returns
 `image/svg+xml`. With `preset=auto` the service analyzes the image itself:
@@ -11,7 +12,28 @@ photos get noise suppression and harder layer merging. With `preset=manual`
 the individual form fields apply — `mode` (`spline`/`polygon`),
 `hierarchical` (`stacked`/`cutout`), `color_precision`, `filter_speckle`,
 `corner_threshold`, `length_threshold`, `splice_threshold`, `path_precision`,
-`max_iterations`, `layer_difference`. `GET /health` returns `{"status":"ok"}`.
+`max_iterations`, `layer_difference`.
+
+`POST /ocr` accepts a multipart `file` (PNG/JPEG/WebP) plus a `lang` field
+(Tesseract language code, default `eng`; combine with `+`, e.g. `eng+fra`) and
+returns JSON `{width, height, text, words}`, where each word carries its pixel
+bounding box, confidence, and line index — the app turns those boxes into a
+selectable text layer over the image. `GET /health` returns `{"status":"ok"}`.
+
+### System dependency: Tesseract
+
+`pytesseract` shells out to the `tesseract` binary, which is **not** a pip
+package. Install it (and any non-English language packs) at the OS level:
+
+```bash
+# Debian/Ubuntu
+sudo apt-get install -y tesseract-ocr            # English is included
+sudo apt-get install -y tesseract-ocr-fra        # add languages as needed
+# macOS (local dev)
+brew install tesseract tesseract-lang
+```
+
+`setup-host.sh install` installs `tesseract-ocr` for you on the server.
 
 ## Local development
 

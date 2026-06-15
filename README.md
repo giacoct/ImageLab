@@ -1,8 +1,9 @@
 # ImageLab
 
 Browser-based image tools. Almost all processing happens locally on your device
-using native browser APIs — the one exception is **Convert to SVG**, which sends
-the image to a small self-hosted vectorizer service (see [`server/`](server/README.md)).
+using native browser APIs — the exceptions are **Convert to SVG** and **Extract
+text (OCR)**, which send the image to a small self-hosted backend (see
+[`server/`](server/README.md)).
 
 ## Tools
 
@@ -24,17 +25,23 @@ the image to a small self-hosted vectorizer service (see [`server/`](server/READ
   a live preview.
 - **Adjust & filters** – brightness, contrast, saturation, grayscale, sepia,
   invert, blur, and sharpen.
+- **Extract text (OCR)** – recognize the text in one or more images and select
+  it directly on the picture; copy it or download it as `.txt`. Backed by a
+  self-hosted Tesseract service (see [`server/`](server/README.md)).
 
 Every tool except Resize supports batch processing, and the output of one tool
-can be sent straight into another (tool chaining). Batch results can be
-renamed, reordered, and downloaded individually or as a single ZIP. If some
-files in a batch fail, the rest still complete and the failures are reported.
+can be sent straight into another (tool chaining). Imported images can be
+drag-reordered on the import step (the order carries through the whole tool),
+and batch results can be renamed, reordered, and downloaded individually or as
+a single ZIP. If some files in a batch fail, the rest still complete and the
+failures are reported.
 Each tool remembers its last-used settings. Heavy per-pixel work runs in a Web
 Worker so the UI stays responsive on large batches.
 
 Output keeps the source format and 100% quality, except **Convert** (you choose
 the format), **Compress** (you choose the quality or size budget), **Remove
-background** (always PNG), and **Convert to SVG** (always SVG).
+background** (always PNG), **Convert to SVG** (always SVG), and **Extract text
+(OCR)** (plain text).
 
 ## Development
 
@@ -82,4 +89,5 @@ Tailscale. The one-time host bootstrap is automated by
 
 Angular 22 (standalone components, signals, lazy-loaded routes), TypeScript, and
 the browser Canvas API. No third-party image-processing dependencies in the
-browser; vectorization is delegated to a FastAPI + VTracer backend.
+browser; vectorization and OCR are delegated to a FastAPI backend (VTracer and
+Tesseract).

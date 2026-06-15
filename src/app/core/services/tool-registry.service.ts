@@ -97,6 +97,17 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     batch: true,
     loadComponent: () => import('../../tools/adjust/adjust').then((m) => m.Adjust),
   },
+  {
+    id: 'ocr',
+    title: 'Extract text (OCR)',
+    description: 'Recognize the text in images and select it directly on the picture.',
+    route: '/tools/ocr',
+    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    maxFiles: null,
+    batch: true,
+    loadComponent: () => import('../../tools/ocr/ocr').then((m) => m.Ocr),
+    outputComponent: () => import('../../tools/ocr/ocr-output').then((m) => m.OcrOutput),
+  },
 ];
 
 @Injectable({ providedIn: 'root' })

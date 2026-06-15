@@ -1,0 +1,40 @@
+.ocr-stage {
+  display: inline-block;
+  line-height: 0;
+  max-width: 100%;
+  position: relative;
+}
+
+.ocr-img {
+  display: block;
+  height: auto;
+  max-width: 100%;
+  /* The image is just a backdrop; selection happens on the text layer. */
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.ocr-text-layer {
+  inset: 0;
+  line-height: 1;
+  position: absolute;
+}
+
+.ocr-word {
+  color: transparent;
+  cursor: text;
+  position: absolute;
+  transform-origin: left top;
+  white-space: pre;
+}
+
+/* Highlight the words in place when selected, keeping the glyphs invisible. */
+.ocr-word::selection {
+  background: var(--accent-soft);
+  color: transparent;
+}
+
+.ocr-word::-moz-selection {
+  background: var(--accent-soft);
+  color: transparent;
+}

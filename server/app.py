@@ -14,14 +14,17 @@ form parameters instead.
 from __future__ import annotations
 
 import io
+import re
 
+import pytesseract
 import vtracer
 from fastapi import FastAPI, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from PIL import Image, ImageFilter, ImageOps, UnidentifiedImageError
+from pytesseract import Output, TesseractError, TesseractNotFoundError
 
-app = FastAPI(title="ImageLab Vectorizer", version="1.1.0")
+app = FastAPI(title="ImageLab Vectorizer", version="1.2.0")
 
 # Reject oversized uploads early (matches the nginx client_max_body_size guard).
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -220,3 +223,109 @@ async def vectorize(
         raise HTTPException(status_code=500, detail="Vectorization failed.") from error
 
     return Response(content=svg, media_type="image/svg+xml")
+
+
+# --- OCR --------------------------------------------------------------------
+
+# Tesseract language codes are 3-letter ISO 639-2 (optionally combined with
+# '+', e.g. 'eng+fra'). Validate before passing to the command line.
+LANG_PATTERN = re.compile(r"^[a-z]{3}(\+[a-z]{3})*$")
+
+# Drop words Tesseract is too unsure about — they're usually noise that would
+# only clutter the selectable overlay.
+MIN_WORD_CONFIDENCE = 30.0
+
+
+def _run_ocr(data: bytes, lang: str) -> dict:
+    """Recognize text and per-word boxes from raw image bytes.
+
+    Returns ``{width, height, text, words}`` where each word carries its pixel
+    bounding box, confidence, and the index of the text line it belongs to.
+    Lines are numbered in reading order so the client can rebuild the layout.
+    """
+    try:
+        image = Image.open(io.BytesIO(data))
+        image = ImageOps.exif_transpose(image)
+        image = image.convert("RGB")
+    except (UnidentifiedImageError, OSError) as error:
+        raise HTTPException(status_code=400, detail="The image could not be decoded.") from error
+
+    width, height = image.size
+    fields = pytesseract.image_to_data(image, lang=lang, output_type=Output.DICT)
+
+    words: list[dict] = []
+    lines: list[list[str]] = []
+    # (block, paragraph, line) tuples map to a flat, ordered line index.
+    line_index: dict[tuple[int, int, int], int] = {}
+
+    for i, raw_text in enumerate(fields["text"]):
+        text = raw_text.strip()
+        if not text or int(fields["level"][i]) != 5:
+            continue
+        try:
+            confidence = float(fields["conf"][i])
+        except (TypeError, ValueError):
+            confidence = -1.0
+        if confidence < MIN_WORD_CONFIDENCE:
+            continue
+
+        key = (fields["block_num"][i], fields["par_num"][i], fields["line_num"][i])
+        if key not in line_index:
+            line_index[key] = len(lines)
+            lines.append([])
+        index = line_index[key]
+        lines[index].append(text)
+
+        words.append(
+            {
+                "text": text,
+                "left": int(fields["left"][i]),
+                "top": int(fields["top"][i]),
+                "width": int(fields["width"][i]),
+                "height": int(fields["height"][i]),
+                "confidence": round(confidence, 1),
+                "line": index,
+            }
+        )
+
+    full_text = "\n".join(" ".join(line) for line in lines)
+    return {"width": width, "height": height, "text": full_text, "words": words}
+
+
+@app.post("/ocr")
+async def ocr(file: UploadFile, lang: str = Form("eng")) -> JSONResponse:
+    if file.content_type not in CONTENT_TYPE_TO_FORMAT:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported image type. Use PNG, JPEG, or WebP.",
+        )
+    if not LANG_PATTERN.match(lang):
+        raise HTTPException(status_code=400, detail=f"Invalid language code: {lang!r}.")
+
+    if file.size is not None and file.size > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Image exceeds the 10 MB limit.")
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="Empty upload.")
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Image exceeds the 10 MB limit.")
+
+    try:
+        # OCR is CPU-bound; keep it off the event loop like tracing.
+        result = await run_in_threadpool(_run_ocr, data, lang)
+    except HTTPException:
+        raise
+    except TesseractNotFoundError as error:  # tesseract binary not installed
+        raise HTTPException(
+            status_code=500,
+            detail="The OCR engine is not installed on the server.",
+        ) from error
+    except TesseractError as error:
+        # Most often a language pack that isn't installed.
+        detail = f"OCR failed for language {lang!r}. Is the language pack installed?"
+        raise HTTPException(status_code=400, detail=detail) from error
+    except Exception as error:  # noqa: BLE001 - surface a clean 500 to the client
+        raise HTTPException(status_code=500, detail="OCR failed.") from error
+
+    return JSONResponse(content=result)

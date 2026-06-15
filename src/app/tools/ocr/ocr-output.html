@@ -1,0 +1,70 @@
+<app-step-indicator current="output" [toolRoute]="tool().route" />
+
+<section class="tool-header">
+  <div>
+    <div class="tool-title-row">
+      <span class="tool-icon batch">
+        <app-icon [name]="tool().id" [size]="22" />
+      </span>
+      <h1>{{ tool().title }}</h1>
+    </div>
+  </div>
+  <p>Drag across the words to highlight and copy the text straight off the image.</p>
+</section>
+
+@if (showProgressBar()) {
+  <app-progress-bar [percent]="percent()" [fileName]="currentFileName()" />
+} @else if (isProcessing()) {
+  <p class="processing-note" role="status">Recognizing text…</p>
+}
+
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}
+
+@if (results().length > 0) {
+  <section class="ocr-results" aria-label="Recognized text">
+    @if (isBatch()) {
+      <div class="ocr-toolbar">
+        <h2>{{ results().length }} images</h2>
+        <button class="button" type="button" (click)="downloadAll()">
+          <app-icon name="download" [size]="18" />
+          Download all (.txt ZIP)
+        </button>
+      </div>
+    }
+
+    @for (result of results(); track result.imageUrl; let i = $index) {
+      <article class="ocr-card panel">
+        <div class="ocr-card-image">
+          <app-ocr-image [result]="result" />
+        </div>
+        <div class="ocr-card-side">
+          <h3 class="file-name">{{ result.fileName }}</h3>
+          @if (result.text) {
+            <p class="ocr-meta">{{ charCount(result) }} characters</p>
+            <div class="action-row">
+              <button class="button" type="button" (click)="copy(result, i)">
+                <app-icon [name]="copiedIndex() === i ? 'check' : 'edit'" [size]="18" />
+                {{ copiedIndex() === i ? 'Copied' : 'Copy text' }}
+              </button>
+              <button class="button secondary" type="button" (click)="downloadText(result)">
+                <app-icon name="download" [size]="18" />
+                .txt
+              </button>
+            </div>
+          } @else {
+            <p class="ocr-meta">No text was found in this image.</p>
+          }
+        </div>
+      </article>
+    }
+  </section>
+}
+
+<div class="output-actions">
+  <a class="back-link back-link--home" routerLink="/">
+    <app-icon name="arrow-left" [size]="18" />
+    Back to tools
+  </a>
+</div>

@@ -1,11 +1,25 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 
 import { ImageOutput } from '../models/image-output.model';
+import { OcrResult } from '../models/ocr-result.model';
 import { ImageProcessingService } from './image-processing.service';
 import { WorkflowReuseStrategy } from './workflow-reuse.strategy';
 
 /** Produces one output for a single input file. Snapshots its settings up front. */
 export type JobProcessor = (file: File) => Promise<ImageOutput>;
+
+/** Produces recognized text + boxes for a single input file (the OCR tool). */
+export type OcrProcessor = (file: File) => Promise<OcrResult>;
+
+/** Hooks that let one batch loop drive both the image and OCR pipelines. */
+interface BatchSink<T> {
+  /** Clear any prior results before the run starts. */
+  reset(): void;
+  /** Store the finished results (the run completed without being abandoned). */
+  settle(results: T[]): void;
+  /** Release results from a run that was cancelled mid-flight. */
+  abandon(results: T[]): void;
+}
 
 export interface JobProgress {
   total: number;
@@ -30,6 +44,8 @@ export class ToolSessionService {
   readonly toolId = signal<string | null>(null);
   readonly files = signal<File[]>([]);
   readonly outputs = signal<ImageOutput[]>([]);
+  /** Text results, for the OCR tool (parallel to {@link outputs}). */
+  readonly ocrResults = signal<OcrResult[]>([]);
   readonly isProcessing = signal(false);
   readonly error = signal('');
   readonly job = signal<JobProgress | null>(null);
@@ -51,12 +67,17 @@ export class ToolSessionService {
   /** Show the bar only for jobs projected to exceed the threshold. */
   readonly showProgressBar = computed(() => this.isProcessing() && this.barLatched());
 
-  /** Whether the current outputs still reflect the current settings + files. */
+  /** Whether the current image outputs still reflect the current settings + files. */
   readonly outputsFresh = computed(() => this.outputs().length > 0 && !this.outputStale());
+
+  /** Whether any results (image or text) are present and up to date. */
+  readonly resultsFresh = computed(
+    () => (this.outputs().length > 0 || this.ocrResults().length > 0) && !this.outputStale(),
+  );
 
   /** Step pages the user is allowed to jump to (import is always reachable). */
   readonly canVisitSettings = computed(() => this.files().length > 0);
-  readonly canVisitOutput = this.outputsFresh;
+  readonly canVisitOutput = this.resultsFresh;
 
   /** Switch to a tool, clearing any prior session state. */
   begin(toolId: string): void {
@@ -69,8 +90,28 @@ export class ToolSessionService {
 
   setFiles(files: File[]): void {
     this.replaceOutputs([]);
+    this.replaceOcrResults([]);
     this.error.set('');
     this.files.set(files);
+  }
+
+  /** Reorder the selected files (drag-reorder on the import step). */
+  moveFile(from: number, to: number): void {
+    let moved = false;
+    this.files.update((files) => {
+      if (from < 0 || from >= files.length || to < 0 || to >= files.length || from === to) {
+        return files;
+      }
+      const next = [...files];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      moved = true;
+      return next;
+    });
+    // The produced results no longer match the new order; re-run on next visit.
+    if (moved) {
+      this.markStale();
+    }
   }
 
   /** Mark the produced outputs out of date (settings changed since the run). */
@@ -78,10 +119,45 @@ export class ToolSessionService {
     this.outputStale.set(true);
   }
 
-  /** Run a processor over every selected file, collecting the outputs. */
-  async run(
+  /** Run an image processor over every selected file, collecting the outputs. */
+  run(
     processor: JobProcessor,
     fallbackMessage = 'The images could not be processed.',
+  ): Promise<void> {
+    return this.runBatch(processor, fallbackMessage, {
+      reset: () => this.replaceOutputs([]),
+      settle: (results) => {
+        this.outputs.set(results);
+        this.outputStale.set(false);
+      },
+      abandon: (results) => this.processing.revoke(results),
+    });
+  }
+
+  /** Run the OCR processor over every selected file, collecting the text results. */
+  runOcr(
+    processor: OcrProcessor,
+    fallbackMessage = 'The text could not be recognized.',
+  ): Promise<void> {
+    return this.runBatch(processor, fallbackMessage, {
+      reset: () => this.replaceOcrResults([]),
+      settle: (results) => {
+        this.ocrResults.set(results);
+        this.outputStale.set(false);
+      },
+      abandon: (results) => this.revokeOcrResults(results),
+    });
+  }
+
+  /**
+   * Shared batch loop: runs `process` over every file with progress, mid-flight
+   * cancellation, and per-file failure collection. A {@link BatchSink} adapts it
+   * to whichever result type the tool produces (image outputs or OCR text).
+   */
+  private async runBatch<T>(
+    process: (file: File) => Promise<T>,
+    fallbackMessage: string,
+    sink: BatchSink<T>,
   ): Promise<void> {
     const files = this.files();
     if (files.length === 0 || this.isProcessing()) {
@@ -91,12 +167,12 @@ export class ToolSessionService {
     const runId = ++this.runId;
     this.isProcessing.set(true);
     this.error.set('');
-    this.replaceOutputs([]);
+    sink.reset();
     this.barLatched.set(false);
     this.startedAt = Date.now();
     this.job.set({ total: files.length, completed: 0, currentFileName: files[0].name });
 
-    const nextOutputs: ImageOutput[] = [];
+    const results: T[] = [];
     const failures: { fileName: string; message: string }[] = [];
 
     try {
@@ -104,9 +180,9 @@ export class ToolSessionService {
       for (const file of files) {
         this.job.update((job) => (job ? { ...job, currentFileName: file.name } : job));
 
-        let output: ImageOutput | null = null;
+        let result: T | null = null;
         try {
-          output = await processor(file);
+          result = await process(file);
         } catch (error) {
           failures.push({
             fileName: file.name,
@@ -116,12 +192,12 @@ export class ToolSessionService {
 
         // Abandoned mid-flight (the session was reset or restarted).
         if (runId !== this.runId) {
-          this.processing.revoke(output ? [...nextOutputs, output] : nextOutputs);
+          sink.abandon(result !== null ? [...results, result] : results);
           return;
         }
 
-        if (output) {
-          nextOutputs.push(output);
+        if (result !== null) {
+          results.push(result);
         }
         processed++;
         this.job.update((job) => (job ? { ...job, completed: processed } : job));
@@ -129,9 +205,8 @@ export class ToolSessionService {
       }
 
       // A failed file doesn't discard the rest of the batch: keep every
-      // produced output and report the failures alongside them.
-      this.outputs.set(nextOutputs);
-      this.outputStale.set(false);
+      // produced result and report the failures alongside them.
+      sink.settle(results);
       this.error.set(summarizeFailures(failures, files.length));
     } finally {
       // Only clear progress for the active run; a newer run/reset owns it now.
@@ -167,6 +242,7 @@ export class ToolSessionService {
     this.runId++; // cancel any in-flight job
     this.reuse.clear();
     this.replaceOutputs([]);
+    this.replaceOcrResults([]);
     this.files.set([]);
     this.error.set('');
     this.job.set(null);
@@ -178,6 +254,18 @@ export class ToolSessionService {
   private replaceOutputs(outputs: ImageOutput[]): void {
     this.processing.revoke(this.outputs());
     this.outputs.set(outputs);
+  }
+
+  private replaceOcrResults(results: OcrResult[]): void {
+    this.revokeOcrResults(this.ocrResults());
+    this.ocrResults.set(results);
+  }
+
+  /** Release the object URLs backing OCR result previews. */
+  private revokeOcrResults(results: readonly OcrResult[]): void {
+    for (const result of results) {
+      URL.revokeObjectURL(result.imageUrl);
+    }
   }
 
   /**

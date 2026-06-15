@@ -62,9 +62,19 @@ curl -F file=@some-logo.png http://localhost:4201/vectorize -o out.svg   # smoke
 
 After the one-time host bootstrap below, **GitHub Actions deploys the backend
 automatically** on every push to `master` (`.github/workflows/deploy.yml`): it
-rsyncs `server/`, (re)creates the venv, installs `requirements.txt`, and runs
+rsyncs `server/`, (re)creates the venv, installs `requirements.txt`, ensures
+OS-level dependencies (the tesseract binary), and runs
 `sudo systemctl restart imagelab-vectorizer`. The frontend deploys in the same
 workflow.
+
+**System packages self-heal on deploy.** Since CI has no root, it can't run
+`apt-get` directly. Instead the bootstrap installs a small root-owned helper at
+`/usr/local/sbin/imagelab-ensure-deps` and grants CI a *narrow* passwordless
+sudo rule for that exact path. Each deploy runs it; it installs anything missing
+(currently `tesseract-ocr`) and is a no-op otherwise. A bare server still needs
+the one-time bootstrap first (CI can't create the systemd unit, nginx proxy, or
+sudoers rules without root) — but that bootstrap is itself idempotent and
+self-healing, and installs tesseract as part of step 1.
 
 ### One-time host bootstrap
 
@@ -84,10 +94,13 @@ sudo ./setup-host.sh install   # apply everything (idempotent)
 Install mode, run as the deploy user with sudo, takes care of:
 
 1. the deploy directory (`/opt/imagelab/server`, owned by the deploy user so
-   CI can rsync and build the venv without root),
+   CI can rsync and build the venv without root), and the OS-level deps helper
+   (`/usr/local/sbin/imagelab-ensure-deps`), which it then runs to install the
+   tesseract binary,
 2. the systemd unit (generated with the right user/paths, enabled),
-3. a `sudoers` rule so CI may run exactly
-   `sudo systemctl restart imagelab-vectorizer` without a password,
+3. `sudoers` rules so CI may run exactly
+   `sudo systemctl restart imagelab-vectorizer` and
+   `sudo /usr/local/sbin/imagelab-ensure-deps` without a password,
 4. the nginx `location /api/` proxy inside the existing `listen 4200` server
    block (config is backed up, validated with `nginx -t`, and restored if the
    patch fails),

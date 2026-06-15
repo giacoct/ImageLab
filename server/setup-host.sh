@@ -20,6 +20,10 @@ API_PORT="${API_PORT:-4201}"
 WEB_PORT="${WEB_PORT:-4200}"
 UNIT_FILE="/etc/systemd/system/$SERVICE.service"
 SUDOERS_FILE="/etc/sudoers.d/imagelab"
+# Root-owned helper that installs system-level deps (e.g. the tesseract OCR
+# binary). CI may run *only* this fixed path via sudo, so deploys self-heal
+# missing packages without granting broad root.
+DEPS_SCRIPT="/usr/local/sbin/imagelab-ensure-deps"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SYSTEMCTL="$(command -v systemctl || true)"
 
@@ -61,6 +65,37 @@ nginx_conf_for_port() {
   return 1
 }
 
+# The dependency-ensure helper. Single-quoted heredoc: the body is written
+# verbatim (its own $vars are not expanded here). Idempotent — a present
+# package is left untouched, so it's cheap to run on every deploy.
+deps_script_content() {
+  cat <<'EOF'
+#!/usr/bin/env bash
+# ImageLab system-dependency installer (installed by setup-host.sh).
+# Ensures non-pip, OS-level dependencies are present. Run as root; safe to
+# re-run on every deploy.
+set -euo pipefail
+
+ensure_pkg() {
+  local bin="$1" pkg="$2"
+  if command -v "$bin" >/dev/null 2>&1; then
+    return 0
+  fi
+  if command -v apt-get >/dev/null 2>&1; then
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -qq
+    apt-get install -y "$pkg"
+  else
+    echo "warning: cannot install '$pkg' automatically (no apt-get found)" >&2
+    return 1
+  fi
+}
+
+# Tesseract OCR engine — the /ocr endpoint shells out to this binary.
+ensure_pkg tesseract tesseract-ocr
+EOF
+}
+
 unit_content() {
   cat <<EOF
 [Unit]
@@ -94,7 +129,13 @@ check() {
   if command -v tesseract >/dev/null 2>&1; then
     ok "tesseract OCR binary present ($(tesseract --version 2>&1 | head -1))"
   else
-    bad "tesseract OCR binary missing (apt install tesseract-ocr)"
+    bad "tesseract OCR binary missing (run 'sudo $0 install' or apt install tesseract-ocr)"
+  fi
+
+  if [ -x "$DEPS_SCRIPT" ]; then
+    ok "system-deps helper present ($DEPS_SCRIPT)"
+  else
+    warn "system-deps helper missing — deploys won't self-heal packages (run install)"
   fi
 
   if [ -d "$DEPLOY_PATH" ]; then
@@ -124,10 +165,22 @@ check() {
     else
       bad "sudoers rule missing ($SUDOERS_FILE)"
     fi
-  elif sudo -n -l "$SYSTEMCTL" restart "$SERVICE" >/dev/null 2>&1; then
-    ok "passwordless 'sudo systemctl restart $SERVICE' works for $(id -un)"
+    if [ -f "$SUDOERS_FILE" ] && grep -q "$DEPS_SCRIPT" "$SUDOERS_FILE"; then
+      ok "sudoers deps-helper rule present"
+    else
+      warn "sudoers deps-helper rule missing — deploys won't self-heal packages (run install)"
+    fi
   else
-    bad "cannot run 'sudo systemctl restart $SERVICE' without a password"
+    if sudo -n -l "$SYSTEMCTL" restart "$SERVICE" >/dev/null 2>&1; then
+      ok "passwordless 'sudo systemctl restart $SERVICE' works for $(id -un)"
+    else
+      bad "cannot run 'sudo systemctl restart $SERVICE' without a password"
+    fi
+    if sudo -n -l "$DEPS_SCRIPT" >/dev/null 2>&1; then
+      ok "passwordless 'sudo $DEPS_SCRIPT' works for $(id -un)"
+    else
+      warn "cannot run 'sudo $DEPS_SCRIPT' without a password — deploys won't self-heal packages"
+    fi
   fi
 
   conf="$(nginx_conf_for_port)"
@@ -180,15 +233,16 @@ install_all() {
   install -d -o "$DEPLOY_USER" -g "$(id -gn "$DEPLOY_USER")" "$DEPLOY_PATH"
   ok "deploy dir $DEPLOY_PATH ready"
 
-  # 1b. OCR engine — a system package; pip can't provide the tesseract binary.
-  if command -v tesseract >/dev/null 2>&1; then
-    ok "tesseract OCR binary already present"
-  elif command -v apt-get >/dev/null 2>&1; then
-    apt-get install -y tesseract-ocr >/dev/null 2>&1 \
-      && ok "installed tesseract-ocr" \
-      || bad "failed to install tesseract-ocr"
+  # 1b. System-deps helper. Installed once, then re-run on every deploy (by CI,
+  #     via the narrow sudoers rule below) so a missing package — e.g. the
+  #     tesseract OCR binary — self-heals.
+  deps_script_content > "$DEPS_SCRIPT"
+  chmod 0755 "$DEPS_SCRIPT"
+  ok "system-deps helper installed ($DEPS_SCRIPT)"
+  if "$DEPS_SCRIPT"; then
+    ok "system dependencies present (tesseract: $(command -v tesseract || echo missing))"
   else
-    warn "install the 'tesseract-ocr' package manually (no apt-get found)"
+    bad "system dependency install failed — see output above"
   fi
 
   # 2. Systemd unit (rewritten on every install so user/path changes apply).
@@ -197,12 +251,16 @@ install_all() {
   "$SYSTEMCTL" enable --quiet "$SERVICE"
   ok "systemd unit installed and enabled"
 
-  # 3. Passwordless restart for CI, validated before being activated.
+  # 3. Passwordless rules for CI (restart + the fixed deps helper), validated
+  #    before being activated. Both target exact commands — not blanket root.
   tmp="$(mktemp)"
-  echo "$DEPLOY_USER ALL=(root) NOPASSWD: $SYSTEMCTL restart $SERVICE" > "$tmp"
+  {
+    echo "$DEPLOY_USER ALL=(root) NOPASSWD: $SYSTEMCTL restart $SERVICE"
+    echo "$DEPLOY_USER ALL=(root) NOPASSWD: $DEPS_SCRIPT"
+  } > "$tmp"
   if visudo -cf "$tmp" >/dev/null; then
     install -m 0440 "$tmp" "$SUDOERS_FILE"
-    ok "sudoers rule installed ($SUDOERS_FILE)"
+    ok "sudoers rules installed ($SUDOERS_FILE)"
   else
     bad "generated sudoers rule failed validation — not installed"
   fi

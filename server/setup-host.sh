@@ -73,26 +73,36 @@ deps_script_content() {
 #!/usr/bin/env bash
 # ImageLab system-dependency installer (installed by setup-host.sh).
 # Ensures non-pip, OS-level dependencies are present. Run as root; safe to
-# re-run on every deploy.
+# re-run on every deploy. To add an OCR language, add an `ensure_lang` line
+# and re-run `setup-host.sh install` on the host (a deploy runs the copy of
+# this script already installed at /usr/local/sbin, not the repo's).
 set -euo pipefail
 
-ensure_pkg() {
-  local bin="$1" pkg="$2"
-  if command -v "$bin" >/dev/null 2>&1; then
-    return 0
-  fi
+apt_install() {
   if command -v apt-get >/dev/null 2>&1; then
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
-    apt-get install -y "$pkg"
+    apt-get install -y "$@"
   else
-    echo "warning: cannot install '$pkg' automatically (no apt-get found)" >&2
+    echo "warning: cannot install '$*' automatically (no apt-get found)" >&2
     return 1
   fi
 }
 
-# Tesseract OCR engine — the /ocr endpoint shells out to this binary.
+# A CLI tool, keyed by the binary that proves it is installed.
+ensure_pkg() {
+  command -v "$1" >/dev/null 2>&1 || apt_install "$2"
+}
+
+# A Tesseract language, keyed by its code in `tesseract --list-langs`.
+ensure_lang() {
+  tesseract --list-langs 2>/dev/null | grep -qx "$1" || apt_install "$2"
+}
+
+# Tesseract OCR engine — the /ocr endpoint shells out to this binary. The base
+# package includes English; each extra language is a separate pack.
 ensure_pkg tesseract tesseract-ocr
+ensure_lang ita tesseract-ocr-ita
 EOF
 }
 
@@ -128,6 +138,11 @@ check() {
 
   if command -v tesseract >/dev/null 2>&1; then
     ok "tesseract OCR binary present ($(tesseract --version 2>&1 | head -1))"
+    if tesseract --list-langs 2>/dev/null | grep -qx ita; then
+      ok "tesseract italian language pack present"
+    else
+      bad "tesseract italian pack missing (run 'sudo $0 install')"
+    fi
   else
     bad "tesseract OCR binary missing (run 'sudo $0 install' or apt install tesseract-ocr)"
   fi

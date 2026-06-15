@@ -27,13 +27,15 @@ package. Install it (and any non-English language packs) at the OS level:
 
 ```bash
 # Debian/Ubuntu
-sudo apt-get install -y tesseract-ocr            # English is included
-sudo apt-get install -y tesseract-ocr-fra        # add languages as needed
+sudo apt-get install -y tesseract-ocr tesseract-ocr-ita   # English + Italian
+sudo apt-get install -y tesseract-ocr-fra                 # add more as needed
 # macOS (local dev)
 brew install tesseract tesseract-lang
 ```
 
-`setup-host.sh install` installs `tesseract-ocr` for you on the server.
+`setup-host.sh install` installs `tesseract-ocr` + `tesseract-ocr-ita`
+(English + Italian) for you on the server. The picker in the app
+(`OCR_LANGUAGES`) must stay in sync with the packs that are actually installed.
 
 ## Local development
 
@@ -71,10 +73,13 @@ workflow.
 `apt-get` directly. Instead the bootstrap installs a small root-owned helper at
 `/usr/local/sbin/imagelab-ensure-deps` and grants CI a *narrow* passwordless
 sudo rule for that exact path. Each deploy runs it; it installs anything missing
-(currently `tesseract-ocr`) and is a no-op otherwise. A bare server still needs
-the one-time bootstrap first (CI can't create the systemd unit, nginx proxy, or
-sudoers rules without root) — but that bootstrap is itself idempotent and
-self-healing, and installs tesseract as part of step 1.
+(currently `tesseract-ocr` + `tesseract-ocr-ita`) and is a no-op otherwise.
+Changing that set means editing `deps_script_content` and re-running
+`setup-host.sh install` once — a deploy runs the *installed* helper, not the
+repo's. A bare server still needs the one-time bootstrap first (CI can't create
+the systemd unit, nginx proxy, or sudoers rules without root) — but that
+bootstrap is itself idempotent and self-healing, and installs tesseract (with
+Italian) as part of step 1.
 
 ### One-time host bootstrap
 

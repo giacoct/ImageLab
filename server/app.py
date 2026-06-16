@@ -235,6 +235,60 @@ LANG_PATTERN = re.compile(r"^[a-z]{3}(\+[a-z]{3})*$")
 # only clutter the selectable overlay.
 MIN_WORD_CONFIDENCE = 30.0
 
+# PSM 11 (sparse text) finds text anywhere on the image regardless of layout —
+# better than the default PSM 3 for infographics, slides, and photos where
+# there is no single dominant text block.
+OCR_CONFIG = "--psm 11"
+
+
+def _extract_words(image: Image.Image, lang: str) -> list[dict]:
+    """Run Tesseract on one image variant; return word-level detections."""
+    fields = pytesseract.image_to_data(
+        image, lang=lang, output_type=Output.DICT, config=OCR_CONFIG
+    )
+    words: list[dict] = []
+    for i, raw_text in enumerate(fields["text"]):
+        text = raw_text.strip()
+        if not text or int(fields["level"][i]) != 5:
+            continue
+        try:
+            confidence = float(fields["conf"][i])
+        except (TypeError, ValueError):
+            confidence = -1.0
+        if confidence < MIN_WORD_CONFIDENCE:
+            continue
+        words.append(
+            {
+                "text": text,
+                "left": int(fields["left"][i]),
+                "top": int(fields["top"][i]),
+                "width": int(fields["width"][i]),
+                "height": int(fields["height"][i]),
+                "confidence": round(confidence, 1),
+            }
+        )
+    return words
+
+
+def _iou(a: dict, b: dict) -> float:
+    """Intersection-over-union of two pixel bounding boxes."""
+    ix = max(0, min(a["left"] + a["width"], b["left"] + b["width"]) - max(a["left"], b["left"]))
+    iy = max(0, min(a["top"] + a["height"], b["top"] + b["height"]) - max(a["top"], b["top"]))
+    inter = ix * iy
+    if inter == 0:
+        return 0.0
+    return inter / (a["width"] * a["height"] + b["width"] * b["height"] - inter)
+
+
+def _dedup_words(words: list[dict], threshold: float = 0.5) -> list[dict]:
+    """Merge detections from multiple passes; keep the highest-confidence hit per location."""
+    by_conf = sorted(words, key=lambda w: w["confidence"], reverse=True)
+    kept: list[dict] = []
+    for word in by_conf:
+        if not any(_iou(word, k) > threshold for k in kept):
+            kept.append(word)
+    return sorted(kept, key=lambda w: (w["top"], w["left"]))
+
 
 def _run_ocr(data: bytes, lang: str) -> dict:
     """Recognize text and per-word boxes from raw image bytes.
@@ -251,45 +305,42 @@ def _run_ocr(data: bytes, lang: str) -> dict:
         raise HTTPException(status_code=400, detail="The image could not be decoded.") from error
 
     width, height = image.size
-    fields = pytesseract.image_to_data(image, lang=lang, output_type=Output.DICT)
+    gray = image.convert("L")
 
-    words: list[dict] = []
-    lines: list[list[str]] = []
-    # (block, paragraph, line) tuples map to a flat, ordered line index.
-    line_index: dict[tuple[int, int, int], int] = {}
+    # Two passes over grayscale variants: the first captures dark-on-light text,
+    # the second (inverted) captures light-on-dark text (e.g. white letters on a
+    # coloured background). Overlapping detections are deduplicated by IoU so
+    # words found in both passes appear only once.
+    words = _dedup_words(
+        _extract_words(gray, lang) + _extract_words(ImageOps.invert(gray), lang)
+    )
 
-    for i, raw_text in enumerate(fields["text"]):
-        text = raw_text.strip()
-        if not text or int(fields["level"][i]) != 5:
-            continue
-        try:
-            confidence = float(fields["conf"][i])
-        except (TypeError, ValueError):
-            confidence = -1.0
-        if confidence < MIN_WORD_CONFIDENCE:
-            continue
-
-        key = (fields["block_num"][i], fields["par_num"][i], fields["line_num"][i])
-        if key not in line_index:
-            line_index[key] = len(lines)
-            lines.append([])
-        index = line_index[key]
-        lines[index].append(text)
-
-        words.append(
-            {
-                "text": text,
-                "left": int(fields["left"][i]),
-                "top": int(fields["top"][i]),
-                "width": int(fields["width"][i]),
-                "height": int(fields["height"][i]),
-                "confidence": round(confidence, 1),
-                "line": index,
-            }
+    # Assign line indices by grouping words whose vertical spans overlap.
+    lines: list[list[dict]] = []
+    for word in words:
+        cy = word["top"] + word["height"] / 2
+        matched = next(
+            (
+                li
+                for li, line in enumerate(lines)
+                if min(w["top"] for w in line) <= cy <= max(w["top"] + w["height"] for w in line)
+            ),
+            None,
         )
+        if matched is None:
+            matched = len(lines)
+            lines.append([])
+        lines[matched].append(word)
 
-    full_text = "\n".join(" ".join(line) for line in lines)
-    return {"width": width, "height": height, "text": full_text, "words": words}
+    result_words: list[dict] = []
+    for li, line in enumerate(lines):
+        for word in sorted(line, key=lambda w: w["left"]):
+            result_words.append({**word, "line": li})
+
+    full_text = "\n".join(
+        " ".join(w["text"] for w in sorted(line, key=lambda w: w["left"])) for line in lines
+    )
+    return {"width": width, "height": height, "text": full_text, "words": result_words}
 
 
 @app.post("/ocr")

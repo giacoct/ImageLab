@@ -98,6 +98,16 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     loadComponent: () => import('../../tools/adjust/adjust').then((m) => m.Adjust),
   },
   {
+    id: 'merge',
+    title: 'Merge images',
+    description: 'Combine several images into one, stacked vertically or side by side.',
+    route: '/tools/merge',
+    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    maxFiles: null,
+    batch: true,
+    loadComponent: () => import('../../tools/merge/merge').then((m) => m.Merge),
+  },
+  {
     id: 'ocr',
     title: 'Extract text (OCR)',
     description: 'Recognize the text in images and select it directly on the picture.',

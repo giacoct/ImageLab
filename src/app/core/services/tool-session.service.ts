@@ -134,6 +134,58 @@ export class ToolSessionService {
     });
   }
 
+  /**
+   * Run a processor that combines *all* selected files into a single image
+   * output (e.g. the merge tool), as opposed to the per-file batch loop.
+   */
+  async runCombined(
+    process: (files: File[]) => Promise<ImageOutput>,
+    fallbackMessage = 'The images could not be merged.',
+  ): Promise<void> {
+    const files = this.files();
+    if (files.length === 0 || this.isProcessing()) {
+      return;
+    }
+
+    const runId = ++this.runId;
+    this.isProcessing.set(true);
+    this.error.set('');
+    this.replaceOutputs([]);
+    this.barLatched.set(false);
+    this.job.set({ total: 1, completed: 0, currentFileName: files[0].name });
+
+    let output: ImageOutput | null = null;
+    try {
+      try {
+        output = await process(files);
+      } catch (error) {
+        if (runId === this.runId) {
+          this.error.set(error instanceof Error ? error.message : fallbackMessage);
+        }
+      }
+
+      // Abandoned mid-flight (the session was reset or restarted).
+      if (runId !== this.runId) {
+        if (output) {
+          this.processing.revoke([output]);
+        }
+        return;
+      }
+
+      if (output) {
+        this.outputs.set([output]);
+        this.outputStale.set(false);
+        this.job.update((job) => (job ? { ...job, completed: 1 } : job));
+      }
+    } finally {
+      if (runId === this.runId) {
+        this.isProcessing.set(false);
+        this.job.set(null);
+        this.barLatched.set(false);
+      }
+    }
+  }
+
   /** Run the OCR processor over every selected file, collecting the text results. */
   runOcr(
     processor: OcrProcessor,

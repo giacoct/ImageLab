@@ -1,0 +1,70 @@
+<app-tool-shell
+  [tool]="tool"
+  [files]="files()"
+  [error]="error()"
+  [canSubmit]="canSubmit()"
+  actionLabel="Merge images"
+  (action)="submit()"
+>
+  @if (previewReady()) {
+    <section preview class="tool-preview panel" aria-label="Live preview">
+      <h2>Preview</h2>
+      <div class="preview-stage" [class.is-transparent]="form.controls.transparent.value">
+        <canvas #previewCanvas></canvas>
+      </div>
+      <span class="preview-hint">Preview is downscaled; export renders at full resolution.</span>
+    </section>
+  }
+
+  <div class="tool-fields" [formGroup]="form">
+    @if (!enoughFiles()) {
+      <p class="field-hint" role="status">
+        Add at least two images on the import step to merge them.
+      </p>
+    }
+
+    <div class="field">
+      <label for="direction">Direction</label>
+      <select id="direction" formControlName="direction">
+        <option value="vertical">Vertical (stacked top to bottom)</option>
+        <option value="horizontal">Horizontal (side by side)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="alignment">{{ alignLabels().heading }}</label>
+      <select id="alignment" formControlName="alignment">
+        <option value="start">{{ alignLabels().start }}</option>
+        <option value="center">{{ alignLabels().center }}</option>
+        <option value="end">{{ alignLabels().end }}</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="resize">Resizing</label>
+      <select id="resize" formControlName="resize">
+        <option value="none">Keep original size</option>
+        <option value="fill">
+          {{ form.controls.direction.value === 'vertical' ? 'Fill width' : 'Fill height' }}
+        </option>
+      </select>
+      <span class="field-hint">
+        “Fill” scales every image so they share the same
+        {{ form.controls.direction.value === 'vertical' ? 'width' : 'height' }}; alignment then has
+        no effect.
+      </span>
+    </div>
+
+    <label class="check-row">
+      <input type="checkbox" formControlName="transparent" />
+      Transparent background
+    </label>
+
+    @if (!form.controls.transparent.value) {
+      <div class="field">
+        <label for="background">Background color</label>
+        <input id="background" type="color" formControlName="background" />
+      </div>
+    }
+  </div>
+</app-tool-shell>

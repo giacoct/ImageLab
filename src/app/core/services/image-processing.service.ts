@@ -1,6 +1,12 @@
 import { Injectable } from '@angular/core';
 
 import { CanvasOutputFormat, ImageDimensions, ImageOutput } from '../models/image-output.model';
+import {
+  MergeAlignment,
+  MergeDirection,
+  MergeResize,
+  computeMergeLayout,
+} from '../utils/merge-layout';
 import { BackgroundKeyOptions, keyBackgroundPixels } from '../workers/pixel-ops';
 import { keyBackgroundImageData, sharpenImageData } from '../workers/pixel-worker.client';
 
@@ -68,6 +74,15 @@ export interface WatermarkStyle {
 export interface WatermarkRenderOptions extends WatermarkStyle {
   format: CanvasOutputFormat;
   quality: number;
+  fileName: string;
+}
+
+export interface MergeOptions {
+  direction: MergeDirection;
+  alignment: MergeAlignment;
+  resize: MergeResize;
+  /** CSS color for the gaps/background, or `null` for a transparent canvas. */
+  background: string | null;
   fileName: string;
 }
 
@@ -258,6 +273,48 @@ export class ImageProcessingService {
 
     const blob = await this.canvasToBlob(canvas, options.format, options.quality);
     return this.createOutput(options.fileName, blob, canvas.width, canvas.height);
+  }
+
+  /** Combine several images into one, stacked along the chosen axis. */
+  async renderMerged(files: readonly File[], options: MergeOptions): Promise<ImageOutput> {
+    if (files.length === 0) {
+      throw new Error('Select at least one image to merge.');
+    }
+
+    const images = await Promise.all(files.map((file) => this.loadImage(file)));
+    try {
+      const layout = computeMergeLayout(
+        images.map((image) => ({ width: image.width, height: image.height })),
+        options,
+      );
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, layout.width);
+      canvas.height = Math.max(1, layout.height);
+
+      const context = canvas.getContext('2d');
+      if (!context) {
+        throw new Error('Canvas rendering is not available in this browser.');
+      }
+
+      // A transparent canvas keeps the gaps see-through; otherwise paint them.
+      if (options.background) {
+        context.fillStyle = options.background;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+      layout.placements.forEach((place, i) => {
+        context.drawImage(images[i].source, place.x, place.y, place.width, place.height);
+      });
+
+      // PNG so a transparent background (and any source alpha) is preserved.
+      const blob = await this.canvasToBlob(canvas, 'image/png', 1);
+      return this.createOutput(options.fileName, blob, canvas.width, canvas.height);
+    } finally {
+      images.forEach((image) => image.release());
+    }
   }
 
   revoke(outputs: readonly ImageOutput[]): void {

@@ -15,6 +15,7 @@ export type IconName =
   | 'scale'
   | 'watermark'
   | 'ocr'
+  | 'merge'
   | 'upload'
   | 'download'
   | 'arrow-right'
@@ -95,6 +96,11 @@ export type IconName =
           <line x1="7" y1="8" x2="15" y2="8" />
           <line x1="7" y1="12" x2="17" y2="12" />
           <line x1="7" y1="16" x2="13" y2="16" />
+        }
+        @case ('merge') {
+          <rect x="3" y="3" width="8" height="8" rx="1" />
+          <rect x="13" y="13" width="8" height="8" rx="1" />
+          <path d="M11 7h4a2 2 0 0 1 2 2v4" />
         }
         @case ('compress') {
           <polyline points="4 14 10 14 10 20" />

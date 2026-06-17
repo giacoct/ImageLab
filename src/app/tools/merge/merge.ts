@@ -52,8 +52,15 @@ export class Merge extends BaseTool {
 
   private readonly canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('previewCanvas');
 
-  /** Decoded bitmaps for the current files (decoded once per import). */
-  private readonly bitmaps = signal<ImageBitmap[]>([]);
+  /** Decoded bitmaps keyed by their source file, so reordering files() (e.g.
+   *  drag-reorder on this page) reorders the preview without re-decoding. */
+  private readonly bitmapByFile = signal(new Map<File, ImageBitmap>());
+  private readonly bitmaps = computed(() => {
+    const map = this.bitmapByFile();
+    return this.files()
+      .map((file) => map.get(file))
+      .filter((bitmap): bitmap is ImageBitmap => bitmap !== undefined);
+  });
   protected readonly previewReady = computed(() => this.bitmaps().length >= 2);
 
   private readonly options = toSignal(
@@ -125,7 +132,10 @@ export class Merge extends BaseTool {
 
   protected override async onFilesSelected(files: File[]): Promise<void> {
     this.releaseBitmaps();
-    this.bitmaps.set(await Promise.all(files.map((file) => createImageBitmap(file))));
+    const entries = await Promise.all(
+      files.map(async (file) => [file, await createImageBitmap(file)] as const),
+    );
+    this.bitmapByFile.set(new Map(entries));
   }
 
   protected override runJob(): Promise<void> {
@@ -144,9 +154,9 @@ export class Merge extends BaseTool {
   }
 
   private releaseBitmaps(): void {
-    for (const bitmap of this.bitmaps()) {
+    for (const bitmap of this.bitmapByFile().values()) {
       bitmap.close();
     }
-    this.bitmaps.set([]);
+    this.bitmapByFile.set(new Map());
   }
 }

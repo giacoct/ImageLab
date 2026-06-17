@@ -1,7 +1,16 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { ImageToolDefinition } from '../../core/models/image-tool.model';
+import { ToolSessionService } from '../../core/services/tool-session.service';
 import { Icon } from '../../shared/icon/icon';
 import { StepIndicator } from '../../shared/step-indicator/step-indicator';
 
@@ -19,6 +28,8 @@ import { StepIndicator } from '../../shared/step-indicator/step-indicator';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ToolShell {
+  private readonly session = inject(ToolSessionService);
+
   readonly tool = input.required<ImageToolDefinition>();
   readonly files = input.required<readonly File[]>();
   readonly error = input('');
@@ -30,4 +41,38 @@ export class ToolShell {
 
   readonly action = output<void>();
   readonly fileSelected = output<number>();
+
+  /** Drag-reorder is offered (only) when the plain list holds 2+ files. */
+  readonly canReorder = computed(() => !this.selectable() && this.files().length > 1);
+  readonly dragIndex = signal<number | null>(null);
+  readonly dragOverIndex = signal<number | null>(null);
+
+  protected onDragStart(event: DragEvent, index: number): void {
+    this.dragIndex.set(index);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  protected onDragOver(event: DragEvent, index: number): void {
+    if (this.dragIndex() === null) {
+      return;
+    }
+    event.preventDefault();
+    this.dragOverIndex.set(index);
+  }
+
+  protected onDrop(event: DragEvent, index: number): void {
+    event.preventDefault();
+    const from = this.dragIndex();
+    if (from !== null && from !== index) {
+      this.session.moveFile(from, index);
+    }
+    this.onDragEnd();
+  }
+
+  protected onDragEnd(): void {
+    this.dragIndex.set(null);
+    this.dragOverIndex.set(null);
+  }
 }

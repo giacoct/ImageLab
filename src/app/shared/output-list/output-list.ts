@@ -8,11 +8,12 @@ import { ToolRegistryService } from '../../core/services/tool-registry.service';
 import { ToolSessionService } from '../../core/services/tool-session.service';
 import { formatBytes } from '../../core/utils/image-tool-utils';
 import { Icon } from '../icon/icon';
+import { Reorderable } from '../reorderable/reorderable';
 
 @Component({
   selector: 'app-output-list',
   templateUrl: './output-list.html',
-  imports: [Icon],
+  imports: [Icon, Reorderable],
   styleUrl: './output-list.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'closePicker()' },
@@ -43,10 +44,6 @@ export class OutputList {
   /** Inline-rename state: index of the card being renamed. */
   protected readonly editingIndex = signal<number | null>(null);
 
-  /** Drag-reorder state. */
-  protected readonly dragIndex = signal<number | null>(null);
-  protected readonly dragOverIndex = signal<number | null>(null);
-
   protected startRename(index: number): void {
     this.editingIndex.set(index);
   }
@@ -71,33 +68,8 @@ export class OutputList {
     }
   }
 
-  protected onDragStart(event: DragEvent, index: number): void {
-    this.dragIndex.set(index);
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-    }
-  }
-
-  protected onDragOver(event: DragEvent, index: number): void {
-    if (this.dragIndex() === null) {
-      return;
-    }
-    event.preventDefault();
-    this.dragOverIndex.set(index);
-  }
-
-  protected onDrop(event: DragEvent, index: number): void {
-    event.preventDefault();
-    const from = this.dragIndex();
-    if (from !== null && from !== index) {
-      this.session.moveOutput(from, index);
-    }
-    this.onDragEnd();
-  }
-
-  protected onDragEnd(): void {
-    this.dragIndex.set(null);
-    this.dragOverIndex.set(null);
+  protected moveOutput(from: number, to: number): void {
+    this.session.moveOutput(from, to);
   }
 
   protected download(output: ImageOutput): void {

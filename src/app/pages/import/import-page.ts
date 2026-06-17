@@ -8,7 +8,6 @@ import {
   effect,
   inject,
   input,
-  signal,
   viewChild,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
@@ -17,6 +16,7 @@ import { ToolRegistryService } from '../../core/services/tool-registry.service';
 import { ToolSessionService } from '../../core/services/tool-session.service';
 import { FileDropzone } from '../../shared/file-dropzone/file-dropzone';
 import { Icon } from '../../shared/icon/icon';
+import { Reorderable } from '../../shared/reorderable/reorderable';
 import { StepIndicator } from '../../shared/step-indicator/step-indicator';
 
 /**
@@ -25,7 +25,7 @@ import { StepIndicator } from '../../shared/step-indicator/step-indicator';
  */
 @Component({
   selector: 'app-import-page',
-  imports: [RouterLink, FileDropzone, Icon, StepIndicator],
+  imports: [RouterLink, FileDropzone, Icon, StepIndicator, Reorderable],
   templateUrl: './import-page.html',
   styleUrl: '../tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,10 +44,6 @@ export class ImportPage {
   protected readonly tool = computed(() => this.registry.findById(this.toolId())!);
   protected readonly files = this.session.files;
   protected readonly canReorder = computed(() => this.files().length > 1);
-
-  /** Drag-reorder state for the imported-file list. */
-  protected readonly dragIndex = signal<number | null>(null);
-  protected readonly dragOverIndex = signal<number | null>(null);
 
   constructor() {
     // Start (or resume) the session for this tool. `begin` only clears state
@@ -73,32 +69,7 @@ export class ImportPage {
     }
   }
 
-  protected onDragStart(event: DragEvent, index: number): void {
-    this.dragIndex.set(index);
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-    }
-  }
-
-  protected onDragOver(event: DragEvent, index: number): void {
-    if (this.dragIndex() === null) {
-      return;
-    }
-    event.preventDefault();
-    this.dragOverIndex.set(index);
-  }
-
-  protected onDrop(event: DragEvent, index: number): void {
-    event.preventDefault();
-    const from = this.dragIndex();
-    if (from !== null && from !== index) {
-      this.session.moveFile(from, index);
-    }
-    this.onDragEnd();
-  }
-
-  protected onDragEnd(): void {
-    this.dragIndex.set(null);
-    this.dragOverIndex.set(null);
+  protected moveFile(from: number, to: number): void {
+    this.session.moveFile(from, to);
   }
 }

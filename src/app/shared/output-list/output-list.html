@@ -4,7 +4,7 @@
       <h2 id="outputs-title">Output</h2>
     </div>
 
-    <div class="output-grid">
+    <div class="output-grid" appReorderable #ro="reorderable" (reorder)="moveOutput($event.from, $event.to)">
       @if (isBatch()) {
         <article class="output-item album-card">
           <div class="album-stack" aria-hidden="true">
@@ -38,15 +38,21 @@
       @for (output of outputs(); track output.url; let i = $index) {
         <article
           class="output-item file-card"
-          [class.is-drag-over]="dragOverIndex() === i"
-          [class.is-dragging]="dragIndex() === i"
-          [attr.draggable]="isBatch() && editingIndex() === null ? true : null"
-          (dragstart)="onDragStart($event, i)"
-          (dragover)="onDragOver($event, i)"
-          (drop)="onDrop($event, i)"
-          (dragend)="onDragEnd()"
+          [attr.data-reorder-item]="isBatch() ? '' : null"
+          [class.is-drag-over]="ro.overIndex() === i"
+          [class.is-dragging]="ro.activeIndex() === i"
         >
           <div class="photo-stage">
+            @if (isBatch()) {
+              <span
+                class="drag-handle"
+                data-reorder-handle
+                role="button"
+                aria-label="Drag to reorder"
+                title="Drag to reorder"
+                >⠿</span
+              >
+            }
             <img class="photo-img" [src]="output.url" [alt]="output.fileName" />
           </div>
           <div class="output-body">

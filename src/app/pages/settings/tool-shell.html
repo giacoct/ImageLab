@@ -43,20 +43,21 @@
           @if (canReorder()) {
             <p class="reorder-hint">Drag to reorder — this order carries through to the output.</p>
           }
-          <ul class="reorder-list">
+          <ul
+            class="reorder-list"
+            appReorderable
+            #ro="reorderable"
+            (reorder)="moveFile($event.from, $event.to)"
+          >
             @for (file of files(); track file.name + file.size; let i = $index) {
               <li
                 class="reorder-item"
-                [class.is-dragging]="dragIndex() === i"
-                [class.is-drag-over]="dragOverIndex() === i"
-                [attr.draggable]="canReorder() ? true : null"
-                (dragstart)="onDragStart($event, i)"
-                (dragover)="onDragOver($event, i)"
-                (drop)="onDrop($event, i)"
-                (dragend)="onDragEnd()"
+                [attr.data-reorder-item]="canReorder() ? '' : null"
+                [class.is-dragging]="ro.activeIndex() === i"
+                [class.is-drag-over]="ro.overIndex() === i"
               >
                 @if (canReorder()) {
-                  <span class="reorder-grip" aria-hidden="true">⠿</span>
+                  <span class="reorder-grip" data-reorder-handle aria-hidden="true">⠿</span>
                 }
                 <span class="reorder-index">{{ i + 1 }}</span>
                 <span class="reorder-name">{{ file.name }}</span>

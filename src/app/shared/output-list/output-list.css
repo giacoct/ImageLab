@@ -186,8 +186,34 @@ h3 {
 }
 
 /* Drag-reorder feedback on batch file cards. */
-.file-card[draggable='true'] {
+.photo-stage {
+  position: relative;
+}
+
+/* Grab handle for reordering — works with mouse and touch. touch-action:none
+   keeps a touch-drag from scrolling the page instead of reordering. */
+.drag-handle {
+  align-items: center;
+  background: rgba(15, 32, 29, 0.55);
+  border-radius: 0.4rem;
+  color: #fff;
   cursor: grab;
+  display: inline-flex;
+  font-size: 1rem;
+  height: 2rem;
+  justify-content: center;
+  left: 0.4rem;
+  line-height: 1;
+  position: absolute;
+  top: 0.4rem;
+  touch-action: none;
+  user-select: none;
+  width: 2rem;
+  z-index: 2;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
 }
 
 .file-card.is-dragging {

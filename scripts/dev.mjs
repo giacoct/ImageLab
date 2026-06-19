@@ -11,13 +11,28 @@
 
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { delimiter, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const serverDir = join(root, 'server');
 const isWindows = process.platform === 'win32';
-const venvPython = join(serverDir, '.venv', isWindows ? 'Scripts/python.exe' : 'bin/python');
+const venvDir = join(serverDir, '.venv');
+const venvBin = join(venvDir, isWindows ? 'Scripts' : 'bin');
+const venvPython = join(venvBin, isWindows ? 'python.exe' : 'python');
+
+// Replicate what `activate` does, scoped to the spawned backend: put the venv
+// first on PATH and mark it active. Launching with the venv's python is not
+// enough on Windows — uvicorn's `--reload` supervisor re-spawns the venv's
+// *base* interpreter, which here is the flaky Microsoft Store Python alias and
+// fails on a cold first run. That is why `npm run dev` previously only worked
+// on the second attempt (or after manually activating the venv). With the venv
+// on PATH the correct interpreter is found on the first try.
+const backendEnv = { ...process.env, VIRTUAL_ENV: venvDir };
+// Windows env vars are case-insensitive, so reuse the existing PATH key (often
+// `Path`) rather than adding a second one that would be ignored.
+const pathKey = Object.keys(backendEnv).find((key) => key.toLowerCase() === 'path') ?? 'PATH';
+backendEnv[pathKey] = `${venvBin}${delimiter}${backendEnv[pathKey] ?? ''}`;
 // Invoke the Angular CLI's JS entrypoint with node directly. Spawning the
 // `npm`/`ng` `.cmd` shim instead throws EINVAL on Windows (Node CVE-2024-27980).
 const ngEntrypoint = join(root, 'node_modules', '@angular', 'cli', 'bin', 'ng.js');
@@ -43,8 +58,8 @@ if (!existsSync(venvPython)) {
 const children = [];
 let shuttingDown = false;
 
-function start(label, color, command, args, cwd) {
-  const child = spawn(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+function start(label, color, command, args, cwd, env = process.env) {
+  const child = spawn(command, args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
   const tag = `\x1b[${color}m[${label}]\x1b[0m `;
   const pipe = (stream, out) =>
     stream.on('data', (chunk) => out.write(chunk.toString().replace(/^/gm, tag)));
@@ -76,5 +91,12 @@ process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
 console.log('[dev] Starting backend (:4201) and Angular dev server...');
-start('api', '36', venvPython, ['-m', 'uvicorn', 'app:app', '--port', '4201', '--reload'], serverDir);
+start(
+  'api',
+  '36',
+  venvPython,
+  ['-m', 'uvicorn', 'app:app', '--port', '4201', '--reload'],
+  serverDir,
+  backendEnv,
+);
 start('web', '35', process.execPath, [ngEntrypoint, 'serve'], root);

@@ -74,21 +74,64 @@ function start(label, color, command, args, cwd, env = process.env) {
   children.push(child);
 }
 
+/**
+ * Stop a child *and its descendants*. `child.kill()` alone only signals the
+ * direct child, so on Windows uvicorn's `--reload` supervisor and worker
+ * (grandchildren) would be orphaned and keep holding port 4201 — which is what
+ * made the *next* `npm run dev` fail until the stragglers were cleared. Kill the
+ * whole tree so Ctrl+C leaves nothing behind.
+ */
+function killTree(child) {
+  if (!child.pid) return;
+  try {
+    if (isWindows) {
+      spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+    } else {
+      child.kill();
+    }
+  } catch {
+    /* already gone */
+  }
+}
+
 function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
   for (const child of children) {
-    try {
-      child.kill();
-    } catch {
-      /* already gone */
-    }
+    killTree(child);
   }
   process.exit(0);
 }
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+
+/**
+ * Free a TCP port left occupied by a stray process (e.g. an orphan from a
+ * previous run that wasn't cleaned up, or a crash). Without this, the server
+ * that wants the port fails to bind and the run has to be retried. Best-effort
+ * and Windows-specific; nothing to do on a clean machine.
+ */
+function freePort(port) {
+  if (!isWindows) return;
+  const result = spawnSync('netstat', ['-ano', '-p', 'tcp'], { encoding: 'utf8' });
+  if (result.status !== 0 || !result.stdout) return;
+  const pids = new Set();
+  for (const line of result.stdout.split('\n')) {
+    // e.g. "  TCP    127.0.0.1:4201   0.0.0.0:0   LISTENING   12345"
+    const match = line.match(/:(\d+)\s+\S+\s+LISTENING\s+(\d+)\s*$/);
+    if (match && Number(match[1]) === port) {
+      pids.add(match[2]);
+    }
+  }
+  for (const pid of pids) {
+    console.log(`[dev] Port ${port} is busy (PID ${pid}); clearing a stale process.`);
+    spawnSync('taskkill', ['/PID', pid, '/T', '/F'], { stdio: 'ignore' });
+  }
+}
+
+freePort(4201);
+freePort(4200);
 
 console.log('[dev] Starting backend (:4201) and Angular dev server...');
 start(

@@ -13,7 +13,6 @@ export type IconName =
   | 'remove-background'
   | 'adjust'
   | 'scale'
-  | 'watermark'
   | 'ocr'
   | 'merge'
   | 'upload'
@@ -82,11 +81,6 @@ export type IconName =
           <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
           <path d="M16 3h5v5" />
           <path d="M14 10 21 3" />
-        }
-        @case ('watermark') {
-          <polyline points="4 7 4 4 20 4 20 7" />
-          <line x1="9" y1="20" x2="15" y2="20" />
-          <line x1="12" y1="4" x2="12" y2="20" />
         }
         @case ('ocr') {
           <path d="M3 7V5a2 2 0 0 1 2-2h2" />

@@ -21,8 +21,6 @@ text (OCR)**, which send the image to a small self-hosted backend (see
   GPS presence, …) and rebuild images without it.
 - **Remove background** – key out a color and export a transparent PNG, with a
   live preview.
-- **Watermark** – stamp a text watermark (position, size, opacity, color) with
-  a live preview.
 - **Adjust & filters** – brightness, contrast, saturation, grayscale, sepia,
   invert, blur, and sharpen.
 - **Extract text (OCR)** – recognize the text in one or more images and select

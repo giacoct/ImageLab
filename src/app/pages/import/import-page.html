@@ -41,7 +41,7 @@
       #ro="reorderable"
       (reorder)="moveFile($event.from, $event.to)"
     >
-      @for (file of files(); track file.name + file.size; let i = $index) {
+      @for (file of files(); track fileKey(file); let i = $index) {
         <li
           class="reorder-item"
           [attr.data-reorder-item]="canReorder() ? '' : null"

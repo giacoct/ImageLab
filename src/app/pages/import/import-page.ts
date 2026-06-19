@@ -51,6 +51,12 @@ export class ImportPage {
     ? '⌘V'
     : 'Ctrl+V';
 
+  // Stable, unique key per File instance so the list can track duplicates
+  // (same name + size) without colliding. Keyed by object reference, which is
+  // always distinct since every import/paste produces fresh File objects.
+  private readonly fileKeys = new WeakMap<File, number>();
+  private nextFileKey = 0;
+
   constructor() {
     // Start (or resume) the session for this tool. `begin` only clears state
     // when the tool actually changes, so returning here keeps the selection.
@@ -63,8 +69,8 @@ export class ImportPage {
 
   /**
    * Append images pasted from the clipboard (e.g. a screenshot or a copied
-   * image file). Clipboard images often arrive with the same generic name, so
-   * each is given a unique name to avoid colliding in the de-dup / track key.
+   * image file). Clipboard images all arrive named "image.png", so each is
+   * given a unique name to keep the rows distinguishable.
    */
   protected onPaste(event: ClipboardEvent): void {
     const items = event.clipboardData?.items;
@@ -97,6 +103,16 @@ export class ImportPage {
 
   protected removeFile(index: number): void {
     this.session.removeFile(index);
+  }
+
+  /** Stable track key for a selected file (see {@link fileKeys}). */
+  protected fileKey(file: File): number {
+    let key = this.fileKeys.get(file);
+    if (key === undefined) {
+      key = this.nextFileKey++;
+      this.fileKeys.set(file, key);
+    }
+    return key;
   }
 
   protected clearFiles(): void {

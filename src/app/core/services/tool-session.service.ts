@@ -89,45 +89,37 @@ export class ToolSessionService {
   }
 
   setFiles(files: File[]): void {
-    this.replaceOutputs([]);
-    this.replaceOcrResults([]);
-    this.error.set('');
+    this.discardResults();
     this.files.set(files);
   }
 
   /**
-   * Append files to the current selection, skipping ones already present (by
-   * name + size) and capping the total at `max` when provided. Used by both the
-   * dropzone and clipboard paste so new images add to, rather than replace, the
-   * existing list.
+   * Append files to the current selection, capping the total at `max` when
+   * provided. Used by both the dropzone and clipboard paste so new images add
+   * to, rather than replace, the existing list. Duplicates are kept.
    */
   addFiles(incoming: File[], max?: number | null): void {
     if (incoming.length === 0) {
       return;
     }
-    this.replaceOutputs([]);
-    this.replaceOcrResults([]);
-    this.error.set('');
+    this.discardResults();
     this.files.update((current) => {
-      const seen = new Set(current.map((file) => `${file.name}:${file.size}`));
-      const merged = [...current];
-      for (const file of incoming) {
-        const key = `${file.name}:${file.size}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          merged.push(file);
-        }
-      }
+      const merged = [...current, ...incoming];
       return max != null ? merged.slice(0, max) : merged;
     });
   }
 
   /** Remove a single selected file (the per-item ✕ on the import step). */
   removeFile(index: number): void {
+    this.discardResults();
+    this.files.update((files) => files.filter((_, i) => i !== index));
+  }
+
+  /** Drop any produced results and clear the error before the file set changes. */
+  private discardResults(): void {
     this.replaceOutputs([]);
     this.replaceOcrResults([]);
     this.error.set('');
-    this.files.update((files) => files.filter((_, i) => i !== index));
   }
 
   /** Reorder the selected files (drag-reorder on the import step). */

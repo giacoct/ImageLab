@@ -46,11 +46,6 @@ export class ImportPage {
   protected readonly files = this.session.files;
   protected readonly canReorder = computed(() => this.files().length > 1);
 
-  /** Platform-appropriate paste shortcut shown in the hint text. */
-  protected readonly pasteShortcut = /Mac|iP(hone|ad|od)/.test(navigator.userAgent)
-    ? '⌘V'
-    : 'Ctrl+V';
-
   // Stable, unique key per File instance so the list can track duplicates
   // (same name + size) without colliding. Keyed by object reference, which is
   // always distinct since every import/paste produces fresh File objects.

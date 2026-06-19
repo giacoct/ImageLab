@@ -21,9 +21,17 @@
   (filesSelected)="onFilesSelected($event)"
 />
 
+<p class="paste-hint">Tip: copy an image anywhere and press {{ pasteShortcut }} to add it here.</p>
+
 @if (files().length > 0) {
   <section class="file-list panel" aria-label="Imported files">
-    <h2>{{ files().length }} {{ files().length === 1 ? 'image' : 'images' }} ready</h2>
+    <div class="file-list-head">
+      <h2>{{ files().length }} {{ files().length === 1 ? 'image' : 'images' }} ready</h2>
+      <button type="button" class="button secondary clear-button" (click)="clearFiles()">
+        <app-icon name="close" [size]="16" />
+        Clear all
+      </button>
+    </div>
     @if (canReorder()) {
       <p class="reorder-hint">Drag to reorder — this order carries through the whole tool.</p>
     }
@@ -45,6 +53,14 @@
           }
           <span class="reorder-index">{{ i + 1 }}</span>
           <span class="reorder-name">{{ file.name }}</span>
+          <button
+            type="button"
+            class="remove-file"
+            [attr.aria-label]="'Remove ' + file.name"
+            (click)="removeFile(i)"
+          >
+            <app-icon name="close" [size]="16" />
+          </button>
         </li>
       }
     </ul>

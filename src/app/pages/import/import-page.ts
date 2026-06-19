@@ -29,6 +29,7 @@ import { StepIndicator } from '../../shared/step-indicator/step-indicator';
   templateUrl: './import-page.html',
   styleUrl: '../tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(document:paste)': 'onPaste($event)' },
 })
 export class ImportPage {
   /** Bound from the route's `data.toolId`. */
@@ -45,6 +46,11 @@ export class ImportPage {
   protected readonly files = this.session.files;
   protected readonly canReorder = computed(() => this.files().length > 1);
 
+  /** Platform-appropriate paste shortcut shown in the hint text. */
+  protected readonly pasteShortcut = /Mac|iP(hone|ad|od)/.test(navigator.userAgent)
+    ? '⌘V'
+    : 'Ctrl+V';
+
   constructor() {
     // Start (or resume) the session for this tool. `begin` only clears state
     // when the tool actually changes, so returning here keeps the selection.
@@ -52,8 +58,60 @@ export class ImportPage {
   }
 
   protected onFilesSelected(files: File[]): void {
+    this.addFiles(files);
+  }
+
+  /**
+   * Append images pasted from the clipboard (e.g. a screenshot or a copied
+   * image file). Clipboard images often arrive with the same generic name, so
+   * each is given a unique name to avoid colliding in the de-dup / track key.
+   */
+  protected onPaste(event: ClipboardEvent): void {
+    const items = event.clipboardData?.items;
+    if (!items) {
+      return;
+    }
+
+    const accepted = new Set(this.tool().acceptedTypes);
+    const pasted: File[] = [];
+    for (const item of Array.from(items)) {
+      if (item.kind !== 'file') {
+        continue;
+      }
+      const file = item.getAsFile();
+      if (file && accepted.has(file.type)) {
+        const extension = file.type.split('/')[1] ?? 'png';
+        pasted.push(
+          new File([file], `pasted-${Date.now()}-${pasted.length + 1}.${extension}`, {
+            type: file.type,
+          }),
+        );
+      }
+    }
+
+    if (pasted.length > 0) {
+      event.preventDefault();
+      this.addFiles(pasted);
+    }
+  }
+
+  protected removeFile(index: number): void {
+    this.session.removeFile(index);
+  }
+
+  protected clearFiles(): void {
+    this.session.setFiles([]);
+  }
+
+  /** Append the given files to the selection (capped to a single-file tool's max). */
+  private addFiles(files: File[]): void {
     const max = this.tool().maxFiles;
-    this.session.setFiles(max != null ? files.slice(0, max) : files);
+    // A single-file tool replaces rather than appends; batch tools accumulate.
+    if (max === 1) {
+      this.session.setFiles(files.slice(0, 1));
+    } else {
+      this.session.addFiles(files, max);
+    }
 
     // Reveal the Continue button once the imported list has rendered.
     afterNextRender(

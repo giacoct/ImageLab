@@ -130,9 +130,64 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.paste-hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+  text-align: center;
+}
+
 .reorder-hint {
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.file-list-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: space-between;
+}
+
+/* Compact, danger-tinted variant of the secondary button for "Clear all". */
+.clear-button {
+  color: var(--danger);
+  font-size: 0.85rem;
+  min-height: 2.1rem;
+  padding: 0.35rem 0.7rem;
+}
+
+.clear-button:hover,
+.clear-button:focus-visible {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+}
+
+/* Per-item remove (✕): pushed to the trailing edge of the row. */
+.remove-file {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  justify-content: center;
+  margin-left: auto;
+  padding: 0.25rem;
+  transition:
+    background-color var(--speed) var(--ease),
+    border-color var(--speed) var(--ease),
+    color var(--speed) var(--ease);
+}
+
+.remove-file:hover,
+.remove-file:focus-visible {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger);
 }
 
 .reorder-list {

@@ -12,6 +12,7 @@ export type IconName =
   | 'strip-metadata'
   | 'remove-background'
   | 'adjust'
+  | 'margin'
   | 'scale'
   | 'ocr'
   | 'merge'
@@ -115,6 +116,10 @@ export type IconName =
           <path d="M20 4 8.12 15.88" />
           <circle cx="6" cy="18" r="3" />
           <path d="M14.8 14.8 20 20" />
+        }
+        @case ('margin') {
+          <rect x="3" y="3" width="18" height="18" rx="1" />
+          <rect x="8" y="8" width="8" height="8" rx="1" />
         }
         @case ('adjust') {
           <line x1="21" y1="4" x2="14" y2="4" />

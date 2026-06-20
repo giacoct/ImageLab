@@ -2,6 +2,13 @@ import { Injectable } from '@angular/core';
 
 import { CanvasOutputFormat, ImageDimensions, ImageOutput } from '../models/image-output.model';
 import {
+  MarginSides,
+  MarginUnit,
+  marginFillStyle,
+  paintMarginBands,
+  resolveMarginSides,
+} from '../utils/margins';
+import {
   MergeAlignment,
   MergeDirection,
   MergeResize,
@@ -49,6 +56,16 @@ export interface EditOptions {
   crop: NormalizedCrop;
   outputWidth: number;
   outputHeight: number;
+  format: CanvasOutputFormat;
+  quality: number;
+  fileName: string;
+}
+
+export interface MarginRenderOptions extends MarginSides {
+  unit: MarginUnit;
+  color: string;
+  /** 0–100. */
+  opacity: number;
   format: CanvasOutputFormat;
   quality: number;
   fileName: string;
@@ -230,6 +247,37 @@ export class ImageProcessingService {
 
     const blob = await this.canvasToBlob(canvas, options.format, options.quality);
     return this.createOutput(options.fileName, blob, canvas.width, canvas.height);
+  }
+
+  /** Surround an image with a colored (optionally transparent) margin. */
+  async renderMargins(file: File, options: MarginRenderOptions): Promise<ImageOutput> {
+    const image = await this.loadImage(file);
+    const px = resolveMarginSides(options, options.unit, image.width, image.height);
+    const totalWidth = image.width + px.left + px.right;
+    const totalHeight = image.height + px.top + px.bottom;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = totalWidth;
+    canvas.height = totalHeight;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      image.release();
+      throw new Error('Canvas rendering is not available in this browser.');
+    }
+
+    context.drawImage(image.source, px.left, px.top);
+    image.release();
+    paintMarginBands(
+      context,
+      totalWidth,
+      totalHeight,
+      px,
+      marginFillStyle(options.color, options.opacity),
+    );
+
+    const blob = await this.canvasToBlob(canvas, options.format, options.quality);
+    return this.createOutput(options.fileName, blob, totalWidth, totalHeight);
   }
 
   /** Combine several images into one, stacked along the chosen axis. */

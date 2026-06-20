@@ -1,0 +1,103 @@
+<app-tool-shell
+  [tool]="tool"
+  [files]="files()"
+  [error]="error()"
+  [canSubmit]="canSubmit()"
+  actionLabel="Add margin"
+  [selectable]="true"
+  [selectedIndex]="selectedIndex()"
+  (action)="submit()"
+  (fileSelected)="selectFile($event)"
+>
+  <section preview class="tool-preview panel" aria-label="Live preview">
+    <h2>Preview</h2>
+    <div class="preview-stage" [class.is-transparent]="form.controls.opacity.value < 100">
+      @if (previewReady()) {
+        <canvas #previewCanvas></canvas>
+      }
+    </div>
+    <span class="preview-hint">Preview is downscaled; export renders at full resolution.</span>
+  </section>
+
+  <div class="tool-fields" [formGroup]="form">
+    <div class="field">
+      <label for="unit">Thickness unit</label>
+      <select id="unit" formControlName="unit">
+        <option value="px">Pixels (px)</option>
+        <option value="percent">Percent of image (%)</option>
+      </select>
+    </div>
+
+    <label class="check-row">
+      <input type="checkbox" formControlName="linked" />
+      Same thickness on all sides
+    </label>
+
+    @if (form.controls.linked.value) {
+      <div class="field">
+        <label for="all">Thickness ({{ form.controls.unit.value === 'percent' ? '%' : 'px' }})</label>
+        <input
+          id="all"
+          type="number"
+          min="0"
+          [attr.max]="maxThickness()"
+          step="1"
+          formControlName="all"
+        />
+      </div>
+    } @else {
+      <div class="settings-grid">
+        <div class="field">
+          <label for="top">Top</label>
+          <input id="top" type="number" min="0" [attr.max]="maxThickness()" step="1" formControlName="top" />
+        </div>
+        <div class="field">
+          <label for="right">Right</label>
+          <input
+            id="right"
+            type="number"
+            min="0"
+            [attr.max]="maxThickness()"
+            step="1"
+            formControlName="right"
+          />
+        </div>
+        <div class="field">
+          <label for="bottom">Bottom</label>
+          <input
+            id="bottom"
+            type="number"
+            min="0"
+            [attr.max]="maxThickness()"
+            step="1"
+            formControlName="bottom"
+          />
+        </div>
+        <div class="field">
+          <label for="left">Left</label>
+          <input
+            id="left"
+            type="number"
+            min="0"
+            [attr.max]="maxThickness()"
+            step="1"
+            formControlName="left"
+          />
+        </div>
+      </div>
+    }
+
+    <div class="field">
+      <label for="color">Margin color</label>
+      <input id="color" type="color" formControlName="color" />
+    </div>
+
+    <div class="field">
+      <label for="opacity">Opacity: {{ form.controls.opacity.value }}%</label>
+      <input id="opacity" type="range" min="0" max="100" step="1" formControlName="opacity" />
+      @if (form.controls.opacity.value < 100) {
+        <span class="field-hint">Semi-transparent margins export as PNG to keep the transparency.</span>
+      }
+    </div>
+  </div>
+</app-tool-shell>

@@ -88,6 +88,17 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     loadComponent: () => import('../../tools/adjust/adjust').then((m) => m.Adjust),
   },
   {
+    id: 'margin',
+    title: 'Add margin',
+    description:
+      'Surround images with a colored or transparent margin — uniform or per-side, in px or %.',
+    route: '/tools/margin',
+    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    maxFiles: null,
+    batch: true,
+    loadComponent: () => import('../../tools/margin/margin').then((m) => m.Margin),
+  },
+  {
     id: 'merge',
     title: 'Merge images',
     description: 'Combine several images into one, stacked vertically or side by side.',

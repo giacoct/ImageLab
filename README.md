@@ -23,6 +23,8 @@ text (OCR)**, which send the image to a small self-hosted backend (see
   live preview.
 - **Adjust & filters** – brightness, contrast, saturation, grayscale, sepia,
   invert, blur, and sharpen.
+- **Add margin** – surround images with a colored or transparent margin
+  (uniform or per-side, measured in pixels or percent), with a live preview.
 - **Extract text (OCR)** – recognize the text in one or more images and select
   it directly on the picture; copy it or download it as `.txt`. Backed by a
   self-hosted Tesseract service (see [`server/`](server/README.md)).

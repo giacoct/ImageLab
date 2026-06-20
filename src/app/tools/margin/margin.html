@@ -11,7 +11,10 @@
 >
   <section preview class="tool-preview panel" aria-label="Live preview">
     <h2>Preview</h2>
-    <div class="preview-stage" [class.is-transparent]="form.controls.opacity.value < 100">
+    <div
+      class="preview-stage margin-preview"
+      [class.is-transparent]="form.controls.opacity.value < 100"
+    >
       @if (previewReady()) {
         <canvas #previewCanvas></canvas>
       }

@@ -175,9 +175,10 @@ h2 {
   color: var(--accent-strong);
 }
 
-/* Outline the margin preview so a white or transparent margin stays visible
-   against the panel behind it. */
-.margin-preview canvas {
+/* Outline previews whose output can be white or transparent, so the image
+   stays visible against the panel behind it. */
+.preview-framed img,
+.preview-framed canvas {
   border: 1px solid #000;
 }
 

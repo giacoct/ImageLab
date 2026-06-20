@@ -9,7 +9,7 @@
   @if (previewReady()) {
     <section preview class="tool-preview panel" aria-label="Live preview">
       <h2>Preview</h2>
-      <div class="preview-stage" [class.is-transparent]="form.controls.transparent.value">
+      <div class="preview-stage preview-framed" [class.is-transparent]="form.controls.transparent.value">
         <canvas #previewCanvas></canvas>
       </div>
       <span class="preview-hint">Preview is downscaled; export renders at full resolution.</span>

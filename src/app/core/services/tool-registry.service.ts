@@ -90,8 +90,7 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
   {
     id: 'margin',
     title: 'Add margin',
-    description:
-      'Surround images with a colored or transparent margin — uniform or per-side, in px or %.',
+    description: 'Surround images with a colored or transparent margin.',
     route: '/tools/margin',
     acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxFiles: null,

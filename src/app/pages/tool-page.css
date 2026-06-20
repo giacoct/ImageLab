@@ -125,6 +125,56 @@ h2 {
   width: 1.1rem;
 }
 
+/* Margin tool: per-side thickness grid with an icon-only link/unlink toggle. */
+.margin-control {
+  align-items: center;
+  display: flex;
+  gap: 0.6rem;
+}
+
+.margin-control > input,
+.margin-control > .margin-grid {
+  flex: 1;
+  min-width: 0;
+}
+
+.margin-grid {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.link-toggle {
+  align-items: center;
+  background: var(--panel-subtle);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.5rem;
+  transition:
+    background-color var(--speed) var(--ease),
+    border-color var(--speed) var(--ease),
+    color var(--speed) var(--ease);
+  width: 2.75rem;
+}
+
+.link-toggle:hover,
+.link-toggle:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.link-toggle.is-linked {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
 .file-list p {
   color: var(--muted);
   overflow-wrap: anywhere;

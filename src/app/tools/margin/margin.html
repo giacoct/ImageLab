@@ -28,61 +28,81 @@
       </select>
     </div>
 
-    <label class="check-row">
-      <input type="checkbox" formControlName="linked" />
-      Same thickness on all sides
-    </label>
-
     @if (form.controls.linked.value) {
       <div class="field">
         <label for="all">Thickness ({{ form.controls.unit.value === 'percent' ? '%' : 'px' }})</label>
-        <input
-          id="all"
-          type="number"
-          min="0"
-          [attr.max]="maxThickness()"
-          step="1"
-          formControlName="all"
-        />
+        <div class="margin-control">
+          <input
+            id="all"
+            type="number"
+            min="0"
+            [attr.max]="maxThickness()"
+            step="1"
+            formControlName="all"
+          />
+          <button
+            type="button"
+            class="link-toggle is-linked"
+            aria-pressed="true"
+            aria-label="Unlink sides to set each margin separately"
+            (click)="toggleLinked()"
+          >
+            <app-icon name="link" [size]="18" />
+          </button>
+        </div>
       </div>
     } @else {
-      <div class="settings-grid">
-        <div class="field">
-          <label for="top">Top</label>
-          <input id="top" type="number" min="0" [attr.max]="maxThickness()" step="1" formControlName="top" />
-        </div>
-        <div class="field">
-          <label for="right">Right</label>
-          <input
-            id="right"
-            type="number"
-            min="0"
-            [attr.max]="maxThickness()"
-            step="1"
-            formControlName="right"
-          />
-        </div>
-        <div class="field">
-          <label for="bottom">Bottom</label>
-          <input
-            id="bottom"
-            type="number"
-            min="0"
-            [attr.max]="maxThickness()"
-            step="1"
-            formControlName="bottom"
-          />
-        </div>
-        <div class="field">
-          <label for="left">Left</label>
-          <input
-            id="left"
-            type="number"
-            min="0"
-            [attr.max]="maxThickness()"
-            step="1"
-            formControlName="left"
-          />
+      <div class="field">
+        <span class="field-label">Thickness ({{ form.controls.unit.value === 'percent' ? '%' : 'px' }})</span>
+        <div class="margin-control">
+          <div class="margin-grid">
+            <div class="field">
+              <label for="top">Top</label>
+              <input id="top" type="number" min="0" [attr.max]="maxThickness()" step="1" formControlName="top" />
+            </div>
+            <div class="field">
+              <label for="right">Right</label>
+              <input
+                id="right"
+                type="number"
+                min="0"
+                [attr.max]="maxThickness()"
+                step="1"
+                formControlName="right"
+              />
+            </div>
+            <div class="field">
+              <label for="bottom">Bottom</label>
+              <input
+                id="bottom"
+                type="number"
+                min="0"
+                [attr.max]="maxThickness()"
+                step="1"
+                formControlName="bottom"
+              />
+            </div>
+            <div class="field">
+              <label for="left">Left</label>
+              <input
+                id="left"
+                type="number"
+                min="0"
+                [attr.max]="maxThickness()"
+                step="1"
+                formControlName="left"
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            class="link-toggle"
+            aria-pressed="false"
+            aria-label="Link sides to one thickness"
+            (click)="toggleLinked()"
+          >
+            <app-icon name="link" [size]="18" />
+          </button>
         </div>
       </div>
     }

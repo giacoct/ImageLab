@@ -25,6 +25,7 @@ import {
 } from '../../core/utils/margins';
 import { BaseTool } from '../../pages/settings/base-tool';
 import { ToolShell } from '../../pages/settings/tool-shell';
+import { Icon } from '../../shared/icon/icon';
 
 /** Longest side of the downscaled preview, in pixels. */
 const PREVIEW_MAX_SIDE = 480;
@@ -41,7 +42,7 @@ interface MarginFormValue {
 
 @Component({
   selector: 'app-margin-tool',
-  imports: [ToolShell, ReactiveFormsModule],
+  imports: [ToolShell, ReactiveFormsModule, Icon],
   templateUrl: './margin.html',
   styleUrl: '../../pages/tool-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -161,6 +162,17 @@ export class Margin extends BaseTool {
 
   protected override isFormValid(): boolean {
     return this.form.valid;
+  }
+
+  /** Toggle the link control. Unlinking seeds each side from the shared value. */
+  protected toggleLinked(): void {
+    const linked = !this.form.controls.linked.value;
+    if (linked) {
+      this.form.patchValue({ linked });
+      return;
+    }
+    const all = this.form.controls.all.value;
+    this.form.patchValue({ linked, top: all, right: all, bottom: all, left: all });
   }
 
   protected override createProcessor(): JobProcessor {

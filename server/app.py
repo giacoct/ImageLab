@@ -14,8 +14,12 @@ form parameters instead.
 from __future__ import annotations
 
 import io
+import os
 import re
+import threading
 
+import numpy as np
+import onnxruntime as ort
 import pytesseract
 import vtracer
 from fastapi import FastAPI, Form, HTTPException, UploadFile
@@ -223,6 +227,143 @@ async def vectorize(
         raise HTTPException(status_code=500, detail="Vectorization failed.") from error
 
     return Response(content=svg, media_type="image/svg+xml")
+
+
+# --- AI upscaling -----------------------------------------------------------
+
+# Real-ESRGAN (realesr-general-x4v3, an SRVGGNetCompact net) exported to ONNX.
+# A learned 4x super-resolver: it reconstructs detail and suppresses noise/JPEG
+# artifacts rather than interpolating. CPU-only inference via onnxruntime.
+MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+UPSCALE_MODEL_PATH = os.path.join(MODEL_DIR, "realesr-general-x4v3.onnx")
+UPSCALE_FACTOR = 4
+
+# Cap the input so a single 4x request stays bounded in time and memory on the
+# CPU-only host (1500px in -> 6000px out).
+MAX_UPSCALE_SIDE = 1500
+
+# Process the image in overlapping tiles so peak memory is bounded regardless of
+# input size; the padding is cropped off after upscaling to avoid seams.
+UPSCALE_TILE = 256
+UPSCALE_TILE_PAD = 16
+
+# The ONNX session is expensive to build, so load it once and share it. A lock
+# guards the first concurrent requests; afterwards reads are lock-free.
+_upscale_session: ort.InferenceSession | None = None
+_upscale_lock = threading.Lock()
+
+
+def _get_upscale_session() -> ort.InferenceSession:
+    global _upscale_session
+    if _upscale_session is None:
+        with _upscale_lock:
+            if _upscale_session is None:
+                if not os.path.exists(UPSCALE_MODEL_PATH):
+                    raise HTTPException(
+                        status_code=503,
+                        detail="The upscaler model is not installed on the server.",
+                    )
+                _upscale_session = ort.InferenceSession(
+                    UPSCALE_MODEL_PATH, providers=["CPUExecutionProvider"]
+                )
+    return _upscale_session
+
+
+def _run_upscale_model(session: ort.InferenceSession, tile: np.ndarray) -> np.ndarray:
+    """Run one HWC float32 [0,1] RGB tile through the model; return the 4x tile."""
+    inp = np.transpose(tile, (2, 0, 1))[None, ...].astype(np.float32)
+    out = session.run(None, {session.get_inputs()[0].name: inp})[0]
+    return np.transpose(np.squeeze(out, 0), (1, 2, 0))
+
+
+def _upscale_array(session: ort.InferenceSession, img: np.ndarray) -> np.ndarray:
+    """Upscale an HWC float32 [0,1] RGB array 4x, tiling large inputs."""
+    height, width, _ = img.shape
+    if max(height, width) <= UPSCALE_TILE:
+        return np.clip(_run_upscale_model(session, img), 0.0, 1.0)
+
+    out = np.zeros((height * UPSCALE_FACTOR, width * UPSCALE_FACTOR, 3), dtype=np.float32)
+    for y0 in range(0, height, UPSCALE_TILE):
+        for x0 in range(0, width, UPSCALE_TILE):
+            x1, y1 = min(x0 + UPSCALE_TILE, width), min(y0 + UPSCALE_TILE, height)
+            # Pad each tile so the model has context across the seam, then crop
+            # the padding back out of the upscaled result.
+            px0, py0 = max(x0 - UPSCALE_TILE_PAD, 0), max(y0 - UPSCALE_TILE_PAD, 0)
+            px1, py1 = min(x1 + UPSCALE_TILE_PAD, width), min(y1 + UPSCALE_TILE_PAD, height)
+            sr = np.clip(_run_upscale_model(session, img[py0:py1, px0:px1, :]), 0.0, 1.0)
+            ox0, oy0 = (x0 - px0) * UPSCALE_FACTOR, (y0 - py0) * UPSCALE_FACTOR
+            out[y0 * UPSCALE_FACTOR : y1 * UPSCALE_FACTOR, x0 * UPSCALE_FACTOR : x1 * UPSCALE_FACTOR, :] = (
+                sr[oy0 : oy0 + (y1 - y0) * UPSCALE_FACTOR, ox0 : ox0 + (x1 - x0) * UPSCALE_FACTOR, :]
+            )
+    return out
+
+
+def _upscale_image(data: bytes) -> bytes:
+    """Upscale raw image bytes 4x and return PNG bytes (the threadpool target)."""
+    try:
+        image = Image.open(io.BytesIO(data))
+        image = ImageOps.exif_transpose(image)
+    except (UnidentifiedImageError, OSError) as error:
+        raise HTTPException(status_code=400, detail="The image could not be decoded.") from error
+
+    width, height = image.size
+    if max(width, height) > MAX_UPSCALE_SIDE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Image is too large to upscale. The longest side must be at most {MAX_UPSCALE_SIDE}px.",
+        )
+
+    has_alpha = image.mode in ("RGBA", "LA") or (
+        image.mode == "P" and "transparency" in image.info
+    )
+
+    arr = np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
+    session = _get_upscale_session()
+    sr = _upscale_array(session, arr)
+    result = Image.fromarray((sr * 255.0 + 0.5).astype(np.uint8), mode="RGB")
+
+    if has_alpha:
+        # The model only sees RGB; carry transparency over by resampling the
+        # alpha channel separately and recombining.
+        alpha = image.convert("RGBA").getchannel("A")
+        alpha_up = alpha.resize(
+            (width * UPSCALE_FACTOR, height * UPSCALE_FACTOR), Image.LANCZOS
+        )
+        result = result.convert("RGBA")
+        result.putalpha(alpha_up)
+
+    buffer = io.BytesIO()
+    result.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+@app.post("/upscale")
+async def upscale(file: UploadFile) -> Response:
+    if file.content_type not in CONTENT_TYPE_TO_FORMAT:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported image type. Use PNG, JPEG, or WebP.",
+        )
+
+    if file.size is not None and file.size > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Image exceeds the 10 MB limit.")
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="Empty upload.")
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Image exceeds the 10 MB limit.")
+
+    try:
+        # Super-resolution is CPU-bound; keep it off the event loop like tracing
+        # and OCR so /health and concurrent requests stay responsive.
+        png = await run_in_threadpool(_upscale_image, data)
+    except HTTPException:
+        raise
+    except Exception as error:  # noqa: BLE001 - surface a clean 500 to the client
+        raise HTTPException(status_code=500, detail="Upscaling failed.") from error
+
+    return Response(content=png, media_type="image/png")
 
 
 # --- OCR --------------------------------------------------------------------

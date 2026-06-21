@@ -1,3 +1,7 @@
 .venv/
 __pycache__/
 *.pyc
+
+# Upscaler model weights — fetched on deploy by imagelab-ensure-deps (pinned by
+# sha256), kept out of git history. See server/README.md.
+models/

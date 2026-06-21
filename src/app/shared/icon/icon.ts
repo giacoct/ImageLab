@@ -14,6 +14,7 @@ export type IconName =
   | 'adjust'
   | 'margin'
   | 'scale'
+  | 'upscale'
   | 'ocr'
   | 'merge'
   | 'upload'
@@ -83,6 +84,13 @@ export type IconName =
           <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
           <path d="M16 3h5v5" />
           <path d="M14 10 21 3" />
+        }
+        @case ('upscale') {
+          <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+          <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+          <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+          <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+          <path d="m12 8 1.1 2.6 2.6 1.1-2.6 1.1L12 16l-1.1-2.6L8.3 12l2.6-1.1z" />
         }
         @case ('ocr') {
           <path d="M3 7V5a2 2 0 0 1 2-2h2" />

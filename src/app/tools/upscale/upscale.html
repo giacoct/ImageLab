@@ -1,0 +1,26 @@
+<app-tool-shell
+  [tool]="tool"
+  [files]="files()"
+  [error]="error()"
+  [canSubmit]="canSubmit()"
+  actionLabel="Upscale 4×"
+  (action)="submit()"
+>
+  <div class="tool-fields">
+    <div class="field">
+      <span class="field-label">AI super-resolution</span>
+      <p class="field-hint">
+        Enlarges each image 4× with a Real-ESRGAN model that rebuilds real detail and cleans
+        up noise and JPEG artifacts — far sharper than a plain resize.
+      </p>
+    </div>
+
+    <div class="field">
+      <span class="field-label">Best results</span>
+      <p class="field-hint">
+        Works best on small or low-resolution images. The longest side must be at most
+        1500&nbsp;px, and the result is saved as PNG.
+      </p>
+    </div>
+  </div>
+</app-tool-shell>

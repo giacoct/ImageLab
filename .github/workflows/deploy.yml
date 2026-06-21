@@ -76,8 +76,10 @@ jobs:
         run: |
           # Reuses the SSH key + host config written in the previous step.
           # Sync the backend source, never touching the server-side virtualenv.
+          # 'models' is excluded so the upscaler weights fetched on the host by
+          # imagelab-ensure-deps (kept out of git) aren't deleted each deploy.
           rsync -avz --delete \
-            --exclude '.venv' --exclude '__pycache__' --exclude '*.pyc' \
+            --exclude '.venv' --exclude '__pycache__' --exclude '*.pyc' --exclude 'models' \
             -e "ssh -i ~/.ssh/deploy_key" \
             server/ \
             $SSH_USER@$SSH_HOST:$BACKEND_DEPLOY_PATH

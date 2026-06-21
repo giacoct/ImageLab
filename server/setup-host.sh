@@ -65,18 +65,33 @@ nginx_conf_for_port() {
   return 1
 }
 
-# The dependency-ensure helper. Single-quoted heredoc: the body is written
-# verbatim (its own $vars are not expanded here). Idempotent — a present
-# package is left untouched, so it's cheap to run on every deploy.
+# The dependency-ensure helper. Emitted in two parts: a short dynamic header
+# that bakes in the install-time model destination/owner, then a single-quoted
+# body written verbatim (its own $vars, e.g. "$@", are not expanded here).
+# Idempotent — present packages and a checksum-matching model are left
+# untouched, so it's cheap to run on every deploy.
 deps_script_content() {
-  cat <<'EOF'
+  cat <<EOF
 #!/usr/bin/env bash
 # ImageLab system-dependency installer (installed by setup-host.sh).
-# Ensures non-pip, OS-level dependencies are present. Run as root; safe to
-# re-run on every deploy. To add an OCR language, add an `ensure_lang` line
-# and re-run `setup-host.sh install` on the host (a deploy runs the copy of
-# this script already installed at /usr/local/sbin, not the repo's).
+# Ensures non-pip, OS-level dependencies are present and fetches the upscaler
+# model. Run as root; safe to re-run on every deploy. To add an OCR language,
+# add an \`ensure_lang\` line and re-run \`setup-host.sh install\` on the host (a
+# deploy runs the copy of this script already installed at /usr/local/sbin, not
+# the repo's).
 set -euo pipefail
+
+# Real-ESRGAN ONNX weights for the /upscale endpoint. Kept out of git and
+# fetched from the repo's GitHub release, pinned by checksum. Placed next to
+# app.py (the backend resolves it as <deploy>/models/...); the backend rsync
+# excludes 'models' so this download survives across deploys.
+MODEL_DIR="$DEPLOY_PATH/models"
+MODEL_OWNER="$DEPLOY_USER"
+EOF
+  cat <<'EOF'
+MODEL_FILE="realesr-general-x4v3.onnx"
+MODEL_URL="https://github.com/giacoct/ImageLab/releases/download/models-v1/realesr-general-x4v3.onnx"
+MODEL_SHA256="4f5a9ef782d8f5b8a9b431234d813bf837a6dfa790baa59b13a7a769ba944534"
 
 apt_install() {
   if command -v apt-get >/dev/null 2>&1; then
@@ -99,10 +114,35 @@ ensure_lang() {
   tesseract --list-langs 2>/dev/null | grep -qx "$1" || apt_install "$2"
 }
 
+# Download + checksum-verify the upscaler model if missing or stale. A matching
+# file is left untouched, so this is a no-op on every deploy after the first.
+ensure_model() {
+  local dest="$MODEL_DIR/$MODEL_FILE"
+  if [ -f "$dest" ] && printf '%s  %s\n' "$MODEL_SHA256" "$dest" | sha256sum -c - >/dev/null 2>&1; then
+    return 0
+  fi
+  mkdir -p "$MODEL_DIR"
+  local tmp; tmp="$(mktemp "$MODEL_DIR/.$MODEL_FILE.XXXXXX")"
+  echo "fetching upscaler model $MODEL_FILE ..."
+  if ! curl -fSL --retry 3 -o "$tmp" "$MODEL_URL"; then
+    rm -f "$tmp"; echo "error: failed to download $MODEL_URL" >&2; return 1
+  fi
+  if ! printf '%s  %s\n' "$MODEL_SHA256" "$tmp" | sha256sum -c - >/dev/null 2>&1; then
+    rm -f "$tmp"; echo "error: checksum mismatch for $MODEL_FILE" >&2; return 1
+  fi
+  chown "$MODEL_OWNER" "$tmp" 2>/dev/null || true
+  chmod 0644 "$tmp"
+  mv -f "$tmp" "$dest"
+  echo "installed $dest"
+}
+
 # Tesseract OCR engine — the /ocr endpoint shells out to this binary. The base
 # package includes English; each extra language is a separate pack.
 ensure_pkg tesseract tesseract-ocr
 ensure_lang ita tesseract-ocr-ita
+
+# Upscaler model — the /upscale endpoint loads this ONNX at first use.
+ensure_model
 EOF
 }
 
@@ -151,6 +191,12 @@ check() {
     ok "system-deps helper present ($DEPS_SCRIPT)"
   else
     warn "system-deps helper missing — deploys won't self-heal packages (run install)"
+  fi
+
+  if [ -f "$DEPLOY_PATH/models/realesr-general-x4v3.onnx" ]; then
+    ok "upscaler model present ($(du -h "$DEPLOY_PATH/models/realesr-general-x4v3.onnx" | cut -f1))"
+  else
+    warn "upscaler model missing — the deps helper fetches it on deploy (or run install)"
   fi
 
   if [ -d "$DEPLOY_PATH" ]; then
@@ -285,7 +331,7 @@ install_all() {
   conf="$(nginx_conf_for_port)"
   if [ -z "$conf" ]; then
     warn "no nginx config with 'listen $WEB_PORT' found — add this manually:"
-    printf '    location /api/ {\n        proxy_pass http://127.0.0.1:%s/;\n        client_max_body_size 12m;\n    }\n' "$API_PORT"
+    printf '    location /api/ {\n        proxy_pass http://127.0.0.1:%s/;\n        client_max_body_size 12m;\n        proxy_read_timeout 300s;   # CPU upscaling can take tens of seconds\n        proxy_send_timeout 300s;\n    }\n' "$API_PORT"
   elif grep -q 'location /api/' "$conf"; then
     ok "nginx /api proxy already configured ($conf)"
   else
@@ -299,6 +345,8 @@ install_all() {
         print "    location /api/ {"
         print "        proxy_pass http://127.0.0.1:" apiport "/;   # trailing slash strips the /api prefix"
         print "        client_max_body_size 12m;"
+        print "        proxy_read_timeout 300s;   # CPU upscaling can take tens of seconds"
+        print "        proxy_send_timeout 300s;"
         print "    }"
         done = 1
       }

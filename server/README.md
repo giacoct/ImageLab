@@ -18,7 +18,20 @@ the individual form fields apply — `mode` (`spline`/`polygon`),
 (Tesseract language code, default `eng`; combine with `+`, e.g. `eng+fra`) and
 returns JSON `{width, height, text, words}`, where each word carries its pixel
 bounding box, confidence, and line index — the app turns those boxes into a
-selectable text layer over the image. `GET /health` returns `{"status":"ok"}`.
+selectable text layer over the image.
+
+`POST /upscale` accepts a multipart `file` (PNG/JPEG/WebP) and returns a 4×
+super-resolved `image/png`. It runs Real-ESRGAN (`realesr-general-x4v3`) via
+[`onnxruntime`](https://onnxruntime.ai/) on CPU — a learned model that rebuilds
+detail and cleans noise/JPEG artifacts rather than interpolating. Inputs are
+tiled so memory stays bounded, and the longest side is capped at 1500&nbsp;px
+(6000&nbsp;px out) to keep a single request within time/memory budget. The model
+weights (≈4.9 MB) are **not** in git; they're fetched on deploy by
+`imagelab-ensure-deps` from the repo's
+[`models-v1` release](https://github.com/giacoct/ImageLab/releases/tag/models-v1),
+pinned by sha256, into `<deploy>/models/` (see below).
+
+`GET /health` returns `{"status":"ok"}`.
 
 ### System dependency: Tesseract
 
@@ -73,10 +86,12 @@ workflow.
 `apt-get` directly. Instead the bootstrap installs a small root-owned helper at
 `/usr/local/sbin/imagelab-ensure-deps` and grants CI a *narrow* passwordless
 sudo rule for that exact path. Each deploy runs it; it installs anything missing
-(currently `tesseract-ocr` + `tesseract-ocr-ita`) and is a no-op otherwise.
-Changing that set means editing `deps_script_content` and re-running
-`setup-host.sh install` once — a deploy runs the *installed* helper, not the
-repo's. A bare server still needs the one-time bootstrap first (CI can't create
+(currently `tesseract-ocr` + `tesseract-ocr-ita`) **and fetches the upscaler
+model** (`realesr-general-x4v3.onnx`) into `<deploy>/models/`, checksum-pinned,
+and is a no-op otherwise. The backend rsync excludes `models/`, so the fetched
+weights persist across deploys. Changing that set (or the model URL/checksum)
+means editing `deps_script_content` and re-running `setup-host.sh install`
+once — a deploy runs the *installed* helper, not the repo's. A bare server still needs the one-time bootstrap first (CI can't create
 the systemd unit, nginx proxy, or sudoers rules without root) — but that
 bootstrap is itself idempotent and self-healing, and installs tesseract (with
 Italian) as part of step 1.

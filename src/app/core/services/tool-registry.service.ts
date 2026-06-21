@@ -108,6 +108,16 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
     loadComponent: () => import('../../tools/merge/merge').then((m) => m.Merge),
   },
   {
+    id: 'upscale',
+    title: 'Upscale image',
+    description: 'Enlarge images 4× with AI super-resolution that rebuilds real detail.',
+    route: '/tools/upscale',
+    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    maxFiles: null,
+    batch: true,
+    loadComponent: () => import('../../tools/upscale/upscale').then((m) => m.Upscale),
+  },
+  {
     id: 'ocr',
     title: 'Extract text (OCR)',
     description: 'Recognize the text in images and select it directly on the picture.',

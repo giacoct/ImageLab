@@ -132,7 +132,10 @@ export const IMAGE_TOOLS: readonly ImageToolDefinition[] = [
 
 @Injectable({ providedIn: 'root' })
 export class ToolRegistryService {
-  readonly tools = IMAGE_TOOLS;
+  // Sorted by title so every consumer (dashboard, header nav) lists the tools
+  // alphabetically. Route generation uses IMAGE_TOOLS directly, so its
+  // declaration order is independent of this display order.
+  readonly tools = [...IMAGE_TOOLS].sort((a, b) => a.title.localeCompare(b.title));
 
   findById(id: string): ImageToolDefinition | undefined {
     return this.tools.find((tool) => tool.id === id);

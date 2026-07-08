@@ -41,8 +41,7 @@ server/
 scripts/dev.mjs                 # `npm run dev`: venv bootstrap + both dev servers
 docker/                         # nginx.conf + entrypoint.sh for the image
 Dockerfile                      # multi-stage: web build → model fetch → runtime
-docker-compose.yml              # production deployment
-.github/workflows/docker.yml    # CI: test → build → push to GHCR
+.github/workflows/docker.yml    # CI: test → build → push :latest to GHCR
 ```
 
 ## Architecture essentials
@@ -103,7 +102,7 @@ npm start       # frontend only (all tools except SVG/OCR/upscale work)
 npm test        # Vitest via Angular CLI — CI blocks on this
 npm run build   # production build into dist/ImageLab/browser
 docker build -t imagelab .        # full production image
-docker compose up -d              # run it (host port 4200)
+docker run --rm -p 4200:80 imagelab   # run it locally (host port 4200)
 ```
 
 There is no lint script; formatting is Prettier (`.prettierrc`, 100 columns,
@@ -118,9 +117,13 @@ supervises both processes. Tesseract and the model weights are baked in at
 build time — the container needs no volumes, env vars, or network besides its
 port.
 
-CI (`.github/workflows/docker.yml`): every push to `master` runs the unit
-tests, then builds and pushes `ghcr.io/giacoct/imagelab:latest` + `sha-<commit>`.
-Updating a server is `docker compose pull && docker compose up -d`.
+Deployment is pull-based, with **no SSH from CI to the server**. CI
+(`.github/workflows/docker.yml`): every push to `master` runs the unit tests,
+then builds and pushes the public `ghcr.io/giacoct/imagelab:latest`. On the
+server, Watchtower polls that tag every minute and recreates the container when
+the digest changes. The server is bootstrapped once with two `docker run`
+commands (the app + Watchtower) — no compose file, no volumes. See the README's
+deployment section.
 
 ## Conventions
 

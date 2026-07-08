@@ -42,26 +42,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Produces ghcr.io/<owner>/imagelab:latest plus a :sha-XXXXXXX tag per
-      # commit (lowercasing the repo name, as registries require).
-      - name: Docker image metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository_owner }}/imagelab
-          tags: |
-            type=raw,value=latest
-            type=sha
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Publish only the moving :latest tag — Watchtower on the server polls it
+      # and redeploys when the digest changes. No SSH from CI to the host.
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ghcr.io/${{ github.repository_owner }}/imagelab:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max

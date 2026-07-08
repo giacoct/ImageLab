@@ -88,23 +88,33 @@ container. Tesseract (with the Italian language pack) and the Real-ESRGAN
 upscaler weights are baked in at build time, so the image is fully
 self-contained.
 
-Pushing to `master` triggers GitHub Actions
-([`.github/workflows/docker.yml`](.github/workflows/docker.yml)), which runs
-the tests and publishes the image to GitHub Container Registry as
-`ghcr.io/giacoct/imagelab:latest` (plus a per-commit `sha-…` tag).
+Deployment is fully hands-off: CI publishes the image and the server updates
+itself, with no SSH connection from GitHub to the host.
 
-Run it on any host with Docker, using [`docker-compose.yml`](docker-compose.yml):
+- **CI** — pushing to `master` triggers GitHub Actions
+  ([`.github/workflows/docker.yml`](.github/workflows/docker.yml)), which runs
+  the tests, then builds and pushes the image to GitHub Container Registry as
+  `ghcr.io/giacoct/imagelab:latest`. The package is public, so the server
+  pulls it without authenticating.
+- **Server** — [Watchtower](https://containrrr.dev/watchtower/) polls that tag
+  every minute and, when the digest changes, pulls the new image and recreates
+  the container automatically.
+
+### One-time server bootstrap
+
+Run these two `docker run` commands once on the server (they need only Docker
+installed). Everything after that is automatic — a push to `master` reaches the
+server within a minute.
 
 ```bash
-docker compose up -d                          # first deploy (serves on :4200)
-docker compose pull && docker compose up -d   # update to the latest image
-```
-
-Or without compose:
-
-```bash
+# 1. The app itself, on host port 4200.
 docker run -d --name imagelab --restart unless-stopped -p 4200:80 \
   ghcr.io/giacoct/imagelab:latest
+
+# 2. Watchtower: checks :latest every 60s, redeploys on change, prunes old images.
+docker run -d --name watchtower --restart unless-stopped \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  containrrr/watchtower --interval 60 --cleanup imagelab
 ```
 
 To build and run the image locally instead of pulling it:

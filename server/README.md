@@ -1,9 +1,12 @@
 # ImageLab backend service
 
 A small FastAPI service behind the Angular app at `/api`. It wraps
-[VTracer](https://github.com/visioncortex/vtracer) for vectorization and
+[VTracer](https://github.com/visioncortex/vtracer) for vectorization,
 [Tesseract](https://github.com/tesseract-ocr/tesseract) (via
-[`pytesseract`](https://pypi.org/project/pytesseract/)) for OCR.
+[`pytesseract`](https://pypi.org/project/pytesseract/)) for OCR, and
+Real-ESRGAN (via [`onnxruntime`](https://onnxruntime.ai/)) for AI upscaling.
+
+## API
 
 `POST /vectorize` accepts a multipart `file` (PNG/JPEG/WebP) and returns
 `image/svg+xml`. With `preset=auto` the service analyzes the image itself:
@@ -22,33 +25,48 @@ selectable text layer over the image.
 
 `POST /upscale` accepts a multipart `file` (PNG/JPEG/WebP) and returns a 4×
 super-resolved `image/png`. It runs Real-ESRGAN (`realesr-general-x4v3`) via
-[`onnxruntime`](https://onnxruntime.ai/) on CPU — a learned model that rebuilds
-detail and cleans noise/JPEG artifacts rather than interpolating. Inputs are
-tiled so memory stays bounded, and the longest side is capped at 1500&nbsp;px
-(6000&nbsp;px out) to keep a single request within time/memory budget. The model
-weights (≈4.9 MB) are **not** in git; they're fetched on deploy by
-`imagelab-ensure-deps` from the repo's
-[`models-v1` release](https://github.com/giacoct/ImageLab/releases/tag/models-v1),
-pinned by sha256, into `<deploy>/models/` (see below).
+onnxruntime on CPU — a learned model that rebuilds detail and cleans
+noise/JPEG artifacts rather than interpolating. Inputs are tiled so memory
+stays bounded, and the longest side is capped at 1500&nbsp;px (6000&nbsp;px
+out) to keep a single request within time/memory budget.
 
 `GET /health` returns `{"status":"ok"}`.
 
-### System dependency: Tesseract
+## Non-pip dependencies
 
-`pytesseract` shells out to the `tesseract` binary, which is **not** a pip
-package. Install it (and any non-English language packs) at the OS level:
+Two things the service needs that `pip install` does not provide. In the
+production Docker image both are baked in at build time (see the root
+[`Dockerfile`](../Dockerfile)); for local dev you install them once yourself:
 
-```bash
-# Debian/Ubuntu
-sudo apt-get install -y tesseract-ocr tesseract-ocr-ita   # English + Italian
-sudo apt-get install -y tesseract-ocr-fra                 # add more as needed
-# macOS (local dev)
-brew install tesseract tesseract-lang
-```
+- **Tesseract binary + language packs.** `pytesseract` shells out to
+  `tesseract`. Install it at the OS level:
 
-`setup-host.sh install` installs `tesseract-ocr` + `tesseract-ocr-ita`
-(English + Italian) for you on the server. The picker in the app
-(`OCR_LANGUAGES`) must stay in sync with the packs that are actually installed.
+  ```bash
+  # Debian/Ubuntu
+  sudo apt-get install -y tesseract-ocr tesseract-ocr-ita   # English + Italian
+  # macOS
+  brew install tesseract tesseract-lang
+  # Windows: https://github.com/UB-Mannheim/tesseract/wiki
+  ```
+
+  The language picker in the app (`OCR_LANGUAGES` in
+  `src/app/tools/ocr/ocr.ts`) must stay in sync with the packs actually
+  installed — in production that means the `tesseract-ocr-*` packages listed
+  in the Dockerfile.
+
+- **Upscaler model weights** (`realesr-general-x4v3.onnx`, ≈4.9 MB). Kept out
+  of git; published on the repo's
+  [`models-v1` release](https://github.com/giacoct/ImageLab/releases/tag/models-v1).
+  The Docker build downloads and checksum-verifies them. For local dev,
+  download once into `server/models/`:
+
+  ```bash
+  curl -fSL --create-dirs -o server/models/realesr-general-x4v3.onnx \
+    https://github.com/giacoct/ImageLab/releases/download/models-v1/realesr-general-x4v3.onnx
+  ```
+
+  Without the file, every endpoint except `/upscale` still works; `/upscale`
+  returns an error saying the model is not installed.
 
 ## Local development
 
@@ -60,7 +78,7 @@ npm run dev
 ```
 
 The Angular dev server proxies `/api` to `http://localhost:4201` (see
-`proxy.conf.json`), so the Convert-to-SVG tool works end to end locally.
+`proxy.conf.json`), so the backend-based tools work end to end locally.
 
 To run just the backend manually:
 
@@ -75,63 +93,7 @@ curl -F file=@some-logo.png http://localhost:4201/vectorize -o out.svg   # smoke
 
 ## Deployment
 
-After the one-time host bootstrap below, **GitHub Actions deploys the backend
-automatically** on every push to `master` (`.github/workflows/deploy.yml`): it
-rsyncs `server/`, (re)creates the venv, installs `requirements.txt`, ensures
-OS-level dependencies (the tesseract binary), and runs
-`sudo systemctl restart imagelab-vectorizer`. The frontend deploys in the same
-workflow.
-
-**System packages self-heal on deploy.** Since CI has no root, it can't run
-`apt-get` directly. Instead the bootstrap installs a small root-owned helper at
-`/usr/local/sbin/imagelab-ensure-deps` and grants CI a *narrow* passwordless
-sudo rule for that exact path. Each deploy runs it; it installs anything missing
-(currently `tesseract-ocr` + `tesseract-ocr-ita`) **and fetches the upscaler
-model** (`realesr-general-x4v3.onnx`) into `<deploy>/models/`, checksum-pinned,
-and is a no-op otherwise. The backend rsync excludes `models/`, so the fetched
-weights persist across deploys. Changing that set (or the model URL/checksum)
-means editing `deps_script_content` and re-running `setup-host.sh install`
-once — a deploy runs the *installed* helper, not the repo's. A bare server still needs the one-time bootstrap first (CI can't create
-the systemd unit, nginx proxy, or sudoers rules without root) — but that
-bootstrap is itself idempotent and self-healing, and installs tesseract (with
-Italian) as part of step 1.
-
-### One-time host bootstrap
-
-This host serves the static app via nginx on **port 4200** (80/8080/4200 are in
-use). The vectorizer runs on **127.0.0.1:4201**, reachable only via the proxy.
-
-`setup-host.sh` automates the whole bootstrap. Copy it (or the `server/` dir)
-to the host and run:
-
-```bash
-scp server/setup-host.sh <user>@<host>:
-ssh <user>@<host>
-sudo ./setup-host.sh install   # apply everything (idempotent)
-./setup-host.sh                # check mode: verify the setup, read-only
-```
-
-Install mode, run as the deploy user with sudo, takes care of:
-
-1. the deploy directory (`/opt/imagelab/server`, owned by the deploy user so
-   CI can rsync and build the venv without root), and the OS-level deps helper
-   (`/usr/local/sbin/imagelab-ensure-deps`), which it then runs to install the
-   tesseract binary,
-2. the systemd unit (generated with the right user/paths, enabled),
-3. `sudoers` rules so CI may run exactly
-   `sudo systemctl restart imagelab-vectorizer` and
-   `sudo /usr/local/sbin/imagelab-ensure-deps` without a password,
-4. the nginx `location /api/` proxy inside the existing `listen 4200` server
-   block (config is backed up, validated with `nginx -t`, and restored if the
-   patch fails),
-5. and, when run next to `app.py`, an immediate first deploy (venv + service
-   start) so you don't have to wait for CI.
-
-Defaults: deploy user = the invoking user, path `/opt/imagelab/server`.
-Override with env vars: `DEPLOY_USER=deploy DEPLOY_PATH=/srv/x sudo -E ./setup-host.sh install`.
-
-Finally, set the GitHub repo secret **`BACKEND_DEPLOY_PATH`** to the same path
-(e.g. `/opt/imagelab/server`) — the workflow needs it to know where to rsync.
-
-Re-run `./setup-host.sh` (check mode) any time to diagnose the host; it also
-verifies the live `/health` endpoints once the service is deployed.
+The backend ships inside the single ImageLab Docker image together with the
+frontend — see [Deployment in the root README](../README.md#deployment).
+Inside the container, uvicorn listens on `127.0.0.1:4201` and nginx proxies
+`/api/` to it, so the backend is never exposed directly.

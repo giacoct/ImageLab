@@ -1,0 +1,10 @@
+# Production deployment. First run:   docker compose up -d
+# Update to the latest image:         docker compose pull && docker compose up -d
+# Build locally instead of pulling:   docker compose up -d --build
+services:
+  imagelab:
+    image: ghcr.io/giacoct/imagelab:latest
+    build: .
+    ports:
+      - "4200:80"
+    restart: unless-stopped

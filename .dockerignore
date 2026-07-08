@@ -1,0 +1,17 @@
+# Keep the build context to what the Dockerfile actually copies:
+# package files, angular/tsconfig files, public/, src/, server/, docker/.
+.git
+.github
+.angular
+.claude
+.vscode
+node_modules
+dist
+docs
+*.md
+server/.venv
+server/__pycache__
+server/models
+server/README.md
+scripts
+proxy.conf.json

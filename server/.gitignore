@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 
-# Upscaler model weights — fetched on deploy by imagelab-ensure-deps (pinned by
-# sha256), kept out of git history. See server/README.md.
+# Upscaler model weights — kept out of git history. The Docker build fetches
+# them (sha256-pinned) from the models-v1 GitHub release; for local dev,
+# download once into models/ (see server/README.md).
 models/

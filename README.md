@@ -1,9 +1,9 @@
 # ImageLab
 
 Browser-based image tools. Almost all processing happens locally on your device
-using native browser APIs — the exceptions are **Convert to SVG** and **Extract
-text (OCR)**, which send the image to a small self-hosted backend (see
-[`server/`](server/README.md)).
+using native browser APIs — the exceptions are **Convert to SVG**, **Extract
+text (OCR)**, and **Upscale image**, which send the image to a small
+self-hosted backend (see [`server/`](server/README.md)).
 
 ## Tools
 
@@ -25,6 +25,10 @@ text (OCR)**, which send the image to a small self-hosted backend (see
   invert, blur, and sharpen.
 - **Add margin** – surround images with a colored or transparent margin
   (uniform or per-side, measured in pixels or percent), with a live preview.
+- **Merge images** – combine several images into one, stacked vertically or
+  side by side.
+- **Upscale image** – enlarge images 4× with AI super-resolution
+  (Real-ESRGAN on the backend) that rebuilds real detail.
 - **Extract text (OCR)** – recognize the text in one or more images and select
   it directly on the picture; copy it or download it as `.txt`. Backed by a
   self-hosted Tesseract service (see [`server/`](server/README.md)).
@@ -53,8 +57,8 @@ Start the full local dev environment — the Angular dev server at
 npm run dev
 ```
 
-Or start only the frontend (every tool except Convert to SVG works without the
-backend):
+Or start only the frontend (every tool works without the backend except
+Convert to SVG, Extract text, and Upscale image):
 
 ```bash
 npm start
@@ -78,16 +82,44 @@ npm test
 
 ## Deployment
 
+The whole project ships as a **single Docker image**: nginx serves the built
+Angular app and proxies `/api/` to the FastAPI backend running in the same
+container. Tesseract (with the Italian language pack) and the Real-ESRGAN
+upscaler weights are baked in at build time, so the image is fully
+self-contained.
+
 Pushing to `master` triggers GitHub Actions
-([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)), which builds
-the app and rsyncs both the frontend and the backend to the server over
-Tailscale. The one-time host bootstrap is automated by
-[`server/setup-host.sh`](server/setup-host.sh) — see
-[`server/README.md`](server/README.md).
+([`.github/workflows/docker.yml`](.github/workflows/docker.yml)), which runs
+the tests and publishes the image to GitHub Container Registry as
+`ghcr.io/giacoct/imagelab:latest` (plus a per-commit `sha-…` tag).
+
+Run it on any host with Docker, using [`docker-compose.yml`](docker-compose.yml):
+
+```bash
+docker compose up -d                          # first deploy (serves on :4200)
+docker compose pull && docker compose up -d   # update to the latest image
+```
+
+Or without compose:
+
+```bash
+docker run -d --name imagelab --restart unless-stopped -p 4200:80 \
+  ghcr.io/giacoct/imagelab:latest
+```
+
+To build and run the image locally instead of pulling it:
+
+```bash
+docker build -t imagelab .
+docker run --rm -p 4200:80 imagelab
+```
 
 ## Tech stack
 
 Angular 22 (standalone components, signals, lazy-loaded routes), TypeScript, and
 the browser Canvas API. No third-party image-processing dependencies in the
-browser; vectorization and OCR are delegated to a FastAPI backend (VTracer and
-Tesseract).
+browser; vectorization, OCR, and AI upscaling are delegated to a FastAPI
+backend (VTracer, Tesseract, and Real-ESRGAN via onnxruntime).
+
+For a deeper tour of the codebase (architecture, conventions, and the request
+flow), see [`AGENTS.md`](AGENTS.md).

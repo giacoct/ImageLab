@@ -7,8 +7,8 @@ import { ToolShell } from '../../pages/settings/tool-shell';
 
 /**
  * Languages offered in the picker. Each must have its Tesseract language pack
- * installed on the server, or recognition errors out — to add one, add the
- * pack to `ensure_lang` in server/setup-host.sh *and* an entry here.
+ * installed on the server, or recognition errors out — to add one, add its
+ * tesseract-ocr-* package to the Dockerfile *and* an entry here.
  */
 export const OCR_LANGUAGES: readonly { code: string; label: string }[] = [
   { code: 'eng', label: 'English' },

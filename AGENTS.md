@@ -119,11 +119,10 @@ port.
 
 Deployment is pull-based, with **no SSH from CI to the server**. CI
 (`.github/workflows/docker.yml`): every push to `master` runs the unit tests,
-then builds and pushes the public `ghcr.io/giacoct/imagelab:latest`. On the
-server, Watchtower polls that tag every minute and recreates the container when
-the digest changes. The server is bootstrapped once with two `docker run`
-commands (the app + Watchtower) — no compose file, no volumes. See the README's
-deployment section.
+then builds and pushes the public `ghcr.io/giacoct/imagelab:latest`. The server
+runs the app with a single `docker run` (no compose file, no volumes) and is
+updated manually — `docker pull` the latest tag, then recreate the container.
+See the README's deployment section.
 
 ## Conventions
 

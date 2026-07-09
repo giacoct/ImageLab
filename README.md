@@ -88,33 +88,31 @@ container. Tesseract (with the Italian language pack) and the Real-ESRGAN
 upscaler weights are baked in at build time, so the image is fully
 self-contained.
 
-Deployment is fully hands-off: CI publishes the image and the server updates
-itself, with no SSH connection from GitHub to the host.
+Pushing to `master` triggers GitHub Actions
+([`.github/workflows/docker.yml`](.github/workflows/docker.yml)), which runs
+the tests, then builds and pushes the image to GitHub Container Registry as
+`ghcr.io/giacoct/imagelab:latest`. The package is public, so the server pulls
+it without authenticating. CI never connects to the server.
 
-- **CI** — pushing to `master` triggers GitHub Actions
-  ([`.github/workflows/docker.yml`](.github/workflows/docker.yml)), which runs
-  the tests, then builds and pushes the image to GitHub Container Registry as
-  `ghcr.io/giacoct/imagelab:latest`. The package is public, so the server
-  pulls it without authenticating.
-- **Server** — [Watchtower](https://containrrr.dev/watchtower/) polls that tag
-  every minute and, when the digest changes, pulls the new image and recreates
-  the container automatically.
+### Run it on the server
 
-### One-time server bootstrap
-
-Run these two `docker run` commands once on the server (they need only Docker
-installed). Everything after that is automatic — a push to `master` reaches the
-server within a minute.
+Start the container once (it needs only Docker installed, serves on host port
+4200):
 
 ```bash
-# 1. The app itself, on host port 4200.
 docker run -d --name imagelab --restart unless-stopped -p 4200:80 \
   ghcr.io/giacoct/imagelab:latest
+```
 
-# 2. Watchtower: checks :latest every 60s, redeploys on change, prunes old images.
-docker run -d --name watchtower --restart unless-stopped \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  containrrr/watchtower --interval 60 --cleanup imagelab
+Update it manually whenever a new image has been published — pull the latest
+tag and recreate the container:
+
+```bash
+docker pull ghcr.io/giacoct/imagelab:latest
+docker rm -f imagelab
+docker run -d --name imagelab --restart unless-stopped -p 4200:80 \
+  ghcr.io/giacoct/imagelab:latest
+docker image prune -f   # optional: drop the superseded image
 ```
 
 To build and run the image locally instead of pulling it:

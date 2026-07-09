@@ -45,8 +45,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Publish only the moving :latest tag — Watchtower on the server polls it
-      # and redeploys when the digest changes. No SSH from CI to the host.
+      # Publish only the moving :latest tag; the server pulls it manually.
+      # No SSH from CI to the host.
       - name: Build and push
         uses: docker/build-push-action@v6
         with:

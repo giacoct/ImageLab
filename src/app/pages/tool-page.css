@@ -1,37 +1,3 @@
-.back-link {
-  align-items: center;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--accent-strong);
-  display: inline-flex;
-  font-size: 0.9rem;
-  font-weight: 720;
-  gap: 0.4rem;
-  margin-bottom: 1.25rem;
-  padding: 0.45rem 0.9rem 0.45rem 0.75rem;
-  text-decoration: none;
-  transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    transform 140ms ease;
-}
-
-.back-link svg {
-  transition: transform 140ms ease;
-}
-
-.back-link:hover,
-.back-link:focus-visible {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-}
-
-.back-link:hover svg,
-.back-link:focus-visible svg {
-  transform: translateX(-2px);
-}
-
 .tool-header {
   animation: fade-in-up 0.4s var(--ease) both;
   display: grid;
@@ -356,28 +322,10 @@ h2 {
 
 .output-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
   justify-content: center;
   margin-top: 2.5rem;
-}
-
-/* A larger, accent-filled pill for the primary "leave" action. */
-.back-link--home {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-  font-size: 0.9rem;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0.6rem 1.2rem 0.6rem 1rem;
-  box-shadow: 0 6px 16px -8px var(--accent);
-}
-
-.back-link--home:hover,
-.back-link--home:focus-visible {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
-  color: #fff;
-  transform: translateY(-1px);
 }
 
 .processing-note {

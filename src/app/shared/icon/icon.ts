@@ -29,7 +29,8 @@ export type IconName =
   | 'close'
   | 'info'
   | 'link'
-  | 'edit';
+  | 'edit'
+  | 'plus';
 
 /**
  * Single inline-SVG icon, drawn in a 24×24 viewBox with `currentColor`, so it
@@ -189,6 +190,10 @@ export type IconName =
           <path
             d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
           />
+        }
+        @case ('plus') {
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
         }
         @case ('info') {
           <circle cx="12" cy="12" r="10" />

@@ -43,4 +43,10 @@ export class OutputPage implements OnInit {
       void this.router.navigate([target], { relativeTo: this.route });
     }
   }
+
+  /** Clear this session and return to the same tool's import step for a new job. */
+  protected startAgain(): void {
+    this.session.reset();
+    void this.router.navigateByUrl(`${this.tool().route}/import`);
+  }
 }

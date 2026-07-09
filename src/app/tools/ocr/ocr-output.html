@@ -63,8 +63,12 @@
 }
 
 <div class="output-actions">
-  <a class="back-link back-link--home" routerLink="/">
+  <a class="button secondary" routerLink="/">
     <app-icon name="arrow-left" [size]="18" />
     Back to tools
   </a>
+  <button class="button" type="button" (click)="startAgain()">
+    <app-icon name="plus" [size]="18" />
+    New job
+  </button>
 </div>

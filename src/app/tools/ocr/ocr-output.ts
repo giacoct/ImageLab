@@ -54,6 +54,12 @@ export class OcrOutput implements OnInit {
     }
   }
 
+  /** Clear this session and return to the same tool's import step for a new job. */
+  protected startAgain(): void {
+    this.session.reset();
+    void this.router.navigateByUrl(`${this.tool().route}/import`);
+  }
+
   protected async copy(result: OcrResult, index: number): Promise<void> {
     try {
       await navigator.clipboard.writeText(result.text);

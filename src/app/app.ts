@@ -1,26 +1,22 @@
 import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 
-import { ToolRegistryService } from './core/services/tool-registry.service';
 import { ToolSessionService } from './core/services/tool-session.service';
 import { Icon } from './shared/icon/icon';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, NgOptimizedImage, Icon],
+  imports: [RouterLink, RouterOutlet, NgOptimizedImage, Icon],
   templateUrl: './app.html',
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
-  private readonly registry = inject(ToolRegistryService);
   private readonly session = inject(ToolSessionService);
   private readonly router = inject(Router);
-
-  protected readonly tools = this.registry.tools;
 
   /** Whether the header help bubble is pinned open (click/keyboard toggle). */
   protected readonly helpOpen = signal(false);

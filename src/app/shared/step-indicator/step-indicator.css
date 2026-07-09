@@ -1,5 +1,5 @@
 .stepper {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .stepper-list {
@@ -57,13 +57,13 @@ a.stepper-link:focus-visible {
   border-radius: 999px;
   color: var(--ink);
   display: inline-flex;
-  font-size: 0.85rem;
-  height: 1.6rem;
+  font-size: 0.8rem;
+  height: 1.4rem;
   justify-content: center;
   transition:
     background-color var(--speed) var(--ease),
     color var(--speed) var(--ease);
-  width: 1.6rem;
+  width: 1.4rem;
 }
 
 .is-enabled .stepper-num {

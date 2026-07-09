@@ -3,29 +3,22 @@
     <img ngSrc="logo.png" width="40" height="40" priority alt="ImageLab logo" class="brand-logo" />
     <span>ImageLab</span>
   </a>
-  <div class="header-actions">
-    <nav class="main-nav" aria-label="Image tools">
-      @for (tool of tools; track tool.id) {
-        <a [routerLink]="tool.route" routerLinkActive="is-active">{{ tool.title }}</a>
-      }
-    </nav>
-    <div class="info-help" [class.is-open]="helpOpen()" (keydown.escape)="closeHelp()">
-      <button
-        type="button"
-        class="info-help__button"
-        aria-label="How to use ImageLab"
-        aria-describedby="info-help-tip"
-        [attr.aria-expanded]="helpOpen()"
-        (click)="toggleHelp()"
-        (blur)="closeHelp()"
-      >
-        <app-icon name="info" [size]="20" />
-      </button>
-      <span id="info-help-tip" role="tooltip" class="info-help__tip">
-        Choose a tool, upload one or more images, adjust the settings, and download the processed
-        files.
-      </span>
-    </div>
+  <div class="info-help" [class.is-open]="helpOpen()" (keydown.escape)="closeHelp()">
+    <button
+      type="button"
+      class="info-help__button"
+      aria-label="How to use ImageLab"
+      aria-describedby="info-help-tip"
+      [attr.aria-expanded]="helpOpen()"
+      (click)="toggleHelp()"
+      (blur)="closeHelp()"
+    >
+      <app-icon name="info" [size]="18" />
+    </button>
+    <span id="info-help-tip" role="tooltip" class="info-help__tip">
+      Choose a tool, upload one or more images, adjust the settings, and download the processed
+      files.
+    </span>
   </div>
 </header>
 

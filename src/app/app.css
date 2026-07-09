@@ -12,8 +12,8 @@
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
   justify-content: space-between;
-  min-height: 4rem;
-  padding: 0.5rem 1.5rem;
+  min-height: 3.25rem;
+  padding: 0.4rem 1.25rem;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -23,60 +23,15 @@
   align-items: center;
   color: var(--ink);
   display: inline-flex;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 760;
-  gap: 0.65rem;
+  gap: 0.5rem;
   text-decoration: none;
 }
 
 .brand-logo {
-  height: 2.5rem;
+  height: 1.9rem;
   width: auto;
-}
-
-.header-actions {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 0.75rem;
-  justify-content: flex-end;
-}
-
-.main-nav {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  justify-content: flex-end;
-}
-
-.main-nav a {
-  border: 1px solid transparent;
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 0.95rem;
-  font-weight: 650;
-  padding: 0.35rem 0.8rem;
-  text-decoration: none;
-  transition:
-    color 140ms ease,
-    background-color 140ms ease,
-    border-color 140ms ease;
-  white-space: nowrap;
-}
-
-.main-nav a:hover,
-.main-nav a:focus-visible {
-  background: var(--panel-subtle);
-  border-color: var(--border);
-  color: var(--ink);
-}
-
-.main-nav a.is-active {
-  background: var(--accent-soft);
-  border-color: transparent;
-  color: var(--accent-strong);
-  font-weight: 720;
 }
 
 .info-help {
@@ -91,7 +46,7 @@
   color: var(--soft);
   display: inline-flex;
   justify-content: center;
-  padding: 0.35rem;
+  padding: 0.3rem;
   transition:
     color 140ms ease,
     background-color 140ms ease;
@@ -107,20 +62,20 @@
   background: var(--ink);
   border-radius: 0.5rem;
   color: #ffffff;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   line-height: 1.45;
   opacity: 0;
-  padding: 0.6rem 0.75rem;
+  padding: 0.55rem 0.7rem;
   pointer-events: none;
   position: absolute;
   right: 0;
-  top: calc(100% + 0.5rem);
+  top: calc(100% + 0.4rem);
   transform: translateY(-4px);
   transition:
     opacity 140ms ease,
     transform 140ms ease;
   width: max-content;
-  max-width: 16rem;
+  max-width: min(15rem, calc(100vw - 2rem));
   z-index: 20;
 }
 
@@ -134,53 +89,17 @@
 
 .app-main {
   margin: 0 auto;
-  max-width: 1180px;
-  padding: 2rem 1.5rem 3rem;
+  max-width: 1040px;
+  padding: 1.5rem 1.25rem 2.5rem;
 }
 
 @media (max-width: 680px) {
   .app-header {
-    gap: 0.5rem;
-    min-height: 3.5rem;
-    padding: 0.5rem 1rem;
-  }
-
-  /* Brand keeps the first row; tools + help drop to a full-width second row. */
-  .header-actions {
-    flex: 1 1 100%;
-    flex-wrap: nowrap;
-    gap: 0.5rem;
-    /* Allow the row (and its scrolling nav) to shrink below content width. */
-    min-width: 0;
-  }
-
-  .main-nav {
-    -ms-overflow-style: none;
-    flex: 1 1 auto;
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    margin: 0 -0.25rem;
-    /* min-width:0 lets the flex item shrink below its content so overflow-x scrolls. */
-    min-width: 0;
-    overflow-x: auto;
-    padding: 0.15rem 0.25rem;
-    scrollbar-width: none;
-  }
-
-  .main-nav::-webkit-scrollbar {
-    display: none;
-  }
-
-  .info-help {
-    flex: 0 0 auto;
-  }
-
-  /* Anchor the tip to the viewport edge so it never overflows on small screens. */
-  .info-help__tip {
-    max-width: min(16rem, calc(100vw - 2rem));
+    min-height: 3rem;
+    padding: 0.4rem 1rem;
   }
 
   .app-main {
-    padding: 1.25rem 1rem 2rem;
+    padding: 1rem 1rem 2rem;
   }
 }

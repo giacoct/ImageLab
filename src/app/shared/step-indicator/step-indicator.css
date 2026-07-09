@@ -5,8 +5,9 @@
 .stepper-list {
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  /* Keep the whole progress header on a single line. */
+  flex-wrap: nowrap;
+  gap: 0.4rem;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -15,15 +16,17 @@
 .stepper-item {
   align-items: center;
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
 .stepper-item:not(:last-child)::after {
   background: var(--border);
   content: '';
+  flex-shrink: 0;
   height: 2px;
   transition: background-color var(--speed) var(--ease);
-  width: 1.5rem;
+  width: 1.25rem;
 }
 
 /* The connector leading out of a completed step reads as accent. */
@@ -31,65 +34,66 @@
   background: var(--accent);
 }
 
-.stepper-link {
+/* Each step is a pill "bubble" holding the step name. */
+.stepper-bubble {
   align-items: center;
+  background: var(--panel-subtle);
   border-radius: 999px;
   color: var(--muted);
   display: inline-flex;
-  font-weight: 650;
-  gap: 0.5rem;
-  padding: 0.35rem 0.8rem 0.35rem 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  gap: 0.3rem;
+  padding: 0.3rem 0.75rem;
   text-decoration: none;
   transition:
     background-color var(--speed) var(--ease),
     color var(--speed) var(--ease);
+  white-space: nowrap;
 }
 
-a.stepper-link:hover,
-a.stepper-link:focus-visible {
+a.stepper-bubble:hover,
+a.stepper-bubble:focus-visible {
   background: var(--accent-soft);
   color: var(--accent-strong);
 }
 
-.stepper-num {
-  align-items: center;
-  background: var(--border);
-  border-radius: 999px;
+/* Reachable but not-yet-visited step. */
+.is-enabled .stepper-bubble {
   color: var(--ink);
-  display: inline-flex;
-  font-size: 0.8rem;
-  height: 1.4rem;
-  justify-content: center;
-  transition:
-    background-color var(--speed) var(--ease),
-    color var(--speed) var(--ease);
-  width: 1.4rem;
 }
 
-.is-enabled .stepper-num {
+/* Completed step: soft accent bubble with a check. */
+.is-done .stepper-bubble {
   background: var(--accent-soft);
   color: var(--accent-strong);
 }
 
-/* Completed steps: filled accent circle with a check. */
-.is-done .stepper-link {
-  color: var(--accent-strong);
-}
-
-.is-done .stepper-num {
+/* Current step: filled accent bubble. */
+.is-current .stepper-bubble {
   background: var(--accent);
   color: #fff;
 }
 
-.is-current .stepper-link {
-  color: var(--ink);
-}
-
-.is-current .stepper-num {
-  background: var(--accent);
-  color: #fff;
-}
-
-.stepper-link[aria-disabled='true'] {
+.stepper-bubble[aria-disabled='true'] {
   opacity: 0.55;
+}
+
+@media (max-width: 680px) {
+  .stepper-list {
+    gap: 0.3rem;
+  }
+
+  .stepper-item {
+    gap: 0.3rem;
+  }
+
+  .stepper-item:not(:last-child)::after {
+    width: 0.7rem;
+  }
+
+  .stepper-bubble {
+    font-size: 0.78rem;
+    padding: 0.3rem 0.6rem;
+  }
 }

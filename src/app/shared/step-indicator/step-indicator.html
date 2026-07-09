@@ -8,27 +8,21 @@
         [class.is-enabled]="step.enabled && !step.isCurrent"
       >
         @if (step.isCurrent) {
-          <span class="stepper-link" aria-current="step">
-            <span class="stepper-num" aria-hidden="true">{{ step.index }}</span>
+          <span class="stepper-bubble" aria-current="step">
             <span class="stepper-label">{{ step.label }}</span>
           </span>
         } @else if (step.enabled) {
-          <a class="stepper-link" [routerLink]="step.link">
-            <span class="stepper-num" aria-hidden="true">
-              @if (step.done) {
-                <app-icon name="check" [size]="16" />
-              } @else {
-                {{ step.index }}
-              }
-            </span>
+          <a class="stepper-bubble" [routerLink]="step.link">
+            @if (step.done) {
+              <app-icon name="check" [size]="14" />
+            }
             <span class="stepper-label">{{ step.label }}</span>
             @if (step.done) {
               <span class="visually-hidden">(completed)</span>
             }
           </a>
         } @else {
-          <span class="stepper-link" aria-disabled="true">
-            <span class="stepper-num" aria-hidden="true">{{ step.index }}</span>
+          <span class="stepper-bubble" aria-disabled="true">
             <span class="stepper-label">{{ step.label }}</span>
           </span>
         }

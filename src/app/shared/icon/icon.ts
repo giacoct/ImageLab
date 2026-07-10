@@ -19,6 +19,7 @@ export type IconName =
   | 'merge'
   | 'upload'
   | 'download'
+  | 'reload'
   | 'arrow-right'
   | 'arrow-left'
   | 'send'
@@ -151,6 +152,12 @@ export type IconName =
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
           <polyline points="7 10 12 15 17 10" />
           <line x1="12" y1="15" x2="12" y2="3" />
+        }
+        @case ('reload') {
+          <path d="M20 6v5h-5" />
+          <path d="M4 18v-5h5" />
+          <path d="M18.5 9A7 7 0 0 0 6.2 6.2L4 8" />
+          <path d="M5.5 15A7 7 0 0 0 17.8 17.8L20 16" />
         }
         @case ('arrow-right') {
           <line x1="5" y1="12" x2="19" y2="12" />

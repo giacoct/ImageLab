@@ -66,6 +66,12 @@ async def ocr_image(file: UploadFile, lang: str = Form("eng")) -> dict:
     return await run_job("OCR failed.", ocr.recognize, data, lang)
 
 
+@api.get("/ocr/languages")
+async def ocr_languages() -> dict:
+    """The installed Tesseract languages, so the app only offers those."""
+    return {"languages": await run_job("Could not list the OCR languages.", ocr.installed_languages)}
+
+
 @api.post("/upscale")
 async def upscale_image(file: UploadFile) -> Response:
     data = await read_image_upload(file)

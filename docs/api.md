@@ -23,6 +23,10 @@ merging. With `preset=manual` these form fields apply: `mode`
 (`spline`/`polygon`), `color_precision` (1–8), `filter_speckle` (0–64),
 `corner_threshold` (0–180), `length_threshold` (3.5–10).
 
+`GET /api/ocr/languages` returns `{"languages": ["eng", "ita", ...]}`: the
+Tesseract language packs installed on the server (the app's language pickers
+show exactly these).
+
 `POST /api/ocr` takes a `lang` field (Tesseract language code, default `eng`;
 combine with `+`, e.g. `eng+ita`) and returns JSON
 `{width, height, text, words}`, where each word carries its pixel bounding
@@ -46,15 +50,15 @@ falling back to `index.html` so deep links like `/tools/resize/import` work.
 things come from elsewhere:
 
 - **Tesseract binary + language packs.** `pytesseract` shells out to
-  `tesseract`. Install it at the OS level (English + Italian):
+  `tesseract`. Install it at the OS level (English + Italian here):
 
   ```bash
   sudo apt install -y tesseract-ocr tesseract-ocr-ita   # Debian/Ubuntu
-  brew install tesseract tesseract-lang                 # macOS
+  brew install tesseract tesseract-lang                 # macOS (all languages)
   ```
 
-  The language picker in the app (`OCR_LANGUAGES` in
-  `frontend/src/app/tools/ocr/ocr.ts`) must only list installed packs.
+  Every installed pack shows up in the app's language pickers automatically;
+  add one with `sudo apt install tesseract-ocr-<code>` (e.g. `-fra`).
 
 - **Upscaler model weights** (`realesr-general-x4v3.onnx`, ≈4.9 MB). Kept out
   of git and published on the repo's

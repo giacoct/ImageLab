@@ -5,7 +5,7 @@
  *   1. frontend dependencies (`npm ci`)            — when package-lock.json changed
  *   2. backend virtualenv + pip requirements        — when requirements.txt changed
  *   3. the upscaler model weights (sha256-checked)  — when missing
- *   4. a check that Tesseract and its language packs are installed (warning only)
+ *   4. a check that Tesseract is installed (warning only)
  *
  * Safe to re-run: every step is skipped when already up to date, so the update
  * flow is simply `git pull && npm run setup && npm run build`. `npm run dev`
@@ -33,9 +33,6 @@ const modelPath = join(backendDir, 'models', 'realesr-general-x4v3.onnx');
 // vtracer wheel segfaults, which would take the whole server down on
 // "Convert to SVG".
 const SUPPORTED_PYTHON = 'import sys; sys.exit(not (3, 12) <= sys.version_info < (3, 14))';
-
-// Must match OCR_LANGUAGES in frontend/src/app/tools/ocr/ocr.ts.
-const OCR_LANGS = ['eng', 'ita'];
 
 export async function setup() {
   installFrontend();
@@ -108,15 +105,9 @@ async function downloadModel() {
 }
 
 function checkTesseract() {
-  const result = spawnSync('tesseract', ['--list-langs'], { encoding: 'utf8' });
+  const result = spawnSync('tesseract', ['--version']);
   if (result.error || result.status !== 0) {
     warn('Tesseract is not installed, so "Extract text (OCR)" will fail. See docs/api.md.');
-    return;
-  }
-  const installed = new Set(result.stdout.split('\n').map((line) => line.trim()));
-  const missing = OCR_LANGS.filter((lang) => !installed.has(lang));
-  if (missing.length > 0) {
-    warn(`Tesseract language packs missing: ${missing.join(', ')}. See docs/api.md.`);
   }
 }
 

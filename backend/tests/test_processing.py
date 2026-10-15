@@ -29,3 +29,10 @@ def test_restore_dimensions_adds_viewbox_for_upscaled_traces() -> None:
     restored = vectorize._restore_dimensions(svg, (100, 50), (200, 100))
     assert restored == '<svg width="100" height="50" viewBox="0 0 200 100">'
     assert vectorize._restore_dimensions(svg, (200, 100), (200, 100)) == svg
+
+
+def test_language_pattern_accepts_variants_and_combinations() -> None:
+    for lang in ["eng", "eng+ita", "chi_sim", "chi_sim_vert+eng"]:
+        assert ocr.LANG_PATTERN.match(lang), lang
+    for lang in ["", "english", "eng+", "eng;rm", "ENG"]:
+        assert not ocr.LANG_PATTERN.match(lang), lang

@@ -51,7 +51,7 @@ export class BackendService {
     }
 
     const [response, size] = await Promise.all([
-      postForm('vectorize', form, 'vectorizer'),
+      callApi('vectorize', 'vectorizer', { method: 'POST', body: form }),
       this.processing.getDimensions(file),
     ]);
     return toOutput(await response.blob(), size.width, size.height, options.fileName);
@@ -62,7 +62,7 @@ export class BackendService {
     form.append('file', file);
 
     const [response, size] = await Promise.all([
-      postForm('upscale', form, 'upscaler'),
+      callApi('upscale', 'upscaler', { method: 'POST', body: form }),
       this.processing.getDimensions(file),
     ]);
     const blob = await response.blob();
@@ -75,9 +75,15 @@ export class BackendService {
     form.append('file', file);
     form.append('lang', lang);
 
-    const response = await postForm('ocr', form, 'OCR');
+    const response = await callApi('ocr', 'OCR', { method: 'POST', body: form });
     const api = (await response.json()) as OcrApiResponse;
     return buildOcrResult(file.name, URL.createObjectURL(file), api);
+  }
+
+  /** Codes of the Tesseract language packs installed on the server, e.g. `['eng', 'ita']`. */
+  async ocrLanguages(): Promise<string[]> {
+    const response = await callApi('ocr/languages', 'OCR');
+    return ((await response.json()) as { languages: string[] }).languages;
   }
 }
 
@@ -86,14 +92,14 @@ function toOutput(blob: Blob, width: number, height: number, fileName: string): 
 }
 
 /**
- * POST a multipart form to `/api/<path>`. Any failure becomes an `Error` whose
- * message is shown to the user — the backend's own `detail` text when it sent
- * one, otherwise a generic message naming the `service`.
+ * Call `/api/<path>` (a GET unless `init` says otherwise). Any failure becomes
+ * an `Error` whose message is shown to the user — the backend's own `detail`
+ * text when it sent one, otherwise a generic message naming the `service`.
  */
-async function postForm(path: string, form: FormData, service: string): Promise<Response> {
+async function callApi(path: string, service: string, init?: RequestInit): Promise<Response> {
   let response: Response;
   try {
-    response = await fetch(`/api/${path}`, { method: 'POST', body: form });
+    response = await fetch(`/api/${path}`, init);
   } catch {
     throw new Error(`The ${service} service is not reachable. Is the backend running?`);
   }

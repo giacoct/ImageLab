@@ -126,11 +126,6 @@ processes it in tiles, and loads the ONNX model lazily on first use.
 
 ## Cross-file invariants (easy to break)
 
-- **OCR languages.** `OCR_LANGUAGES` in `frontend/src/app/tools/ocr/ocr.ts`
-  must only offer languages whose Tesseract pack is installed on the server
-  (currently English + Italian: `tesseract-ocr-ita` on Linux,
-  `tesseract-lang` on macOS). `OCR_LANGS` in `scripts/setup.mjs` warns when
-  one is missing — keep it in sync too.
 - **Model weights are not in git.** `scripts/setup.mjs` downloads them from the
   repo's `models-v1` GitHub release, pinned by sha256, into
   `backend/models/realesr-general-x4v3.onnx`. Without the file only

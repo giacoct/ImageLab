@@ -9,7 +9,9 @@ boot and restarts if it crashes. Open it from any device on the LAN at
 ## One-time setup
 
 1. **System packages** — Git, Python with venv support, and Tesseract with the
-   Italian language pack (English is included):
+   Italian language pack (English is included; more languages are
+   `tesseract-ocr-<code>` packages, e.g. `tesseract-ocr-fra`, and appear in the
+   app automatically):
 
    ```bash
    sudo apt update

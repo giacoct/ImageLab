@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 import main
+import ocr
 
 client = TestClient(main.app)
 
@@ -67,6 +68,20 @@ def test_vectorize_rejects_invalid_mode() -> None:
 def test_ocr_rejects_invalid_language() -> None:
     response = post_image("/api/ocr", png_bytes(), lang="english; rm -rf /")
     assert response.status_code == 400
+
+
+def test_ocr_languages_lists_installed_packs(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ocr.pytesseract, "get_languages", lambda config: ["ita", "osd", "eng", "chi_sim"])
+    response = client.get("/api/ocr/languages")
+    assert response.json() == {"languages": ["chi_sim", "eng", "ita"]}
+
+
+def test_ocr_languages_without_tesseract(monkeypatch: pytest.MonkeyPatch) -> None:
+    def missing(config: str) -> list[str]:
+        raise ocr.TesseractNotFoundError()
+
+    monkeypatch.setattr(ocr.pytesseract, "get_languages", missing)
+    assert client.get("/api/ocr/languages").status_code == 503
 
 
 def test_upscale_rejects_large_images() -> None:

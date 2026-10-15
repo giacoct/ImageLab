@@ -14,9 +14,15 @@ from pytesseract import Output, TesseractError, TesseractNotFoundError
 
 from images import BadInputError, MissingDependencyError, decode_image
 
-# Tesseract language codes are 3-letter ISO 639-2 (optionally combined with
-# '+', e.g. 'eng+ita'). Validated before being passed to the command line.
-LANG_PATTERN = re.compile(r"^[a-z]{3}(\+[a-z]{3})*$")
+# Tesseract language codes are 3-letter ISO 639-2, sometimes with a variant
+# suffix (`chi_sim`, `srp_latn`), and can be combined with '+' (`eng+ita`).
+# Validated before being passed to the command line.
+LANG_CODE = r"[a-z]{3}(?:_[a-z]+)*"
+LANG_PATTERN = re.compile(rf"^{LANG_CODE}(?:\+{LANG_CODE})*$")
+
+# Tesseract data files that aren't languages: orientation/script detection
+# and math equations.
+NOT_LANGUAGES = {"osd", "equ"}
 
 # Drop words Tesseract is too unsure about — they're usually noise that would
 # only clutter the selectable overlay.
@@ -26,6 +32,19 @@ MIN_WORD_CONFIDENCE = 30.0
 # better than the default PSM 3 for infographics, slides, and photos where
 # there is no single dominant text block.
 OCR_CONFIG = "--psm 11"
+
+
+def installed_languages() -> list[str]:
+    """Codes of the Tesseract language packs installed on this machine, sorted."""
+    try:
+        languages = pytesseract.get_languages(config="")
+    except TesseractNotFoundError as error:
+        raise MissingDependencyError(
+            "The OCR engine (Tesseract) is not installed on the server."
+        ) from error
+    return sorted(
+        lang for lang in languages if lang not in NOT_LANGUAGES and re.fullmatch(LANG_CODE, lang)
+    )
 
 
 def recognize(data: bytes, lang: str) -> dict:

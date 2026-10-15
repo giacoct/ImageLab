@@ -20,16 +20,31 @@
   </div>
 
   <div class="tool-fields" [formGroup]="form">
-    <div class="field">
-      <label for="lang">Language</label>
-      <select id="lang" formControlName="lang">
-        @for (language of languages; track language.code) {
-          <option [value]="language.code">{{ language.label }}</option>
-        }
-      </select>
-      <span class="field-hint"
-        >Pick the language the text is written in for the best accuracy.</span
-      >
-    </div>
+    @if (languagesError()) {
+      <p class="error" role="alert">{{ languagesError() }}</p>
+    } @else if (languages().length === 0) {
+      <p class="field-hint" role="status">Loading the installed languages…</p>
+    } @else {
+      <div class="field">
+        <label for="language">Language</label>
+        <select id="language" formControlName="language">
+          @for (language of languages(); track language.code) {
+            <option [value]="language.code">{{ language.label }}</option>
+          }
+        </select>
+        <span class="field-hint">The language the text is written in, for the best accuracy.</span>
+      </div>
+
+      <div class="field">
+        <label for="secondLanguage">Second language (optional)</label>
+        <select id="secondLanguage" formControlName="secondLanguage">
+          <option value="">None</option>
+          @for (language of secondLanguages(); track language.code) {
+            <option [value]="language.code">{{ language.label }}</option>
+          }
+        </select>
+        <span class="field-hint">For images that mix two languages.</span>
+      </div>
+    }
   </div>
 </app-tool-shell>

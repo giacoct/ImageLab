@@ -33,8 +33,10 @@ FastAPI backend that runs alongside the app (see [api.md](api.md)).
   it directly on the picture; copy it or download it as `.txt` (Tesseract).
 
 Every tool except Resize supports batch processing, and the output of one tool
-can be sent straight into another (tool chaining). Imported images can be
-pasted from the clipboard and drag-reordered (the order carries through the
+can be sent straight into another (tool chaining). Tools accept JPEG, PNG,
+and WebP; iPhone **HEIC/HEIF** photos are converted to JPEG by the backend as
+they are imported (keeping their color profile and EXIF). Imported images can
+be pasted from the clipboard and drag-reordered (the order carries through the
 whole tool), and batch results can be renamed, reordered, and downloaded
 individually or as a single ZIP. If some files in a batch fail, the rest still
 complete and the failures are reported. Each tool remembers its last-used

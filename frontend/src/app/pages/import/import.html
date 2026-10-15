@@ -2,6 +2,15 @@
 
 <app-file-dropzone [multiple]="tool().batch" (filesSelected)="addFiles($event)" />
 
+@if (converting() > 0) {
+  <p class="import-note" role="status">
+    Converting {{ converting() }} HEIC {{ converting() === 1 ? 'photo' : 'photos' }}…
+  </p>
+}
+@if (importError()) {
+  <p class="error import-note" role="alert">{{ importError() }}</p>
+}
+
 @if (files().length > 0) {
   <section class="file-panel panel" aria-label="Imported files">
     <div class="file-panel-head">
@@ -21,7 +30,7 @@
     #continueButton
     class="button"
     type="button"
-    [disabled]="files().length === 0"
+    [disabled]="files().length === 0 || converting() > 0"
     (click)="continue()"
   >
     Continue

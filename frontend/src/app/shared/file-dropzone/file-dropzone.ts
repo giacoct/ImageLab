@@ -1,9 +1,13 @@
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 
+import { isHeic } from '../../domain/image-files';
 import { ACCEPTED_TYPES } from '../../tool-registry';
 import { Icon } from '../icon/icon';
 
-/** Drop zone + file picker for images; emits only files of an accepted type. */
+/**
+ * Drop zone + file picker for images; emits only files of an accepted type,
+ * plus HEIC/HEIF photos (the import page converts those).
+ */
 @Component({
   selector: 'app-file-dropzone',
   imports: [Icon],
@@ -17,10 +21,14 @@ export class FileDropzone {
   readonly filesSelected = output<File[]>();
 
   protected readonly isDragging = signal(false);
-  protected readonly acceptAttribute = ACCEPTED_TYPES.join(',');
-  protected readonly acceptedLabel = ACCEPTED_TYPES.map((type) =>
-    type.replace('image/', '').toUpperCase(),
-  ).join(', ');
+  protected readonly acceptAttribute = [
+    ...ACCEPTED_TYPES,
+    'image/heic',
+    'image/heif',
+    '.heic',
+    '.heif',
+  ].join(',');
+  protected readonly acceptedLabel = 'JPEG, PNG, WEBP, HEIC';
 
   protected handleInput(event: Event): void {
     const inputElement = event.target as HTMLInputElement;
@@ -48,7 +56,9 @@ export class FileDropzone {
     if (!fileList) {
       return;
     }
-    const files = Array.from(fileList).filter((file) => ACCEPTED_TYPES.includes(file.type));
+    const files = Array.from(fileList).filter(
+      (file) => ACCEPTED_TYPES.includes(file.type) || isHeic(file),
+    );
     this.filesSelected.emit(this.multiple() ? files : files.slice(0, 1));
   }
 }

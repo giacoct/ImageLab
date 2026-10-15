@@ -39,6 +39,19 @@ export function renameWithExtension(fileName: string, suffix: string, extension:
   return `${baseName}-${suffix}.${extension}`;
 }
 
+/** `IMG_1.heic` + `jpg` → `IMG_1.jpg` (adds the extension when there is none). */
+export function withExtension(fileName: string, extension: string): string {
+  return `${fileName.replace(/\.[^/.]+$/, '')}.${extension}`;
+}
+
+/**
+ * Whether a file is an HEIC/HEIF photo (iPhone). Some systems leave `type`
+ * empty for these, so the extension counts too.
+ */
+export function isHeic(file: { name: string; type: string }): boolean {
+  return /^image\/hei[cf]$/.test(file.type) || /\.hei[cf]$/i.test(file.name);
+}
+
 /** Keep the source format when the canvas can encode it; fall back to PNG otherwise. */
 export function outputFormatForFile(file: File): CanvasOutputFormat {
   switch (file.type) {

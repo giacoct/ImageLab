@@ -5,8 +5,10 @@ import {
   dimensionsForMaxSize,
   extensionForFormat,
   formatBytes,
+  isHeic,
   outputFormatForFile,
   renameFile,
+  withExtension,
 } from './image-files';
 
 describe('image-files', () => {
@@ -38,5 +40,16 @@ describe('image-files', () => {
   it('keeps aspect ratio when constraining dimensions', () => {
     expect(dimensionsForMaxSize(4000, 2000, 1000)).toEqual({ width: 1000, height: 500 });
     expect(dimensionsForMaxSize(800, 600, 1000)).toEqual({ width: 800, height: 600 });
+  });
+
+  it('swaps or adds an extension', () => {
+    expect(withExtension('IMG_0001.HEIC', 'jpg')).toBe('IMG_0001.jpg');
+    expect(withExtension('notes', 'txt')).toBe('notes.txt');
+  });
+
+  it('recognizes HEIC/HEIF photos by type or extension', () => {
+    expect(isHeic({ name: 'a.jpg', type: 'image/heic' })).toBe(true);
+    expect(isHeic({ name: 'IMG_1.HEIF', type: '' })).toBe(true);
+    expect(isHeic({ name: 'a.png', type: 'image/png' })).toBe(false);
   });
 });

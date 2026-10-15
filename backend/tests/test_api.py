@@ -97,6 +97,28 @@ def test_upscale_rejects_large_images() -> None:
     assert "1500px" in response.json()["detail"]
 
 
+def test_heic_converts_to_jpeg_keeping_size_and_exif() -> None:
+    # Importing main registered the HEIF opener/saver with Pillow.
+    image = Image.new("RGB", (64, 48), "blue")
+    exif = Image.Exif()
+    exif[0x010F] = "TestCam"  # Make
+    buffer = io.BytesIO()
+    image.save(buffer, format="HEIF", exif=exif.tobytes())
+
+    response = post_image("/api/heic", buffer.getvalue(), content_type="image/heic")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/jpeg"
+    converted = Image.open(io.BytesIO(response.content))
+    assert converted.size == (64, 48)
+    assert converted.getexif()[0x010F] == "TestCam"
+
+
+def test_heic_rejects_other_types() -> None:
+    response = post_image("/api/heic", png_bytes())
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Unsupported image type. Use HEIC."
+
+
 def test_unknown_api_path_is_404() -> None:
     assert client.get("/api/nope").status_code == 404
 

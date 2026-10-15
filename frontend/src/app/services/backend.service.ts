@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 
 import { ImageDimensions, ImageOutput } from '../domain/image-output.model';
 import { OcrApiResponse, OcrResult } from '../domain/ocr-result.model';
+import { withExtension } from '../domain/image-files';
 import { buildOcrResult } from '../domain/ocr-result';
 import { UploadLimits, uploadProblem } from '../domain/upload-limits';
 import { ImageProcessingService } from './image-processing.service';
@@ -81,6 +82,22 @@ export class BackendService {
     const response = await callApi('ocr', 'OCR', { method: 'POST', body: form });
     const api = (await response.json()) as OcrApiResponse;
     return buildOcrResult(file.name, URL.createObjectURL(file), api);
+  }
+
+  /**
+   * Convert an HEIC/HEIF photo (which most browsers can't decode) into a JPEG
+   * — or PNG if it has transparency — that every tool can work with.
+   */
+  async convertHeic(file: File): Promise<File> {
+    await this.assertUploadable(file);
+    const form = new FormData();
+    // Some systems leave the type of .heic files empty; the backend needs it.
+    form.append('file', new File([file], file.name, { type: file.type || 'image/heic' }));
+
+    const response = await callApi('heic', 'HEIC converter', { method: 'POST', body: form });
+    const blob = await response.blob();
+    const extension = blob.type === 'image/png' ? 'png' : 'jpg';
+    return new File([blob], withExtension(file.name, extension), { type: blob.type });
   }
 
   /**

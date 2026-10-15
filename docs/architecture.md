@@ -29,7 +29,7 @@ scripts/
 docs/                   # all documentation
 backend/                # FastAPI (Python)
   main.py               # HTTP layer: /api routes + serves the built frontend
-  vectorize.py ocr.py upscale.py   # processing, no HTTP knowledge
+  vectorize.py ocr.py upscale.py heic.py   # processing, no HTTP knowledge
   images.py             # shared decode helper + the two error types
   tests/                # pytest
   models/               # Real-ESRGAN weights (gitignored, downloaded by setup)
@@ -94,6 +94,8 @@ the recognized text).
   run `ngOnInit` again — react to changing state with signals/effects (e.g.
   `BaseTool` calls `onFilesSelected` from an effect on the file list).
 - Leaving a tool (home, another tool) resets the session.
+- Tools only ever see JPEG/PNG/WebP (`ACCEPTED_TYPES`): HEIC/HEIF photos are
+  converted by the backend (`/api/heic`) as they are imported.
 
 **Batch semantics.** Per-file failures don't abort a batch: successful outputs
 are kept and failures are summarized in the error message. Outputs of one tool
@@ -123,8 +125,8 @@ pool (`run_job`) and maps errors to status codes — `BadInputError` → 400,
 `MissingDependencyError` → 503, anything else → 500 with a generic message.
 It also serves `frontend/dist/browser` with an SPA fallback to `index.html`.
 
-`vectorize.py`, `ocr.py` and `upscale.py` take image bytes and return the
-result (SVG text, a dict, PNG bytes). The upscaler caps input at 1500 px,
+`vectorize.py`, `ocr.py`, `upscale.py` and `heic.py` take image bytes and
+return the result (SVG text, a dict, PNG bytes, converted image bytes). The upscaler caps input at 1500 px,
 processes it in tiles, and loads the ONNX model lazily on first use.
 
 ## Cross-file invariants (easy to break)

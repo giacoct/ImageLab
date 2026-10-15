@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 
+import { withExtension } from '../../domain/image-files';
 import { OcrResult } from '../../domain/ocr-result.model';
 import { DownloadService } from '../../services/download.service';
 import { Icon } from '../icon/icon';
@@ -39,19 +40,14 @@ export class OcrResults {
   }
 
   protected downloadText(result: OcrResult): void {
-    this.downloads.downloadText(result.text, toTextName(result.fileName));
+    this.downloads.downloadText(result.text, withExtension(result.fileName, 'txt'));
   }
 
   protected downloadAll(): void {
     const entries = this.results().map((result) => ({
-      name: toTextName(result.fileName),
+      name: withExtension(result.fileName, 'txt'),
       blob: new Blob([result.text], { type: 'text/plain;charset=utf-8' }),
     }));
     void this.downloads.downloadEntriesAsZip(entries, `imagelab-ocr-${entries.length}-texts.zip`);
   }
-}
-
-/** Swap any extension for `.txt`. */
-function toTextName(fileName: string): string {
-  return `${fileName.replace(/\.[^/.]+$/, '')}.txt`;
 }

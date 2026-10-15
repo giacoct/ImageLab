@@ -1,8 +1,9 @@
 """ImageLab backend: a small FastAPI app.
 
 - ``/api/*``: the three tools that can't run in the browser — vectorize
-  (VTracer), ocr (Tesseract) and upscale (Real-ESRGAN). The processing lives in
-  ``vectorize.py``, ``ocr.py`` and ``upscale.py``; this module only handles HTTP.
+  (VTracer), ocr (Tesseract) and upscale (Real-ESRGAN) — plus HEIC conversion
+  on import. The processing lives in ``vectorize.py``, ``ocr.py``,
+  ``upscale.py`` and ``heic.py``; this module only handles HTTP.
 - everything else: the built Angular app from ``frontend/dist/browser`` (with
   SPA fallback to ``index.html``), so production is a single process. In
   development the Angular dev server serves the app and proxies ``/api`` here.
@@ -17,6 +18,7 @@ from fastapi import APIRouter, FastAPI, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, Response
 
+import heic
 import ocr
 import upscale
 import vectorize
@@ -24,6 +26,7 @@ from images import BadInputError, MissingDependencyError
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 ACCEPTED_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/webp"}
+HEIC_TYPES = {"image/heic", "image/heif"}
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist" / "browser"
 
 app = FastAPI(title="ImageLab")
@@ -85,6 +88,14 @@ async def upscale_image(file: UploadFile) -> Response:
     return Response(content=png, media_type="image/png")
 
 
+@api.post("/heic")
+async def convert_heic(file: UploadFile) -> Response:
+    """Convert an iPhone HEIC/HEIF photo to JPEG (PNG if it has transparency)."""
+    data = await read_image_upload(file, HEIC_TYPES)
+    image, media_type = await run_job("The HEIC photo could not be converted.", heic.convert, data)
+    return Response(content=image, media_type=media_type)
+
+
 app.include_router(api)
 
 
@@ -102,10 +113,11 @@ def frontend(path: str) -> FileResponse:
     return FileResponse(FRONTEND_DIR / "index.html", headers={"Cache-Control": "no-cache"})
 
 
-async def read_image_upload(file: UploadFile) -> bytes:
+async def read_image_upload(file: UploadFile, accepted: set[str] = ACCEPTED_TYPES) -> bytes:
     """Validate an uploaded image (type, emptiness, size) and return its bytes."""
-    if (file.content_type or "").lower() not in ACCEPTED_TYPES:
-        raise HTTPException(status_code=400, detail="Unsupported image type. Use PNG, JPEG, or WebP.")
+    if (file.content_type or "").lower() not in accepted:
+        names = "HEIC" if accepted is HEIC_TYPES else "PNG, JPEG, or WebP"
+        raise HTTPException(status_code=400, detail=f"Unsupported image type. Use {names}.")
 
     # Reject by declared size before reading the body into memory.
     if file.size is not None and file.size > MAX_UPLOAD_BYTES:

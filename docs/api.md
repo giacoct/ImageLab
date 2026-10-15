@@ -39,6 +39,12 @@ that rebuilds detail and cleans noise/JPEG artifacts rather than
 interpolating. Inputs are processed in tiles so memory stays bounded, and the
 longest side is capped at 1500&nbsp;px (6000&nbsp;px out).
 
+`POST /api/heic` takes an HEIC/HEIF photo (`image/heic` or `image/heif`) and
+returns it as `image/jpeg` (quality 95), or `image/png` if it has
+transparency, keeping the color profile and the EXIF data (orientation is
+applied). The import page uses it because most browsers can't decode HEIC;
+decoding comes from `pillow-heif`, whose wheels bundle libheif.
+
 `GET /api/limits` returns `{"maxUploadBytes": 10485760, "maxUpscaleSide": 1500}`.
 The app uses it to flag images that would be rejected before uploading them,
 so these numbers live only in the backend.

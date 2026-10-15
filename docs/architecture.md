@@ -108,7 +108,10 @@ runs in a Web Worker: pure functions in `domain/pixel-ops.ts` executed by
 last-used settings from `localStorage` and saves them on every change.
 
 **Backend calls** (`services/backend.service.ts`) use `fetch` on relative
-`/api/...` URLs. In development the Angular dev server proxies `/api` to the
+`/api/...` URLs. Files the backend would reject (over the size limit, or too
+large to upscale — limits come from `GET /api/limits`) fail before upload, and
+the settings pages of the backend tools list them up front
+(`<app-tool-shell uploadCheck="size|upscale">`). In development the Angular dev server proxies `/api` to the
 backend on :4201 (`frontend/proxy.conf.json`); in production the backend
 serves both the app and `/api` on one port, so no proxy is involved.
 

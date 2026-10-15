@@ -22,6 +22,20 @@
 
     <ng-content />
 
+    @if (uploadProblems().length > 0) {
+      <div class="upload-problems" role="status">
+        <p>
+          {{ uploadProblems().length === 1 ? 'This image' : 'These images' }} can't be processed and
+          will be skipped:
+        </p>
+        <ul>
+          @for (problem of uploadProblems(); track problem) {
+            <li>{{ problem }}</li>
+          }
+        </ul>
+      </div>
+    }
+
     @if (error()) {
       <p class="error" role="alert">{{ error() }}</p>
     }

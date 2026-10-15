@@ -39,6 +39,10 @@ that rebuilds detail and cleans noise/JPEG artifacts rather than
 interpolating. Inputs are processed in tiles so memory stays bounded, and the
 longest side is capped at 1500&nbsp;px (6000&nbsp;px out).
 
+`GET /api/limits` returns `{"maxUploadBytes": 10485760, "maxUpscaleSide": 1500}`.
+The app uses it to flag images that would be rejected before uploading them,
+so these numbers live only in the backend.
+
 `GET /api/health` returns `{"status":"ok"}`.
 
 Every other `GET` path serves the built frontend (`frontend/dist/browser`),

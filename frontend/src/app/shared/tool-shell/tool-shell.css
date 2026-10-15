@@ -31,6 +31,26 @@ h2 {
   font-size: 1rem;
 }
 
+/* Images the backend would reject (see `uploadCheck`). */
+.upload-problems {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: 0.5rem;
+  color: var(--warning);
+  display: grid;
+  font-size: 0.88rem;
+  gap: 0.35rem;
+  padding: 0.75rem;
+}
+
+.upload-problems ul {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+  padding-left: 1.1rem;
+}
+
 @media (max-width: 880px) {
   .tool-workspace {
     grid-template-columns: 1fr;

@@ -35,6 +35,12 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@api.get("/limits")
+def limits() -> dict[str, int]:
+    """Upload limits, so the app can flag images that would be rejected before sending them."""
+    return {"maxUploadBytes": MAX_UPLOAD_BYTES, "maxUpscaleSide": upscale.MAX_SIDE}
+
+
 @api.post("/vectorize")
 async def vectorize_image(
     file: UploadFile,

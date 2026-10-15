@@ -28,6 +28,13 @@ def test_health() -> None:
     assert client.get("/api/health").json() == {"status": "ok"}
 
 
+def test_limits() -> None:
+    assert client.get("/api/limits").json() == {
+        "maxUploadBytes": 10 * 1024 * 1024,
+        "maxUpscaleSide": 1500,
+    }
+
+
 def test_rejects_unsupported_type() -> None:
     response = post_image("/api/upscale", b"GIF89a", content_type="image/gif")
     assert response.status_code == 400

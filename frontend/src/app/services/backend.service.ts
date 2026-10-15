@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 
-import { ImageOutput } from '../domain/image-output.model';
+import { ImageDimensions, ImageOutput } from '../domain/image-output.model';
 import { OcrApiResponse, OcrResult } from '../domain/ocr-result.model';
 import { buildOcrResult } from '../domain/ocr-result';
+import { UploadLimits, uploadProblem } from '../domain/upload-limits';
 import { ImageProcessingService } from './image-processing.service';
 
 export type VectorizeMode = 'spline' | 'polygon';
@@ -37,6 +38,7 @@ export const UPSCALE_FACTOR = 4;
 @Injectable({ providedIn: 'root' })
 export class BackendService {
   private readonly processing = inject(ImageProcessingService);
+  private limitsRequest?: Promise<UploadLimits>;
 
   async vectorize(file: File, options: VectorizeOptions): Promise<ImageOutput> {
     const form = new FormData();
@@ -50,6 +52,7 @@ export class BackendService {
       form.append('length_threshold', String(options.lengthThreshold));
     }
 
+    await this.assertUploadable(file);
     const [response, size] = await Promise.all([
       callApi('vectorize', 'vectorizer', { method: 'POST', body: form }),
       this.processing.getDimensions(file),
@@ -61,10 +64,9 @@ export class BackendService {
     const form = new FormData();
     form.append('file', file);
 
-    const [response, size] = await Promise.all([
-      callApi('upscale', 'upscaler', { method: 'POST', body: form }),
-      this.processing.getDimensions(file),
-    ]);
+    const size = await this.processing.getDimensions(file);
+    await this.assertUploadable(file, size);
+    const response = await callApi('upscale', 'upscaler', { method: 'POST', body: form });
     const blob = await response.blob();
     return toOutput(blob, size.width * UPSCALE_FACTOR, size.height * UPSCALE_FACTOR, fileName);
   }
@@ -75,15 +77,60 @@ export class BackendService {
     form.append('file', file);
     form.append('lang', lang);
 
+    await this.assertUploadable(file);
     const response = await callApi('ocr', 'OCR', { method: 'POST', body: form });
     const api = (await response.json()) as OcrApiResponse;
     return buildOcrResult(file.name, URL.createObjectURL(file), api);
+  }
+
+  /**
+   * For each file the backend would reject (too big, or too large to upscale
+   * when `forUpscale`), a message saying why — shown on the settings page
+   * before anything is sent. Empty if all are fine or the limits are unknown.
+   */
+  async uploadProblems(files: readonly File[], forUpscale: boolean): Promise<string[]> {
+    let limits: UploadLimits;
+    try {
+      limits = await this.limits();
+    } catch {
+      return []; // backend unreachable: running the job will report it
+    }
+    const problems: string[] = [];
+    for (const file of files) {
+      // Decode one image at a time to keep memory bounded on big batches. An
+      // undecodable file is skipped here; running the job reports it.
+      const size = forUpscale
+        ? await this.processing.getDimensions(file).catch(() => undefined)
+        : undefined;
+      const problem = uploadProblem(file, limits, size);
+      if (problem) problems.push(problem);
+    }
+    return problems;
   }
 
   /** Codes of the Tesseract language packs installed on the server, e.g. `['eng', 'ita']`. */
   async ocrLanguages(): Promise<string[]> {
     const response = await callApi('ocr/languages', 'OCR');
     return ((await response.json()) as { languages: string[] }).languages;
+  }
+
+  /** The backend's upload limits, fetched once (a failed fetch is retried next time). */
+  private limits(): Promise<UploadLimits> {
+    this.limitsRequest ??= callApi('limits', 'backend')
+      .then((response) => response.json() as Promise<UploadLimits>)
+      .catch((error: unknown) => {
+        this.limitsRequest = undefined;
+        throw error;
+      });
+    return this.limitsRequest;
+  }
+
+  /** Fail fast — without uploading — when the backend would reject the file. */
+  private async assertUploadable(file: File, dimensions?: ImageDimensions): Promise<void> {
+    const problem = uploadProblem(file, await this.limits(), dimensions);
+    if (problem) {
+      throw new Error(problem);
+    }
   }
 }
 

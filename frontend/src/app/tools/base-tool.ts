@@ -1,4 +1,4 @@
-import { Directive, OnInit, computed, inject, signal } from '@angular/core';
+import { Directive, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable } from 'rxjs';
@@ -12,6 +12,7 @@ import { ImageToolDefinition, findTool } from '../tool-registry';
 interface PersistableForm {
   valid: boolean;
   valueChanges: Observable<unknown>;
+  statusChanges: Observable<unknown>;
   getRawValue(): object;
   patchValue(value: object, options?: { emitEvent?: boolean }): void;
 }
@@ -51,31 +52,33 @@ export abstract class BaseTool implements OnInit {
     return files.length === 0 ? undefined : files[Math.min(this.selectedIndex(), files.length - 1)];
   });
 
-  /** The settings form registered with {@link registerForm}, if any. */
-  private registeredForm?: PersistableForm;
+  /** Validity of the registered form, tracked as a signal so {@link canSubmit} updates. */
+  private readonly formValid = signal(true);
 
   protected readonly canSubmit = computed(
-    () =>
-      this.files().length > 0 &&
-      !this.isProcessing() &&
-      (this.registeredForm?.valid ?? true) &&
-      this.canRun(),
+    () => this.files().length > 0 && !this.isProcessing() && this.formValid() && this.canRun(),
   );
 
   protected get tool(): ImageToolDefinition {
     return findTool(this.toolId);
   }
 
+  constructor() {
+    // React to the selected files — on first load *and* whenever they change
+    // later. The page is kept alive between steps (WorkflowReuseStrategy), so
+    // after the user changes files on the import step this page is re-attached
+    // rather than re-created, and ngOnInit doesn't run again.
+    effect(() => {
+      const files = this.files();
+      untracked(() => void this.onFilesSelected(files));
+    });
+  }
+
   ngOnInit(): void {
     this.session.begin(this.tool.id);
-
-    const files = this.files();
-    if (files.length === 0) {
+    if (this.files().length === 0) {
       void this.router.navigate(['../import'], { relativeTo: this.route });
-      return;
     }
-
-    void this.onFilesSelected(files);
   }
 
   protected selectFile(index: number): void {
@@ -92,7 +95,8 @@ export abstract class BaseTool implements OnInit {
     if (saved) {
       form.patchValue(saved);
     }
-    this.registeredForm = form;
+    this.formValid.set(form.valid);
+    form.statusChanges.pipe(takeUntilDestroyed()).subscribe(() => this.formValid.set(form.valid));
     form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
       this.session.markStale();
       this.settings.save(this.toolId, form.getRawValue());
@@ -136,6 +140,6 @@ export abstract class BaseTool implements OnInit {
     return true;
   }
 
-  /** Hook to react to the selected files, e.g. to decode a preview. */
+  /** Hook to react to the selected files, e.g. to decode a preview. Called again when they change. */
   protected onFilesSelected(_files: readonly File[]): void | Promise<void> {}
 }

@@ -127,12 +127,31 @@ export class Merge extends BaseTool {
     return this.enoughFiles();
   }
 
+  /** Decode only newly added files for the preview, and release removed ones. */
   protected override async onFilesSelected(files: readonly File[]): Promise<void> {
-    this.releaseBitmaps();
-    const entries = await Promise.all(
-      files.map(async (file) => [file, await createImageBitmap(file)] as const),
+    const current = this.bitmapByFile();
+    const added = files.filter((file) => !current.has(file));
+    const decoded = await Promise.all(
+      added.map(async (file) => [file, await createImageBitmap(file)] as const),
     );
-    this.bitmapByFile.set(new Map(entries));
+
+    // Rebuild from the latest state: another call may have finished meanwhile
+    // (then keep its bitmap and drop our duplicate).
+    const next = new Map(this.bitmapByFile());
+    for (const [file, bitmap] of decoded) {
+      if (next.has(file)) {
+        bitmap.close();
+      } else {
+        next.set(file, bitmap);
+      }
+    }
+    for (const [file, bitmap] of next) {
+      if (!this.files().includes(file)) {
+        bitmap.close();
+        next.delete(file);
+      }
+    }
+    this.bitmapByFile.set(next);
   }
 
   /** Merge produces one image from all files, not one per file. */

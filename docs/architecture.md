@@ -169,6 +169,12 @@ npm run format   # Prettier over the frontend
 - Formatting: Prettier for the frontend (`frontend/.prettierrc`, 100 columns,
   single quotes) and `.editorconfig`; Python follows PEP 8 with ~100-column
   lines. All text files are LF (`.gitattributes`).
-- Commit messages follow conventional-commit style (`feat:`, `fix:`, …), in
-  the imperative.
+- **Always use the latest stable version** of the tools and packages in use
+  (npm and pip dependencies, Node.js, Python, CLI tools). Stay behind only for
+  a hard, documented reason, recorded next to the pin (today: Python ≤ 3.13,
+  because the vtracer wheel segfaults on 3.14).
+- **Always commit and push after a change.** One commit per coherent change:
+  don't flood the history with tiny commits, but don't bundle unrelated
+  features or fixes together either. Commit messages follow conventional-commit
+  style (`feat:`, `fix:`, …), in the imperative.
 - Keep the docs in `docs/` up to date in the same change as the code.

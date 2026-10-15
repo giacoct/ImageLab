@@ -46,6 +46,16 @@ describe('createZip', () => {
     expect(view.getUint32(centralOffset, true)).toBe(0x02014b50);
   });
 
+  it('marks file names as UTF-8 so accented names survive', async () => {
+    const zip = await createZip([{ name: 'città.jpg', blob: new Blob(['x']) }]);
+    const bytes = new Uint8Array(await zip.arrayBuffer());
+    const view = new DataView(bytes.buffer);
+
+    expect(view.getUint16(6, true) & 0x0800).toBe(0x0800); // local header flags
+    const name = new TextDecoder().decode(bytes.subarray(30, 30 + view.getUint16(26, true)));
+    expect(name).toBe('città.jpg');
+  });
+
   it('zips empty input into an empty archive', async () => {
     const zip = await createZip([]);
     const bytes = new Uint8Array(await zip.arrayBuffer());

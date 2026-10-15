@@ -22,6 +22,9 @@ export function dedupeNames(entries: readonly ZipEntry[]): ZipEntry[] {
   });
 }
 
+/** General-purpose flag bit 11: file names are UTF-8 (so `città.jpg` unzips correctly). */
+const UTF8_NAMES = 0x0800;
+
 /** Minimal ZIP writer using the STORE method (no compression — images are already compressed). */
 export async function createZip(entries: readonly ZipEntry[]): Promise<Blob> {
   const encoder = new TextEncoder();
@@ -39,7 +42,7 @@ export async function createZip(entries: readonly ZipEntry[]): Promise<Blob> {
     const localView = new DataView(local.buffer);
     localView.setUint32(0, 0x04034b50, true); // local file header signature
     localView.setUint16(4, 20, true); // version needed
-    localView.setUint16(6, 0, true); // flags
+    localView.setUint16(6, UTF8_NAMES, true); // flags
     localView.setUint16(8, 0, true); // method: store
     localView.setUint16(10, 0, true); // mod time
     localView.setUint16(12, 0, true); // mod date
@@ -56,7 +59,7 @@ export async function createZip(entries: readonly ZipEntry[]): Promise<Blob> {
     centralView.setUint32(0, 0x02014b50, true); // central directory signature
     centralView.setUint16(4, 20, true); // version made by
     centralView.setUint16(6, 20, true); // version needed
-    centralView.setUint16(8, 0, true); // flags
+    centralView.setUint16(8, UTF8_NAMES, true); // flags
     centralView.setUint16(10, 0, true); // method: store
     centralView.setUint16(12, 0, true); // mod time
     centralView.setUint16(14, 0, true); // mod date

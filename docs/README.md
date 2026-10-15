@@ -47,8 +47,8 @@ background** and **Merge** (always PNG), **Upscale** (PNG), **Convert to SVG**
 
 ## Getting started (development, macOS)
 
-Prerequisites: Node.js 24 (or 22.22+; `brew install node`), Python 3.10–3.13
-(`brew install python@3.13`), and Tesseract for OCR
+Prerequisites: Node.js 26 (`brew install node`), Python 3.13
+(`brew install python@3.13`; 3.12 also works), and Tesseract for OCR
 (`brew install tesseract tesseract-lang`).
 
 ```bash

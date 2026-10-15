@@ -16,15 +16,17 @@ boot and restarts if it crashes. Open it from any device on the LAN at
    sudo apt install -y git python3-venv tesseract-ocr tesseract-ocr-ita
    ```
 
-   ImageLab needs **Python 3.10–3.13** (`python3 --version`; Ubuntu 24.04 ships
-   3.12, Debian 12 ships 3.11). On a distro whose default is 3.14, also install
-   a 3.13 (`python3.13`) — `npm run setup` picks it automatically.
+   ImageLab needs **Python 3.12 or 3.13** (`python3 --version`; Ubuntu 24.04
+   ships 3.12, Debian 13 ships 3.13). On a distro whose default is newer
+   (3.14), also install a `python3.13` — `npm run setup` picks it
+   automatically and rebuilds the virtualenv if it was made with an
+   unsupported version.
 
-2. **Node.js 24** (only used to build the frontend; the distro's `nodejs`
-   package is usually too old for Angular 22):
+2. **Node.js 26** (only used to build the frontend; the distro's `nodejs`
+   package is usually too old):
 
    ```bash
-   curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+   curl -fsSL https://deb.nodesource.com/setup_26.x | sudo -E bash -
    sudo apt install -y nodejs
    ```
 

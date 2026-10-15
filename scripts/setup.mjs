@@ -14,7 +14,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,6 +28,11 @@ const MODEL_URL =
   'https://github.com/giacoct/ImageLab/releases/download/models-v1/realesr-general-x4v3.onnx';
 const MODEL_SHA256 = '4f5a9ef782d8f5b8a9b431234d813bf837a6dfa790baa59b13a7a769ba944534';
 const modelPath = join(backendDir, 'models', 'realesr-general-x4v3.onnx');
+
+// Exits 0 on a supported Python: the pinned numpy needs 3.12+, and on 3.14 the
+// vtracer wheel segfaults, which would take the whole server down on
+// "Convert to SVG".
+const SUPPORTED_PYTHON = 'import sys; sys.exit(not (3, 12) <= sys.version_info < (3, 14))';
 
 // Must match OCR_LANGUAGES in frontend/src/app/tools/ocr/ocr.ts.
 const OCR_LANGS = ['eng', 'ita'];
@@ -52,6 +57,10 @@ function installFrontend() {
 function installBackend() {
   const stamp = join(backendDir, '.venv', '.imagelab-requirements-hash');
   const hash = hashFile(join(backendDir, 'requirements.txt'));
+  if (existsSync(venvPython) && spawnSync(venvPython, ['-c', SUPPORTED_PYTHON]).status !== 0) {
+    log('The backend virtualenv uses an unsupported Python; recreating it...');
+    rmSync(join(backendDir, '.venv'), { recursive: true, force: true });
+  }
   if (existsSync(venvPython) && readStamp(stamp) === hash) return;
 
   if (!existsSync(venvPython)) {
@@ -65,18 +74,15 @@ function installBackend() {
   writeFileSync(stamp, hash);
 }
 
-/**
- * The newest Python on PATH between 3.10 and 3.13. Older ones lack wheels for
- * our dependencies (macOS's /usr/bin/python3 is 3.9); on 3.14 the vtracer
- * wheel segfaults, which would take the whole server down on "Convert to SVG".
- */
+/** The newest Python on PATH that is supported (see SUPPORTED_PYTHON); macOS's python3 is 3.9. */
 function findPython() {
-  const candidates = ['python3.13', 'python3.12', 'python3.11', 'python3.10', 'python3'];
-  const supported = 'import sys; sys.exit(not (3, 10) <= sys.version_info < (3, 14))';
+  const candidates = ['python3.13', 'python3.12', 'python3'];
   for (const command of candidates) {
-    if (spawnSync(command, ['-c', supported]).status === 0) return command;
+    if (spawnSync(command, ['-c', SUPPORTED_PYTHON]).status === 0) return command;
   }
-  fail('Python 3.10–3.13 is required (e.g. `brew install python@3.13` or `apt install python3`).');
+  fail(
+    'Python 3.12 or 3.13 is required (e.g. `brew install python@3.13` or `apt install python3`).',
+  );
 }
 
 async function downloadModel() {

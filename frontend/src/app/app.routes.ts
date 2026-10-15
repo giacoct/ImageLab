@@ -14,25 +14,23 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/home/home').then((m) => m.Home),
     title: 'ImageLab',
   },
-  ...TOOLS.map(
-    (tool): Route => ({
-      path: tool.route.slice(1),
-      data: { toolId: tool.id },
-      title: `${tool.title} | ImageLab`,
-      children: [
-        { path: '', redirectTo: 'import', pathMatch: 'full' },
-        {
-          path: 'import',
-          loadComponent: () => import('./pages/import/import').then((m) => m.ImportPage),
-        },
-        { path: 'settings', loadComponent: tool.loadComponent },
-        {
-          path: 'output',
-          loadComponent: () => import('./pages/output/output').then((m) => m.OutputPage),
-        },
-        { path: '**', redirectTo: 'import' },
-      ],
-    }),
-  ),
+  ...TOOLS.map((tool): Route => ({
+    path: tool.route.slice(1),
+    data: { toolId: tool.id },
+    title: `${tool.title} | ImageLab`,
+    children: [
+      { path: '', redirectTo: 'import', pathMatch: 'full' },
+      {
+        path: 'import',
+        loadComponent: () => import('./pages/import/import').then((m) => m.ImportPage),
+      },
+      { path: 'settings', loadComponent: tool.loadComponent },
+      {
+        path: 'output',
+        loadComponent: () => import('./pages/output/output').then((m) => m.OutputPage),
+      },
+      { path: '**', redirectTo: 'import' },
+    ],
+  })),
   { path: '**', redirectTo: '' },
 ];

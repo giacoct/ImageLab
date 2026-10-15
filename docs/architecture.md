@@ -135,8 +135,9 @@ processes it in tiles, and loads the ONNX model lazily on first use.
   repo's `models-v1` GitHub release, pinned by sha256, into
   `backend/models/realesr-general-x4v3.onnx`. Without the file only
   `/api/upscale` fails (503).
-- **Python 3.10–3.13.** The vtracer wheel segfaults on Python 3.14 (it takes
-  the whole server down). `setup.mjs` refuses other versions.
+- **Python 3.12–3.13.** The pinned numpy needs 3.12+, and the vtracer wheel
+  segfaults on Python 3.14 (it takes the whole server down). `SUPPORTED_PYTHON`
+  in `setup.mjs` enforces this and rebuilds a venv made with another version.
 - **Build output path.** `angular.json` builds to `frontend/dist/browser`;
   `FRONTEND_DIR` in `backend/main.py` serves that folder.
 - **Angular budgets** (`angular.json`): initial bundle warn 500 kB / error
@@ -170,9 +171,12 @@ npm run format   # Prettier over the frontend
   single quotes) and `.editorconfig`; Python follows PEP 8 with ~100-column
   lines. All text files are LF (`.gitattributes`).
 - **Always use the latest stable version** of the tools and packages in use
-  (npm and pip dependencies, Node.js, Python, CLI tools). Stay behind only for
-  a hard, documented reason, recorded next to the pin (today: Python ≤ 3.13,
-  because the vtracer wheel segfaults on 3.14).
+  (npm and pip dependencies, Node.js, Python, CLI tools). Python packages are
+  pinned exactly in `backend/requirements.txt`; bump the pins (and run
+  `npm run setup`) when touching the backend. Stay behind only for a hard,
+  documented reason, recorded next to the pin. Today: Python 3.13, not 3.14
+  (the vtracer wheel segfaults on 3.14), and TypeScript 6.0, not 7 (Angular 22
+  supports only TypeScript 6.0).
 - **Always commit and push after a change.** One commit per coherent change:
   don't flood the history with tiny commits, but don't bundle unrelated
   features or fixes together either. Commit messages follow conventional-commit

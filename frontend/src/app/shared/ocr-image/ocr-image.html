@@ -1,0 +1,25 @@
+<div class="ocr-stage" #stage>
+  <img
+    class="ocr-img"
+    #img
+    [src]="result().imageUrl"
+    [alt]="result().fileName"
+    draggable="false"
+    (load)="relayout()"
+  />
+  <div class="ocr-text-layer">
+    @for (word of result().words; track $index) {
+      <!-- The trailing space rides inside the span (white-space: pre keeps
+           it) so dragging across words copies them space-separated; a lone
+           space text node between absolutely-positioned spans would
+           collapse away. -->
+      <span
+        class="ocr-word"
+        #word
+        [style.left.%]="word.left * 100"
+        [style.top.%]="word.top * 100"
+        >{{ word.text + ' ' }}</span
+      >
+    }
+  </div>
+</div>

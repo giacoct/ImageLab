@@ -1,0 +1,12 @@
+.processing-note {
+  color: var(--muted);
+  margin: 1rem 0 2rem;
+}
+
+.output-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+  margin-top: 2.5rem;
+}

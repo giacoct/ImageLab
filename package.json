@@ -1,33 +1,13 @@
 {
-  "name": "image-lab",
-  "version": "0.0.0",
-  "scripts": {
-    "ng": "ng",
-    "start": "ng serve",
-    "dev": "node scripts/dev.mjs",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
-  },
+  "name": "imagelab",
   "private": true,
-  "packageManager": "npm@11.15.0",
-  "dependencies": {
-    "@angular/common": "^22.0.0",
-    "@angular/compiler": "^22.0.0",
-    "@angular/core": "^22.0.0",
-    "@angular/forms": "^22.0.0",
-    "@angular/platform-browser": "^22.0.0",
-    "@angular/router": "^22.0.0",
-    "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
-  },
-  "devDependencies": {
-    "@angular/build": "^22.0.0",
-    "@angular/cli": "^22.0.0",
-    "@angular/compiler-cli": "^22.0.0",
-    "jsdom": "^29.1.1",
-    "prettier": "^3.8.1",
-    "typescript": "~6.0.3",
-    "vitest": "^4.0.8"
+  "description": "Self-hosted browser image tools. Scripts only: the Angular app lives in frontend/, the FastAPI backend in backend/.",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "node scripts/dev.mjs",
+    "build": "npm --prefix frontend run build",
+    "test": "npm --prefix frontend test -- --watch=false && cd backend && .venv/bin/python -m pytest -q",
+    "start": "cd backend && .venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 4200",
+    "format": "npm --prefix frontend run format"
   }
 }

@@ -1,3 +1,3 @@
-Project context, architecture, conventions, and commands are in AGENTS.md:
+Project context, architecture, conventions, and commands are in docs/architecture.md:
 
-@AGENTS.md
+@docs/architecture.md

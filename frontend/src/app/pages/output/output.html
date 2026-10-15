@@ -1,0 +1,28 @@
+<app-tool-header [tool]="tool()" step="output" />
+
+@if (showProgressBar()) {
+  <app-progress-bar [percent]="percent()" [fileName]="currentFileName()" />
+} @else if (isProcessing()) {
+  <p class="processing-note" role="status">Processing…</p>
+}
+
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}
+
+@if (ocrResults().length > 0) {
+  <app-ocr-results [results]="ocrResults()" />
+} @else {
+  <app-output-list [outputs]="outputs()" [currentToolId]="tool().id" />
+}
+
+<div class="output-actions">
+  <a class="button secondary" routerLink="/">
+    <app-icon name="arrow-left" [size]="18" />
+    Back to tools
+  </a>
+  <button class="button" type="button" (click)="startAgain()">
+    <app-icon name="reload" [size]="18" />
+    Start Again
+  </button>
+</div>

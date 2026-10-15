@@ -1,0 +1,119 @@
+:host {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.reorder-hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.reorder-list {
+  display: grid;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.reorder-item {
+  align-items: center;
+  background: var(--panel-subtle);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--ink);
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  transition:
+    background-color var(--speed) var(--ease),
+    border-color var(--speed) var(--ease),
+    box-shadow var(--speed) var(--ease),
+    opacity var(--speed) var(--ease);
+}
+
+.reorder-item.is-dragging {
+  opacity: 0.5;
+}
+
+.reorder-item.is-drag-over,
+.reorder-item.is-selected {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.reorder-item.is-selected {
+  background: var(--accent-soft);
+}
+
+/* The grip is the drag handle. touch-action:none keeps a touch-drag from
+   scrolling the page instead of reordering; the larger tap area suits touch. */
+.reorder-grip {
+  color: var(--muted);
+  cursor: grab;
+  font-size: 1rem;
+  line-height: 1;
+  margin: -0.5rem 0 -0.5rem -0.2rem;
+  padding: 0.5rem 0.4rem;
+  touch-action: none;
+  user-select: none;
+}
+
+.reorder-grip:active {
+  cursor: grabbing;
+}
+
+.reorder-index {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  color: var(--accent-strong);
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 720;
+  min-width: 1.5rem;
+  padding: 0.1rem 0.4rem;
+  text-align: center;
+}
+
+.file-name {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+/* In selectable lists the name is a plain-looking button filling the row. */
+.select-file {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+}
+
+.select-file[aria-pressed='true'] {
+  color: var(--accent-strong);
+  font-weight: 650;
+}
+
+/* Per-item remove (✕) on the trailing edge of the row. */
+.remove-file {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  color: var(--muted);
+  display: inline-flex;
+  flex-shrink: 0;
+  justify-content: center;
+  padding: 0.25rem;
+  transition:
+    background-color var(--speed) var(--ease),
+    border-color var(--speed) var(--ease),
+    color var(--speed) var(--ease);
+}
+
+.remove-file:hover,
+.remove-file:focus-visible {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger);
+}

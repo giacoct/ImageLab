@@ -4,7 +4,7 @@
     {
       "name": "imagelab",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["start", "--", "--port", "4321"],
+      "runtimeArgs": ["--prefix", "frontend", "start", "--", "--port", "4321"],
       "port": 4321
     }
   ]

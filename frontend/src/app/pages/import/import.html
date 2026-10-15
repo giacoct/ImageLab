@@ -1,0 +1,30 @@
+<app-tool-header [tool]="tool()" step="import" />
+
+<app-file-dropzone [multiple]="tool().batch" (filesSelected)="addFiles($event)" />
+
+@if (files().length > 0) {
+  <section class="file-panel panel" aria-label="Imported files">
+    <div class="file-panel-head">
+      <h2>{{ files().length }} {{ files().length === 1 ? 'image' : 'images' }} ready</h2>
+      <button type="button" class="button secondary clear-button" (click)="clearFiles()">
+        <app-icon name="close" [size]="16" />
+        Clear all
+      </button>
+    </div>
+    <app-file-list [files]="files()" [removable]="true" (fileRemoved)="removeFile($event)" />
+  </section>
+}
+
+<div class="action-row step-actions">
+  <a class="button secondary" routerLink="/">Cancel</a>
+  <button
+    #continueButton
+    class="button"
+    type="button"
+    [disabled]="files().length === 0"
+    (click)="continue()"
+  >
+    Continue
+    <app-icon name="arrow-right" [size]="18" />
+  </button>
+</div>

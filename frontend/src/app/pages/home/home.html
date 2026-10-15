@@ -1,0 +1,7 @@
+<section class="tool-grid" aria-label="Available tools">
+  @for (tool of tools; track tool.id) {
+    <a class="tool-card" [routerLink]="tool.route">
+      <app-tool-card [tool]="tool" />
+    </a>
+  }
+</section>

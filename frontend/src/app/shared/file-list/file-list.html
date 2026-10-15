@@ -1,0 +1,43 @@
+@if (canReorder()) {
+  <p class="reorder-hint">Drag to reorder — this order carries through to the output.</p>
+}
+<ul class="reorder-list" appReorderable #ro="reorderable" (reorder)="move($event.from, $event.to)">
+  <!-- Tracked by File identity: every import creates new File objects, so
+       duplicate names/sizes never collide. -->
+  @for (file of files(); track file; let i = $index) {
+    <li
+      class="reorder-item"
+      [attr.data-reorder-item]="canReorder() ? '' : null"
+      [class.is-dragging]="ro.activeIndex() === i"
+      [class.is-drag-over]="ro.overIndex() === i"
+      [class.is-selected]="selectable() && i === selectedIndex()"
+    >
+      @if (canReorder()) {
+        <span class="reorder-grip" data-reorder-handle aria-hidden="true">⠿</span>
+      }
+      <span class="reorder-index">{{ i + 1 }}</span>
+      @if (selectable()) {
+        <button
+          type="button"
+          class="file-name select-file"
+          [attr.aria-pressed]="i === selectedIndex()"
+          (click)="fileSelected.emit(i)"
+        >
+          {{ file.name }}
+        </button>
+      } @else {
+        <span class="file-name">{{ file.name }}</span>
+      }
+      @if (removable()) {
+        <button
+          type="button"
+          class="remove-file"
+          [attr.aria-label]="'Remove ' + file.name"
+          (click)="fileRemoved.emit(i)"
+        >
+          <app-icon name="close" [size]="16" />
+        </button>
+      }
+    </li>
+  }
+</ul>

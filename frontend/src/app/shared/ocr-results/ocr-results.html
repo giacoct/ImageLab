@@ -1,0 +1,41 @@
+<section class="ocr-results" aria-label="Recognized text">
+  <p class="ocr-hint">
+    Drag across the words to highlight and copy the text straight off the image.
+  </p>
+
+  @if (isBatch()) {
+    <div class="ocr-toolbar">
+      <h2>{{ results().length }} images</h2>
+      <button class="button" type="button" (click)="downloadAll()">
+        <app-icon name="download" [size]="18" />
+        Download all (.txt ZIP)
+      </button>
+    </div>
+  }
+
+  @for (result of results(); track result.imageUrl; let i = $index) {
+    <article class="ocr-card panel">
+      <div class="ocr-card-image">
+        <app-ocr-image [result]="result" />
+      </div>
+      <div class="ocr-card-side">
+        <h3 class="file-name">{{ result.fileName }}</h3>
+        @if (result.text) {
+          <p class="ocr-meta">{{ result.text.length }} characters</p>
+          <div class="action-row">
+            <button class="button" type="button" (click)="copy(result, i)">
+              <app-icon [name]="copiedIndex() === i ? 'check' : 'edit'" [size]="18" />
+              {{ copiedIndex() === i ? 'Copied' : 'Copy text' }}
+            </button>
+            <button class="button secondary" type="button" (click)="downloadText(result)">
+              <app-icon name="download" [size]="18" />
+              .txt
+            </button>
+          </div>
+        } @else {
+          <p class="ocr-meta">No text was found in this image.</p>
+        }
+      </div>
+    </article>
+  }
+</section>

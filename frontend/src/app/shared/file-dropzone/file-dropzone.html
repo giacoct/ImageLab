@@ -1,0 +1,22 @@
+<section
+  class="dropzone"
+  [class.is-dragging]="isDragging()"
+  (dragover)="handleDragOver($event)"
+  (dragleave)="handleDragLeave($event)"
+  (drop)="handleDrop($event)"
+>
+  <label class="dropzone-label">
+    <span class="dropzone-icon" aria-hidden="true">
+      <app-icon name="upload" [size]="30" />
+    </span>
+    <span class="dropzone-title">Choose images</span>
+    <span class="dropzone-copy">Drop your files here, paste them, or browse your device.</span>
+    <span class="dropzone-meta">{{ acceptedLabel }}</span>
+    <input
+      type="file"
+      [attr.accept]="acceptAttribute"
+      [multiple]="multiple()"
+      (change)="handleInput($event)"
+    />
+  </label>
+</section>

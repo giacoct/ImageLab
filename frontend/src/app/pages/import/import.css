@@ -1,0 +1,36 @@
+.file-panel {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.file-panel-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: space-between;
+}
+
+h2 {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+/* Compact, danger-tinted variant of the secondary button for "Clear all". */
+.clear-button {
+  color: var(--danger);
+  font-size: 0.85rem;
+  min-height: 2.1rem;
+  padding: 0.35rem 0.7rem;
+}
+
+.clear-button:hover,
+.clear-button:focus-visible {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+}
+
+.step-actions {
+  margin-top: 1.5rem;
+}

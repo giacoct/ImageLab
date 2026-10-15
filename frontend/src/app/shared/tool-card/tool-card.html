@@ -1,0 +1,10 @@
+<div class="tool-card-top">
+  <span class="tool-icon" [class.batch]="tool().batch" [class.single]="!tool().batch">
+    <app-icon [name]="tool().id" [size]="24" />
+  </span>
+  <span class="tool-badge" [class.batch]="tool().batch" [class.single]="!tool().batch">
+    {{ tool().batch ? 'Batch' : 'Single' }}
+  </span>
+</div>
+<h2>{{ tool().title }}</h2>
+<p>{{ tool().description }}</p>

@@ -1,8 +1,0 @@
-.venv/
-__pycache__/
-*.pyc
-
-# Upscaler model weights — kept out of git history. The Docker build fetches
-# them (sha256-pinned) from the models-v1 GitHub release; for local dev,
-# download once into models/ (see server/README.md).
-models/

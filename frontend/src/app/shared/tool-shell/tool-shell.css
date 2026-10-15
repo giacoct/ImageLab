@@ -1,0 +1,42 @@
+.tool-workspace {
+  align-items: start;
+  animation: fade-in-up 0.45s var(--ease) both;
+  animation-delay: 60ms;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  margin-bottom: 1.5rem;
+}
+
+.input-column {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.settings,
+.file-panel {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+/* Keep the settings (and their action button) in view while scrolling previews. */
+.settings {
+  position: sticky;
+  top: 4rem;
+}
+
+h2 {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+@media (max-width: 880px) {
+  .tool-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .settings {
+    position: static;
+  }
+}

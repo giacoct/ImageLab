@@ -1,0 +1,46 @@
+:host {
+  align-content: start;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.tool-card-top {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.tool-icon {
+  height: 2.35rem;
+  width: 2.35rem;
+}
+
+h2 {
+  font-size: 1.05rem;
+}
+
+p {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+/* Two-column grid on phones: tighten the card content to fit. */
+@media (max-width: 680px) {
+  :host {
+    gap: 0.5rem;
+  }
+
+  .tool-icon {
+    height: 2.1rem;
+    width: 2.1rem;
+  }
+
+  h2 {
+    font-size: 0.95rem;
+  }
+
+  p {
+    font-size: 0.8rem;
+  }
+}

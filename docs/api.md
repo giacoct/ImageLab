@@ -5,7 +5,8 @@ for how it is organized). It wraps
 [VTracer](https://github.com/visioncortex/vtracer) for vectorization,
 [Tesseract](https://github.com/tesseract-ocr/tesseract) (via
 [`pytesseract`](https://pypi.org/project/pytesseract/)) for OCR, and
-Real-ESRGAN (via [`onnxruntime`](https://onnxruntime.ai/)) for AI upscaling.
+Real-ESRGAN (run with [OpenCV](https://opencv.org/)'s DNN module) for AI
+upscaling.
 It also serves the built Angular app, so in production everything is on one
 port.
 

@@ -8,21 +8,27 @@ boot and restarts if it crashes. Open it from any device on the LAN at
 
 ## One-time setup
 
-1. **System packages** — Git, Python with venv support, and Tesseract with the
+1. **System packages** — Git, Python 3.15, and Tesseract with the
    Italian language pack (English is included; more languages are
    `tesseract-ocr-<code>` packages, e.g. `tesseract-ocr-fra`, and appear in the
    app automatically):
 
    ```bash
    sudo apt update
-   sudo apt install -y git python3-venv tesseract-ocr tesseract-ocr-ita
+   sudo apt install -y git tesseract-ocr tesseract-ocr-ita
    ```
 
-   ImageLab needs **Python 3.12 or 3.13** (`python3 --version`; Ubuntu 24.04
-   ships 3.12, Debian 13 ships 3.13). On a distro whose default is newer
-   (3.14), also install a `python3.13` — `npm run setup` picks it
-   automatically and rebuilds the virtualenv if it was made with an
-   unsupported version.
+   ImageLab needs the latest **Python, 3.15** (`python3 --version`). Distros
+   ship older ones, so on Ubuntu add it from the deadsnakes PPA:
+
+   ```bash
+   sudo add-apt-repository -y ppa:deadsnakes/ppa
+   sudo apt install -y python3.15 python3.15-venv
+   ```
+
+   (Elsewhere, `uv python install 3.15` works too.) `npm run setup` finds
+   `python3.15` automatically and rebuilds the virtualenv if it was made with
+   an older Python.
 
 2. **Node.js 26** (only used to build the frontend; the distro's `nodejs`
    package is usually too old):
@@ -68,13 +74,3 @@ sudo systemctl restart imagelab           # restart
 
 `npm start` runs the same server in the foreground (handy for a quick test;
 stop the service first, since both use port 4200).
-
-## Migrating from the old Docker setup
-
-ImageLab used to run as a Docker container on the same port. Remove it before
-installing the service:
-
-```bash
-docker rm -f imagelab
-docker image rm ghcr.io/giacoct/imagelab:latest
-```

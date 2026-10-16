@@ -29,10 +29,9 @@ const MODEL_URL =
 const MODEL_SHA256 = '4f5a9ef782d8f5b8a9b431234d813bf837a6dfa790baa59b13a7a769ba944534';
 const modelPath = join(backendDir, 'models', 'realesr-general-x4v3.onnx');
 
-// Exits 0 on a supported Python: the pinned numpy needs 3.12+, and on 3.14 the
-// vtracer wheel segfaults, which would take the whole server down on
-// "Convert to SVG".
-const SUPPORTED_PYTHON = 'import sys; sys.exit(not (3, 12) <= sys.version_info < (3, 14))';
+// Exits 0 on a supported Python: the latest (3.15) or newer, per the
+// "latest stable versions" rule; requirements.txt is pinned for it.
+const SUPPORTED_PYTHON = 'import sys; sys.exit(sys.version_info < (3, 15))';
 
 export async function setup() {
   installFrontend();
@@ -71,14 +70,13 @@ function installBackend() {
   writeFileSync(stamp, hash);
 }
 
-/** The newest Python on PATH that is supported (see SUPPORTED_PYTHON); macOS's python3 is 3.9. */
+/** A supported Python on PATH (Homebrew's `python3` is the latest; macOS's own is 3.9). */
 function findPython() {
-  const candidates = ['python3.13', 'python3.12', 'python3'];
-  for (const command of candidates) {
+  for (const command of ['python3', 'python3.15']) {
     if (spawnSync(command, ['-c', SUPPORTED_PYTHON]).status === 0) return command;
   }
   fail(
-    'Python 3.12 or 3.13 is required (e.g. `brew install python@3.13` or `apt install python3`).',
+    'Python 3.15 or newer is required (`brew install python`; see docs/deployment.md for Linux).',
   );
 }
 

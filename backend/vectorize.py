@@ -29,7 +29,7 @@ FLAT_TARGET_DIM = 1000
 
 # VTracer settings shared by both presets (not exposed in the UI).
 BASE_PARAMS = {
-    "colormode": "color",
+    "clustering": "color-cluster",
     "hierarchical": "stacked",
     "splice_threshold": 45,
     "max_iterations": 10,
@@ -66,7 +66,7 @@ def vectorize(
         "length_threshold": clamp(length_threshold, 3.5, 10.0),
         "path_precision": 3,
     }
-    return vtracer.convert_raw_image_to_svg(encode_png(rgba), img_format="png", **params)
+    return _trace(encode_png(rgba), params)
 
 
 def _trace_auto(rgba: Image.Image) -> str:
@@ -112,8 +112,13 @@ def _trace_auto(rgba: Image.Image) -> str:
         "length_threshold": 4.0,
         "path_precision": 2 if factor > 1 else 3,
     }
-    svg = vtracer.convert_raw_image_to_svg(encode_png(work), img_format="png", **params)
+    svg = _trace(encode_png(work), params)
     return _restore_dimensions(svg, original_size, work.size)
+
+
+def _trace(png: bytes, params: dict) -> str:
+    """Run VTracer on PNG bytes with the given settings; returns the SVG markup."""
+    return vtracer.convert_bytes(png, vtracer.Config(**params), format="png")
 
 
 def _is_flat_art(rgba: Image.Image) -> bool:

@@ -16,7 +16,7 @@ simple and proportionate to that.
 
 Almost all image processing runs **in the browser** with the Canvas API. Only
 three tools call the backend: **Convert to SVG** (VTracer), **Extract text /
-OCR** (Tesseract), and **Upscale image** (Real-ESRGAN via OpenCV DNN, CPU).
+OCR** (Tesseract), and **Upscale image** (Real-ESRGAN via onnxruntime, CPU).
 
 ## Repository map
 
@@ -135,9 +135,10 @@ processes it in tiles, and loads the ONNX model lazily on first use.
   repo's `models-v1` GitHub release, pinned by sha256, into
   `backend/models/realesr-general-x4v3.onnx`. Without the file only
   `/api/upscale` fails (503).
-- **Python 3.15.** `backend/requirements.txt` is pinned for the latest Python;
+- **Python 3.14.** `backend/requirements.txt` is pinned for it (onnxruntime
+  has no 3.15 wheels; vtracer 0.6 segfaults on 3.14, hence its 1.0 alpha).
   `SUPPORTED_PYTHON` in `setup.mjs` requires it and rebuilds a venv made with
-  an older version.
+  another version.
 - **Build output path.** `angular.json` builds to `frontend/dist/browser`;
   `FRONTEND_DIR` in `backend/main.py` serves that folder.
 - **Angular budgets** (`angular.json`): initial bundle warn 500 kB / error
@@ -174,10 +175,9 @@ npm run format   # Prettier over the frontend
   (npm and pip dependencies, Node.js, Python, CLI tools). Python packages are
   pinned exactly in `backend/requirements.txt`; bump the pins (and run
   `npm run setup`) when touching the backend. Stay behind only for a hard,
-  documented reason, recorded next to the pin. Today: TypeScript 6.0, not 7
-  (Angular 22 supports only TypeScript 6.0). Where nothing stable supports the
-  latest Python yet, use what does and note it in `requirements.txt`: today
-  the vtracer 1.0 alpha, and OpenCV instead of onnxruntime for the upscaler.
+  documented reason, recorded next to the pin. Today: Python 3.14, not 3.15
+  (the newest the production server can install), and TypeScript 6.0, not 7
+  (Angular 22 supports only TypeScript 6.0).
 - **Always commit and push after a change.** One commit per coherent change:
   don't flood the history with tiny commits, but don't bundle unrelated
   features or fixes together either. Commit messages follow conventional-commit

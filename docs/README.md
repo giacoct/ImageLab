@@ -49,8 +49,8 @@ background** and **Merge** (always PNG), **Upscale** (PNG), **Convert to SVG**
 
 ## Getting started (development, macOS)
 
-Prerequisites: Node.js 26 (`brew install node`), Python 3.15
-(`brew install python`), and Tesseract for OCR
+Prerequisites: Node.js 26 (`brew install node`), Python 3.14
+(`brew install python@3.14`), and Tesseract for OCR
 (`brew install tesseract tesseract-lang`).
 
 ```bash
@@ -91,4 +91,4 @@ ImageLab runs on a Linux PC on the LAN as a systemd service — see
 Angular 22 (standalone components, signals, lazy-loaded routes), TypeScript,
 and the browser Canvas API — no third-party image-processing libraries in the
 browser. Backend: FastAPI with VTracer, Tesseract (pytesseract), and
-Real-ESRGAN (run with OpenCV's DNN module, CPU).
+Real-ESRGAN (onnxruntime, CPU).

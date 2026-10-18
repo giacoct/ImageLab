@@ -1,21 +1,19 @@
 # Pinned to the latest stable releases (rule in docs/architecture.md: always
-# use the latest stable versions), for Python 3.15. Bump them together, then
-# `npm run setup` reinstalls. Exceptions, because nothing stable supports
-# Python 3.15 yet:
-#   - vtracer 1.0 alpha: 0.6.x has no 3.15 wheel (and segfaults on 3.14);
-#   - opencv-python-headless runs the upscaler model: onnxruntime has no
-#     3.15 wheels.
+# use the latest stable versions), for Python 3.14 — the newest the
+# production server can install. Bump them together, then `npm run setup`
+# reinstalls. One exception: vtracer 1.0 alpha, because 0.6.x segfaults on
+# Python 3.14 (taking the whole server down).
 # Tesseract and the model weights are not pip packages (see docs/api.md).
-fastapi==0.143.2
+fastapi==0.146.0
 uvicorn[standard]==0.54.0
 python-multipart==0.0.32
 vtracer==1.0.0a4
-pillow==12.3.0
+pillow==13.0.0
 pillow-heif==1.8.1
 pytesseract==0.3.13
-opencv-python-headless==5.0.0.93
+onnxruntime==1.31.0
 numpy==2.5.4
 
 # Tests (`npm test`)
 pytest==9.1.1
-httpx==0.28.1
+httpx2==2.14.0

@@ -8,27 +8,19 @@ boot and restarts if it crashes. Open it from any device on the LAN at
 
 ## One-time setup
 
-1. **System packages** — Git, Python 3.15, and Tesseract with the
+1. **System packages** — Git, Python 3.14, and Tesseract with the
    Italian language pack (English is included; more languages are
    `tesseract-ocr-<code>` packages, e.g. `tesseract-ocr-fra`, and appear in the
    app automatically):
 
    ```bash
    sudo apt update
-   sudo apt install -y git tesseract-ocr tesseract-ocr-ita
+   sudo apt install -y git python3.14 python3.14-venv tesseract-ocr tesseract-ocr-ita
    ```
 
-   ImageLab needs the latest **Python, 3.15** (`python3 --version`). Distros
-   ship older ones, so on Ubuntu add it from the deadsnakes PPA:
-
-   ```bash
-   sudo add-apt-repository -y ppa:deadsnakes/ppa
-   sudo apt install -y python3.15 python3.15-venv
-   ```
-
-   (Elsewhere, `uv python install 3.15` works too.) `npm run setup` finds
-   `python3.15` automatically and rebuilds the virtualenv if it was made with
-   an older Python.
+   ImageLab needs exactly **Python 3.14**: the backend's pinned packages are
+   chosen for it. `npm run setup` finds `python3.14` automatically and
+   rebuilds the virtualenv if it was made with another Python.
 
 2. **Node.js 26** (only used to build the frontend; the distro's `nodejs`
    package is usually too old):

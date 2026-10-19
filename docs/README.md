@@ -77,7 +77,8 @@ All commands run from the repo root.
 
 ## Production
 
-ImageLab runs on a Linux PC on the LAN as a systemd service — see
+ImageLab runs on an always-on machine on the LAN: a Linux PC (as a systemd
+service) or an old Android phone (with Termux) — see
 [deployment.md](deployment.md).
 
 ## Documentation
@@ -85,7 +86,8 @@ ImageLab runs on a Linux PC on the LAN as a systemd service — see
 - [architecture.md](architecture.md) — how the code is organized, conventions,
   and the invariants that are easy to break. Start here before changing code.
 - [api.md](api.md) — the backend endpoints and its non-pip dependencies.
-- [deployment.md](deployment.md) — installing and updating the production PC.
+- [deployment.md](deployment.md) — installing and updating the production
+  machine (Linux PC or Android phone).
 
 ## Tech stack
 

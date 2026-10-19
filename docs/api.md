@@ -66,10 +66,13 @@ things come from elsewhere:
   ```bash
   sudo apt install -y tesseract-ocr tesseract-ocr-ita   # Debian/Ubuntu
   brew install tesseract tesseract-lang                 # macOS (all languages)
+  pkg install tesseract                                 # Termux (English only)
   ```
 
   Every installed pack shows up in the app's language pickers automatically;
-  add one with `sudo apt install tesseract-ocr-<code>` (e.g. `-fra`).
+  add one with `sudo apt install tesseract-ocr-<code>` (e.g. `-fra`), or on
+  Termux by downloading its data file (see
+  [deployment.md](deployment.md#android-phone-termux)).
 
 - **Upscaler model weights** (`realesr-general-x4v3.onnx`, ≈4.9 MB). Kept out
   of git and published on the repo's

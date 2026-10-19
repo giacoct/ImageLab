@@ -10,9 +10,10 @@ follow. Other docs: [README](README.md) (what it is, commands),
 
 A personal, self-hosted web app of image tools (resize, convert, compress,
 strip metadata, remove background, adjust, margin, merge, batch scale, SVG
-tracing, OCR, AI upscale). It runs on a Mac for development and on one Linux
-PC on the LAN in production — no cloud, no containers, no CI. Keep solutions
-simple and proportionate to that.
+tracing, OCR, AI upscale). It runs on a Mac for development and, in
+production, on one always-on machine on the LAN: a Linux PC, or an old Android
+phone with Termux — no cloud, no containers, no CI. Keep solutions simple and
+proportionate to that.
 
 Almost all image processing runs **in the browser** with the Canvas API. Only
 three tools call the backend: **Convert to SVG** (VTracer), **Extract text /
@@ -131,8 +132,9 @@ It also serves `frontend/dist/browser` with an SPA fallback to `index.html`.
 
 `vectorize.py`, `ocr.py`, `upscale.py` and `heic.py` take image bytes and
 return the result (SVG text, a dict, PNG bytes, converted image bytes). The
-upscaler caps input at 1500 px, processes it in tiles, and loads the ONNX model
-lazily on first use.
+upscaler caps input at 1500 px, processes it in tiles (each made 8-bit as it is
+placed, which keeps peak memory low enough for a phone), and loads the ONNX
+model lazily on first use.
 
 ## Cross-file invariants (easy to break)
 
@@ -144,6 +146,14 @@ lazily on first use.
   has no 3.15 wheels; vtracer 0.6 segfaults on 3.14, hence its 1.0 alpha).
   `SUPPORTED_PYTHON` in `setup.mjs` requires it and rebuilds a venv made with
   another version.
+- **Termux has no PyPI wheels.** On Android, `setup.mjs` makes the venv with
+  `--system-site-packages` and skips the requirements Termux installs with
+  `pkg` (`TERMUX_PROVIDED`: numpy, Pillow, onnxruntime); pip gets the other
+  native wheels (pydantic-core, maturin) from the Termux User Repository's
+  index and compiles vtracer and pillow-heif. A new native Python dependency
+  must install there too — as a `pkg` package (add it to `TERMUX_PROVIDED` and
+  to the `pkg install` line in deployment.md), a TUR wheel, or a source build
+  with the toolchain that line installs — or the phone setup breaks.
 - **Build output path.** `angular.json` builds to `frontend/dist/browser`;
   `FRONTEND_DIR` in `backend/main.py` serves that folder.
 - **Angular budgets** (`angular.json`): initial bundle warn 500 kB / error

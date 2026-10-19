@@ -26,6 +26,8 @@ MAX_SIDE = 1500
 
 # Process the image in overlapping tiles so peak memory is bounded regardless
 # of input size; the padding is cropped off after upscaling to avoid seams.
+# Each tile becomes 8-bit as it is placed, so a 6000 px result needs ~110 MB
+# instead of ~0.9 GB of float32 (it matters on small hosts such as a phone).
 TILE = 256
 TILE_PAD = 16
 
@@ -42,8 +44,7 @@ def upscale(data: bytes) -> bytes:
     has_alpha = image.mode in ("RGBA", "LA") or (image.mode == "P" and "transparency" in image.info)
 
     rgb = np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
-    upscaled = _upscale_array(_session(), rgb)
-    result = Image.fromarray((upscaled * 255.0 + 0.5).astype(np.uint8))
+    result = Image.fromarray(_upscale_array(_session(), rgb))
 
     if has_alpha:
         # The model only sees RGB; carry transparency over by resampling the
@@ -69,19 +70,20 @@ def _session() -> ort.InferenceSession:
 
 
 def _run_model(session: ort.InferenceSession, tile: np.ndarray) -> np.ndarray:
-    """Run one HWC float32 [0,1] RGB tile through the model; return the 4× tile, clipped."""
+    """Run one HWC float32 [0,1] RGB tile through the model; return the 4× tile as uint8."""
     batch = np.transpose(tile, (2, 0, 1))[None, ...].astype(np.float32)
     out = session.run(None, {session.get_inputs()[0].name: batch})[0]
-    return np.clip(np.transpose(np.squeeze(out, 0), (1, 2, 0)), 0.0, 1.0)
+    rgb = np.clip(np.transpose(np.squeeze(out, 0), (1, 2, 0)), 0.0, 1.0)
+    return (rgb * 255.0 + 0.5).astype(np.uint8)
 
 
 def _upscale_array(session: ort.InferenceSession, img: np.ndarray) -> np.ndarray:
-    """Upscale an HWC float32 [0,1] RGB array 4×, tiling large inputs."""
+    """Upscale an HWC float32 [0,1] RGB array 4× into uint8 RGB, tiling large inputs."""
     height, width, _ = img.shape
     if max(height, width) <= TILE:
         return _run_model(session, img)
 
-    out = np.zeros((height * FACTOR, width * FACTOR, 3), dtype=np.float32)
+    out = np.zeros((height * FACTOR, width * FACTOR, 3), dtype=np.uint8)
     for y0 in range(0, height, TILE):
         for x0 in range(0, width, TILE):
             x1, y1 = min(x0 + TILE, width), min(y0 + TILE, height)

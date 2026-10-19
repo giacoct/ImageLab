@@ -3,9 +3,12 @@
 # production server can install. Bump them together, then `npm run setup`
 # reinstalls. One exception: vtracer 1.0 alpha, because 0.6.x segfaults on
 # Python 3.14 (taking the whole server down).
+# Plain uvicorn: its [standard] extras are native speedups this app doesn't
+# need, and they don't build on Termux. On Termux, numpy, pillow and
+# onnxruntime come from Termux's own packages instead (see scripts/setup.mjs).
 # Tesseract and the model weights are not pip packages (see docs/api.md).
 fastapi==0.146.0
-uvicorn[standard]==0.54.0
+uvicorn==0.54.0
 python-multipart==0.0.32
 vtracer==1.0.0a4
 pillow==13.0.0

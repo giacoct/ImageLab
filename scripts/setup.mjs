@@ -7,6 +7,12 @@
  *   3. the upscaler model weights (sha256-checked)  — when missing
  *   4. a check that Tesseract is installed (warning only)
  *
+ * On Termux (Android) PyPI has no wheels for the native packages, so numpy,
+ * Pillow and onnxruntime come from Termux's own packages (`pkg`), which the
+ * virtualenv sees via --system-site-packages, and pip takes the remaining
+ * native wheels (pydantic-core; maturin to build vtracer) from the Termux User
+ * Repository's index. See docs/deployment.md.
+ *
  * Safe to re-run: every step is skipped when already up to date, so the update
  * flow is simply `git pull && npm run setup && npm run build`. `npm run dev`
  * runs this automatically.
@@ -32,6 +38,12 @@ const modelPath = join(backendDir, 'models', 'realesr-general-x4v3.onnx');
 // Exits 0 on the supported Python, 3.14: requirements.txt is pinned for it
 // (the newest the production server can install; onnxruntime has no 3.15 wheels).
 const SUPPORTED_PYTHON = 'import sys; sys.exit(sys.version_info[:2] != (3, 14))';
+
+// Node reports `android` on Termux.
+const TERMUX = process.platform === 'android';
+/** requirements.txt entries that Termux installs with `pkg` (as python-<name>). */
+const TERMUX_PROVIDED = ['numpy', 'pillow', 'onnxruntime'];
+const TERMUX_INDEX = 'https://termux-user-repository.github.io/pypi/';
 
 export async function setup() {
   installFrontend();
@@ -62,12 +74,48 @@ function installBackend() {
   if (!existsSync(venvPython)) {
     const python = findPython();
     log(`Creating the backend virtualenv with ${python}...`);
-    run(python, ['-m', 'venv', '.venv'], backendDir);
+    const venvArgs = TERMUX ? ['--system-site-packages'] : [];
+    run(python, ['-m', 'venv', ...venvArgs, '.venv'], backendDir);
   }
   log('Installing backend requirements...');
   run(venvPython, ['-m', 'pip', 'install', '--quiet', '--upgrade', 'pip'], backendDir);
-  run(venvPython, ['-m', 'pip', 'install', '--quiet', '-r', 'requirements.txt'], backendDir);
+  if (TERMUX) {
+    installTermuxRequirements();
+  } else {
+    run(venvPython, ['-m', 'pip', 'install', '--quiet', '-r', 'requirements.txt'], backendDir);
+  }
   writeFileSync(stamp, hash);
+}
+
+/** Termux: pip installs everything except what `pkg` provides; vtracer and pillow-heif compile. */
+function installTermuxRequirements() {
+  const check = spawnSync(venvPython, ['-c', 'import numpy, PIL, onnxruntime']);
+  if (check.status !== 0) {
+    fail(
+      'Install the Termux packages first: `pkg install ' +
+        TERMUX_PROVIDED.map((name) => `python-${name}`).join(' ') +
+        '` (see docs/deployment.md).',
+    );
+  }
+  const requirements = readFileSync(join(backendDir, 'requirements.txt'), 'utf8')
+    .split('\n')
+    .filter((line) => !TERMUX_PROVIDED.includes(line.split('==')[0].trim().toLowerCase()));
+  const path = join(backendDir, '.venv', 'requirements-termux.txt');
+  writeFileSync(path, requirements.join('\n'));
+  // maturin (vtracer's build) can't always detect the API level on a device,
+  // and its wheel must target the one Termux's Python was built for (not the
+  // phone's), or pip rejects it.
+  process.env.ANDROID_API_LEVEL = spawnSync(
+    venvPython,
+    ['-c', 'import sys; print(sys.getandroidapilevel())'],
+    { encoding: 'utf8' },
+  ).stdout.trim();
+  log('Compiling vtracer and pillow-heif; on a phone this can take a while...');
+  run(
+    venvPython,
+    ['-m', 'pip', 'install', '--quiet', '--extra-index-url', TERMUX_INDEX, '-r', path],
+    backendDir,
+  );
 }
 
 /** The supported Python on PATH (Homebrew's `python3` may be newer; macOS's own is 3.9). */
@@ -75,7 +123,9 @@ function findPython() {
   for (const command of ['python3.14', 'python3']) {
     if (spawnSync(command, ['-c', SUPPORTED_PYTHON]).status === 0) return command;
   }
-  fail('Python 3.14 is required (`brew install python@3.14`; see docs/deployment.md for Linux).');
+  fail(
+    'Python 3.14 is required (`brew install python@3.14`; see docs/deployment.md for Linux and Termux).',
+  );
 }
 
 async function downloadModel() {

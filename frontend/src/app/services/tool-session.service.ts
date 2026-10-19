@@ -138,31 +138,28 @@ export class ToolSessionService {
   }
 
   /** Run an image processor over every selected file, collecting the outputs. */
-  run(processor: JobProcessor, fallbackMessage: string): Promise<void> {
+  run(processor: JobProcessor): Promise<void> {
     const tasks = this.files().map((file) => ({ name: file.name, run: () => processor(file) }));
-    return this.runTasks(tasks, fallbackMessage, this.imageSink);
+    return this.runTasks(tasks, this.imageSink);
   }
 
   /**
    * Run a processor that combines *all* selected files into a single image
    * output (e.g. the merge tool), as opposed to one output per file.
    */
-  runCombined(
-    process: (files: File[]) => Promise<ImageOutput>,
-    fallbackMessage: string,
-  ): Promise<void> {
+  runCombined(process: (files: File[]) => Promise<ImageOutput>): Promise<void> {
     const files = this.files();
     if (files.length === 0) {
       return Promise.resolve();
     }
     const task = { name: files[0].name, run: () => process(files) };
-    return this.runTasks([task], fallbackMessage, this.imageSink);
+    return this.runTasks([task], this.imageSink);
   }
 
   /** Run the OCR processor over every selected file, collecting the text results. */
-  runOcr(processor: OcrProcessor, fallbackMessage: string): Promise<void> {
+  runOcr(processor: OcrProcessor): Promise<void> {
     const tasks = this.files().map((file) => ({ name: file.name, run: () => processor(file) }));
-    return this.runTasks(tasks, fallbackMessage, {
+    return this.runTasks(tasks, {
       reset: () => this.replaceOcrResults([]),
       settle: (results) => {
         this.ocrResults.set(results);
@@ -187,11 +184,7 @@ export class ToolSessionService {
    * cancellation, and per-task failure collection. A {@link BatchSink} adapts
    * it to whichever result type the tool produces (image outputs or OCR text).
    */
-  private async runTasks<T>(
-    tasks: readonly BatchTask<T>[],
-    fallbackMessage: string,
-    sink: BatchSink<T>,
-  ): Promise<void> {
+  private async runTasks<T>(tasks: readonly BatchTask<T>[], sink: BatchSink<T>): Promise<void> {
     if (tasks.length === 0 || this.isProcessing()) {
       return;
     }
@@ -217,7 +210,7 @@ export class ToolSessionService {
         } catch (error) {
           failures.push({
             fileName: task.name,
-            message: error instanceof Error ? error.message : fallbackMessage,
+            message: error instanceof Error ? error.message : 'The image could not be processed.',
           });
         }
 

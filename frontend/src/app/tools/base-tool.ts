@@ -1,4 +1,13 @@
-import { Directive, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
+import {
+  Directive,
+  OnInit,
+  Signal,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable } from 'rxjs';
@@ -25,7 +34,7 @@ interface PersistableForm {
  * A concrete tool declares its `toolId`, registers its settings form (if any)
  * with {@link registerForm}, and implements {@link createProcessor}, which
  * snapshots the current settings into a per-file processor. Optional hooks:
- * {@link canRun}, {@link onFilesSelected}, {@link runJob}, {@link errorMessage}.
+ * {@link canRun}, {@link onFilesSelected}, {@link runJob}.
  */
 @Directive()
 export abstract class BaseTool implements OnInit {
@@ -37,9 +46,6 @@ export abstract class BaseTool implements OnInit {
 
   /** Registry id of the tool, e.g. `'resize'`. */
   protected abstract readonly toolId: string;
-
-  /** Shown when processing throws something that isn't an `Error`. */
-  protected readonly errorMessage: string = 'The images could not be processed.';
 
   protected readonly files = this.session.files;
   protected readonly isProcessing = this.session.isProcessing;
@@ -86,6 +92,25 @@ export abstract class BaseTool implements OnInit {
   }
 
   /**
+   * An object URL of {@link selectedFile}, for a plain `<img>` preview; each URL
+   * is revoked once the selection moves on. Call from a field initializer.
+   */
+  protected selectedFileUrl(): Signal<string | null> {
+    const url = signal<string | null>(null);
+    effect((onCleanup) => {
+      const file = this.selectedFile();
+      if (!file) {
+        url.set(null);
+        return;
+      }
+      const objectUrl = URL.createObjectURL(file);
+      url.set(objectUrl);
+      onCleanup(() => URL.revokeObjectURL(objectUrl));
+    });
+    return url.asReadonly();
+  }
+
+  /**
    * Wire a settings form into the session: restore the last-used values from
    * storage, then mark outputs stale and persist on every change. Call from
    * the tool's constructor.
@@ -124,7 +149,7 @@ export abstract class BaseTool implements OnInit {
    * different shape (Merge: one image from all files; OCR: text) override it.
    */
   protected runJob(): Promise<void> {
-    return this.session.run(this.createProcessor(), this.errorMessage);
+    return this.session.run(this.createProcessor());
   }
 
   /**

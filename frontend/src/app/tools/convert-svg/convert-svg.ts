@@ -27,7 +27,6 @@ export class ConvertSvg extends BaseTool {
   private readonly backend = inject(BackendService);
 
   protected readonly toolId = 'convert-svg';
-  protected override readonly errorMessage = 'The vectorizer service could not be reached.';
   protected readonly form = this.fb.group({
     preset: this.fb.control<VectorizePreset>('auto'),
     // Custom defaults follow user testing: medium color detail, strong cleanup.

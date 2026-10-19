@@ -1,11 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
@@ -31,7 +24,6 @@ export class Ocr extends BaseTool {
   private readonly backend = inject(BackendService);
 
   protected readonly toolId = 'ocr';
-  protected override readonly errorMessage = 'The text could not be recognized.';
   protected readonly form = this.fb.group({
     language: ['eng', [Validators.required]],
     /** Optional second language recognized together with the first ('' = none). */
@@ -51,24 +43,12 @@ export class Ocr extends BaseTool {
     this.languages().filter((language) => language.code !== this.language()),
   );
 
-  /** Object URL of the selected file, shown as a plain preview. */
-  protected readonly previewUrl = signal<string | null>(null);
+  protected readonly previewUrl = this.selectedFileUrl();
 
   constructor() {
     super();
     this.registerForm(this.form);
     void this.loadLanguages();
-
-    effect((onCleanup) => {
-      const file = this.selectedFile();
-      if (!file) {
-        this.previewUrl.set(null);
-        return;
-      }
-      const url = URL.createObjectURL(file);
-      this.previewUrl.set(url);
-      onCleanup(() => URL.revokeObjectURL(url));
-    });
   }
 
   /** Recognition can only start once the installed languages are known. */
@@ -81,7 +61,7 @@ export class Ocr extends BaseTool {
     const { language, secondLanguage } = this.form.getRawValue();
     const lang =
       secondLanguage && secondLanguage !== language ? `${language}+${secondLanguage}` : language;
-    return this.session.runOcr((file) => this.backend.recognizeText(file, lang), this.errorMessage);
+    return this.session.runOcr((file) => this.backend.recognizeText(file, lang));
   }
 
   private async loadLanguages(): Promise<void> {

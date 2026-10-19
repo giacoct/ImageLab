@@ -20,8 +20,6 @@ describe('buildOcrResult', () => {
 
     expect(result.fileName).toBe('scan.png');
     expect(result.imageUrl).toBe('blob:url');
-    expect(result.width).toBe(200);
-    expect(result.height).toBe(100);
     expect(result.text).toBe('Hello world\nagain');
 
     const [hello] = result.words;
@@ -29,14 +27,11 @@ describe('buildOcrResult', () => {
     expect(hello.top).toBeCloseTo(0.2);
     expect(hello.width).toBeCloseTo(0.2);
     expect(hello.height).toBeCloseTo(0.1);
-    expect(hello.confidence).toBe(96);
-    expect(hello.line).toBe(0);
   });
 
-  it('preserves word count and line grouping', () => {
+  it('keeps the words in reading order', () => {
     const result = buildOcrResult('scan.png', 'blob:url', sample);
-    expect(result.words).toHaveLength(3);
-    expect(result.words.map((w) => w.line)).toEqual([0, 0, 1]);
+    expect(result.words.map((w) => w.text)).toEqual(['Hello', 'world', 'again']);
   });
 
   it('avoids dividing by zero for degenerate dimensions', () => {

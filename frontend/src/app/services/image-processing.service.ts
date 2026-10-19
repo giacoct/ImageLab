@@ -4,21 +4,16 @@ import { buildFilter, FilterAdjustments } from '../domain/adjustments';
 import { NormalizedCrop, Orientation } from '../domain/crop';
 import { dimensionsForMaxSize } from '../domain/image-files';
 import { CanvasOutputFormat, ImageDimensions, ImageOutput } from '../domain/image-output.model';
-import {
-  MarginSides,
-  MarginUnit,
-  marginFillStyle,
-  paintMarginBands,
-  resolveMarginSides,
-} from '../domain/margins';
-import {
-  MergeAlignment,
-  MergeDirection,
-  MergeResize,
-  computeMergeLayout,
-} from '../domain/merge-layout';
 import { BackgroundKeyOptions } from '../domain/pixel-ops';
-import { canvasToBlob, createCanvas, drawOriented } from './canvas';
+import {
+  MarginSettings,
+  MergeSettings,
+  canvasToBlob,
+  createCanvas,
+  drawMargins,
+  drawMerged,
+  drawOriented,
+} from './canvas';
 import { keyBackgroundImageData, sharpenImageData } from './pixel-worker/pixel-worker.client';
 
 /** Options every export shares: the encoding and the output file name. */
@@ -46,19 +41,9 @@ export interface AdjustmentOptions extends FilterAdjustments, EncodeOptions {
   sharpen: number;
 }
 
-export interface MarginRenderOptions extends MarginSides, EncodeOptions {
-  unit: MarginUnit;
-  color: string;
-  /** 0–100. */
-  opacity: number;
-}
+export interface MarginRenderOptions extends MarginSettings, EncodeOptions {}
 
-export interface MergeOptions {
-  direction: MergeDirection;
-  alignment: MergeAlignment;
-  resize: MergeResize;
-  /** CSS color for the gaps/background, or `null` for a transparent canvas. */
-  background: string | null;
+export interface MergeOptions extends MergeSettings {
   fileName: string;
 }
 
@@ -156,14 +141,14 @@ export class ImageProcessingService {
     bitmap.close();
 
     const png = await canvasToBlob(canvas, 'image/png', 1);
-    return this.output(await createIcoBlob(png, size), size, size, options.fileName);
+    return imageOutput(await createIcoBlob(png, size), size, size, options.fileName);
   }
 
   /** Apply rotate/flip, crop, and resize in a single pass (the Resize tool). */
   async renderEdit(file: File, options: EditOptions): Promise<ImageOutput> {
     const bitmap = await createImageBitmap(file);
     const oriented = document.createElement('canvas');
-    drawOriented(oriented, bitmap, bitmap.width, bitmap.height, options.orientation);
+    drawOriented(oriented, bitmap, options.orientation);
     bitmap.close();
 
     const { width, height } = oriented;
@@ -225,47 +210,18 @@ export class ImageProcessingService {
   /** Surround an image with a colored (optionally transparent) margin. */
   async renderMargins(file: File, options: MarginRenderOptions): Promise<ImageOutput> {
     const bitmap = await createImageBitmap(file);
-    const px = resolveMarginSides(options, options.unit, bitmap.width, bitmap.height);
-    const totalWidth = bitmap.width + px.left + px.right;
-    const totalHeight = bitmap.height + px.top + px.bottom;
-
-    const { canvas, context } = createCanvas(totalWidth, totalHeight);
-    context.drawImage(bitmap, px.left, px.top);
+    const canvas = document.createElement('canvas');
+    drawMargins(canvas, bitmap, options);
     bitmap.close();
-    paintMarginBands(
-      context,
-      totalWidth,
-      totalHeight,
-      px,
-      marginFillStyle(options.color, options.opacity),
-    );
-
     return this.encode(canvas, options);
   }
 
   /** Combine several images into one PNG, stacked along the chosen axis. */
   async renderMerged(files: readonly File[], options: MergeOptions): Promise<ImageOutput> {
-    if (files.length === 0) {
-      throw new Error('Select at least one image to merge.');
-    }
-
     const bitmaps = await Promise.all(files.map((file) => createImageBitmap(file)));
     try {
-      const layout = computeMergeLayout(bitmaps, options);
-      const { canvas, context } = createCanvas(
-        Math.max(1, layout.width),
-        Math.max(1, layout.height),
-      );
-
-      // A transparent canvas keeps the gaps see-through; otherwise paint them.
-      if (options.background) {
-        context.fillStyle = options.background;
-        context.fillRect(0, 0, canvas.width, canvas.height);
-      }
-      layout.placements.forEach((place, i) => {
-        context.drawImage(bitmaps[i], place.x, place.y, place.width, place.height);
-      });
-
+      const canvas = document.createElement('canvas');
+      drawMerged(canvas, bitmaps, options);
       // PNG so a transparent background (and any source alpha) is preserved.
       return await this.encode(canvas, {
         format: 'image/png',
@@ -299,12 +255,18 @@ export class ImageProcessingService {
 
   private async encode(canvas: HTMLCanvasElement, options: EncodeOptions): Promise<ImageOutput> {
     const blob = await canvasToBlob(canvas, options.format, options.quality);
-    return this.output(blob, canvas.width, canvas.height, options.fileName);
+    return imageOutput(blob, canvas.width, canvas.height, options.fileName);
   }
+}
 
-  private output(blob: Blob, width: number, height: number, fileName: string): ImageOutput {
-    return { fileName, blob, url: URL.createObjectURL(blob), size: blob.size, width, height };
-  }
+/** Wrap a produced image blob as an {@link ImageOutput} (creating its object URL). */
+export function imageOutput(
+  blob: Blob,
+  width: number,
+  height: number,
+  fileName: string,
+): ImageOutput {
+  return { fileName, blob, url: URL.createObjectURL(blob), size: blob.size, width, height };
 }
 
 function clamp(value: number, min: number, max: number): number {

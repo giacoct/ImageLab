@@ -2,26 +2,15 @@
 
 import { BackgroundKeyOptions, keyBackgroundPixels, sharpenPixels } from '../../domain/pixel-ops';
 
+/** One job for the worker; it replies with the resulting RGBA buffer. */
 export type PixelWorkerRequest =
-  | {
-      id: number;
-      op: 'sharpen';
-      buffer: ArrayBuffer;
-      width: number;
-      height: number;
-      amount: number;
-    }
-  | { id: number; op: 'background-key'; buffer: ArrayBuffer; key: BackgroundKeyOptions };
-
-export interface PixelWorkerResponse {
-  id: number;
-  buffer: ArrayBuffer;
-}
+  | { op: 'sharpen'; buffer: ArrayBuffer; width: number; height: number; amount: number }
+  | { op: 'background-key'; buffer: ArrayBuffer; key: BackgroundKeyOptions };
 
 addEventListener('message', ({ data }: MessageEvent<PixelWorkerRequest>) => {
   const pixels = new Uint8ClampedArray(data.buffer);
 
-  let result: Uint8ClampedArray;
+  let result: Uint8ClampedArray<ArrayBuffer>;
   if (data.op === 'sharpen') {
     result = sharpenPixels(pixels, data.width, data.height, data.amount);
   } else {
@@ -29,6 +18,5 @@ addEventListener('message', ({ data }: MessageEvent<PixelWorkerRequest>) => {
     result = pixels;
   }
 
-  const response: PixelWorkerResponse = { id: data.id, buffer: result.buffer as ArrayBuffer };
-  postMessage(response, { transfer: [response.buffer] });
+  postMessage(result.buffer, { transfer: [result.buffer] });
 });

@@ -31,7 +31,7 @@
           <button
             class="button secondary"
             type="button"
-            [class.is-on]="flipH()"
+            [class.is-on]="orientation().flipHorizontal"
             (click)="toggleFlipH()"
           >
             Mirror
@@ -39,7 +39,7 @@
           <button
             class="button secondary"
             type="button"
-            [class.is-on]="flipV()"
+            [class.is-on]="orientation().flipVertical"
             (click)="toggleFlipV()"
           >
             Flip

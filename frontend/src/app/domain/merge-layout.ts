@@ -30,7 +30,7 @@ export interface Size {
   height: number;
 }
 
-export interface Placement {
+interface Placement {
   x: number;
   y: number;
   width: number;

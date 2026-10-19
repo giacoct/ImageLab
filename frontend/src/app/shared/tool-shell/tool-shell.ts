@@ -1,12 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  effect,
-  inject,
-  input,
-  output,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output, resource } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { BackendService } from '../../services/backend.service';
@@ -48,22 +40,14 @@ export class ToolShell {
 
   protected readonly files = this.session.files;
   protected readonly error = this.session.error;
-  /** Why each rejected image would fail (empty when all are fine). */
-  protected readonly uploadProblems = signal<string[]>([]);
-
-  constructor() {
-    effect((onCleanup) => {
-      const files = this.files();
+  /** Why each image the backend would reject fails (empty when all are fine). */
+  protected readonly uploadProblems = resource({
+    params: () => {
       const check = this.uploadCheck();
-      this.uploadProblems.set([]);
-      if (check === 'none' || files.length === 0) {
-        return;
-      }
-      let current = true;
-      onCleanup(() => (current = false));
-      void this.backend.uploadProblems(files, check === 'upscale').then((problems) => {
-        if (current) this.uploadProblems.set(problems);
-      });
-    });
-  }
+      return check === 'none'
+        ? undefined
+        : { files: this.files(), forUpscale: check === 'upscale' };
+    },
+    loader: ({ params }) => this.backend.uploadProblems(params.files, params.forUpscale),
+  });
 }

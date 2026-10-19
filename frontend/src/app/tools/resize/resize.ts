@@ -14,7 +14,9 @@ import {
   AspectPreset,
   DragMode,
   FULL_CROP,
+  NO_ROTATION,
   NormalizedCrop,
+  Orientation,
   Rotation,
   applyDrag,
   centeredCrop,
@@ -58,9 +60,7 @@ export class Resize extends BaseTool implements OnDestroy {
   private readonly canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('previewCanvas');
 
   private readonly bitmap = signal<ImageBitmap | null>(null);
-  protected readonly rotateDegrees = signal<Rotation>(0);
-  protected readonly flipH = signal(false);
-  protected readonly flipV = signal(false);
+  protected readonly orientation = signal<Orientation>(NO_ROTATION);
   protected readonly crop = signal<NormalizedCrop>(FULL_CROP);
   protected readonly aspect = signal<AspectPreset>('free');
   protected readonly matchCrop = signal(true);
@@ -72,7 +72,7 @@ export class Resize extends BaseTool implements OnDestroy {
 
   /** Dimensions of the image after rotation (90°/270° swap axes). */
   private readonly oriented = computed(() =>
-    orientedSize(this.bitmap() ?? { width: 1, height: 1 }, this.rotateDegrees()),
+    orientedSize(this.bitmap() ?? { width: 1, height: 1 }, this.orientation().rotateDegrees),
   );
 
   protected readonly cropPixels = computed(() => {
@@ -102,11 +102,7 @@ export class Resize extends BaseTool implements OnDestroy {
       const bitmap = this.bitmap();
       const canvas = this.canvasRef()?.nativeElement;
       if (bitmap && canvas) {
-        drawOriented(canvas, bitmap, bitmap.width, bitmap.height, {
-          rotateDegrees: this.rotateDegrees(),
-          flipHorizontal: this.flipH(),
-          flipVertical: this.flipV(),
-        });
+        drawOriented(canvas, bitmap, this.orientation());
       }
     });
 
@@ -121,18 +117,12 @@ export class Resize extends BaseTool implements OnDestroy {
 
     // Any change to the export settings invalidates an existing render.
     effect(() => {
-      this.rotateDegrees();
-      this.flipH();
-      this.flipV();
+      this.orientation();
       this.crop();
       this.outputWidth();
       this.outputHeight();
       this.session.markStale();
     });
-  }
-
-  protected override canRun(): boolean {
-    return this.outputWidth() > 0 && this.outputHeight() > 0;
   }
 
   /** Load the (single) image and reset every edit for it. */
@@ -146,9 +136,7 @@ export class Resize extends BaseTool implements OnDestroy {
       const bitmap = await createImageBitmap(file);
       this.bitmap()?.close();
       this.bitmap.set(bitmap);
-      this.rotateDegrees.set(0);
-      this.flipH.set(false);
-      this.flipV.set(false);
+      this.orientation.set(NO_ROTATION);
       this.aspect.set('free');
       this.crop.set(FULL_CROP);
       this.matchCrop.set(true);
@@ -158,21 +146,20 @@ export class Resize extends BaseTool implements OnDestroy {
   }
 
   protected rotate(): void {
-    this.rotateDegrees.update((degrees) => ((degrees + 90) % 360) as Rotation);
-    this.resetCrop();
+    this.reorient((o) => ({ ...o, rotateDegrees: ((o.rotateDegrees + 90) % 360) as Rotation }));
   }
 
   protected toggleFlipH(): void {
-    this.flipH.update((on) => !on);
-    this.resetCrop();
+    this.reorient((o) => ({ ...o, flipHorizontal: !o.flipHorizontal }));
   }
 
   protected toggleFlipV(): void {
-    this.flipV.update((on) => !on);
-    this.resetCrop();
+    this.reorient((o) => ({ ...o, flipVertical: !o.flipVertical }));
   }
 
-  private resetCrop(): void {
+  /** Change the orientation; the crop no longer fits it, so it starts over. */
+  private reorient(change: (orientation: Orientation) => Orientation): void {
+    this.orientation.update(change);
     this.aspect.set('free');
     this.crop.set(FULL_CROP);
   }
@@ -243,11 +230,7 @@ export class Resize extends BaseTool implements OnDestroy {
   }
 
   protected override createProcessor(): JobProcessor {
-    const orientation = {
-      rotateDegrees: this.rotateDegrees(),
-      flipHorizontal: this.flipH(),
-      flipVertical: this.flipV(),
-    };
+    const orientation = this.orientation();
     const crop = this.crop();
     const outputWidth = this.outputWidth();
     const outputHeight = this.outputHeight();

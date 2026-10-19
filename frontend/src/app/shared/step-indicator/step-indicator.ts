@@ -15,7 +15,6 @@ const LABELS: Record<WorkflowStep, string> = {
 
 interface StepView {
   id: WorkflowStep;
-  index: number;
   label: string;
   isCurrent: boolean;
   /** A reachable step that comes before the current one. */
@@ -46,7 +45,6 @@ export class StepIndicator {
   protected readonly steps = computed<StepView[]>(() => {
     const current = this.current();
     const currentIndex = ORDER.indexOf(current);
-    const base = this.toolRoute().replace(/\/$/, '');
     const enabled: Record<WorkflowStep, boolean> = {
       import: true,
       settings: this.session.canVisitSettings(),
@@ -55,12 +53,11 @@ export class StepIndicator {
 
     return ORDER.map((id, i) => ({
       id,
-      index: i + 1,
       label: LABELS[id],
       isCurrent: id === current,
       done: i < currentIndex && enabled[id],
       enabled: enabled[id],
-      link: `${base}/${id}`,
+      link: `${this.toolRoute()}/${id}`,
     }));
   });
 }

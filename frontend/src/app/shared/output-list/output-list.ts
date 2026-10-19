@@ -82,7 +82,8 @@ export class OutputList {
   }
 
   protected downloadZip(): void {
-    void this.downloads.downloadZip(this.outputs(), `imagelab-${this.outputs().length}-images.zip`);
+    const entries = this.outputs().map((output) => ({ name: output.fileName, blob: output.blob }));
+    void this.downloads.downloadZip(entries, `imagelab-${entries.length}-images.zip`);
   }
 
   protected readonly formatBytes = formatBytes;

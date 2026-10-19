@@ -48,6 +48,6 @@ export class OcrResults {
       name: withExtension(result.fileName, 'txt'),
       blob: new Blob([result.text], { type: 'text/plain;charset=utf-8' }),
     }));
-    void this.downloads.downloadEntriesAsZip(entries, `imagelab-ocr-${entries.length}-texts.zip`);
+    void this.downloads.downloadZip(entries, `imagelab-ocr-${entries.length}-texts.zip`);
   }
 }

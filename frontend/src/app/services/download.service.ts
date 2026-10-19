@@ -15,15 +15,8 @@ export class DownloadService {
     this.downloadBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }), fileName);
   }
 
-  /** Bundle every output into a single ZIP archive (duplicate names get numbered). */
-  async downloadZip(outputs: readonly ImageOutput[], zipName: string): Promise<void> {
-    await this.downloadEntriesAsZip(
-      outputs.map((output) => ({ name: output.fileName, blob: output.blob })),
-      zipName,
-    );
-  }
-
-  async downloadEntriesAsZip(entries: readonly ZipEntry[], zipName: string): Promise<void> {
+  /** Bundle files into a single ZIP archive (duplicate names get numbered). */
+  async downloadZip(entries: readonly ZipEntry[], zipName: string): Promise<void> {
     this.downloadBlob(await createZip(dedupeNames(entries)), zipName);
   }
 

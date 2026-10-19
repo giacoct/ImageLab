@@ -1,122 +1,62 @@
 /**
  * Main-thread client for the pixel worker. Heavy per-pixel passes on
- * full-resolution exports run off the UI thread; if workers are unavailable
- * (or the worker crashes) every call falls back to the same pure functions
- * synchronously, so callers never have to care which path ran.
+ * full-resolution exports run off the UI thread, each in a worker started for
+ * that job (so a failure can't affect other jobs); if the worker can't run,
+ * the same pure function runs inline instead, so callers never have to care
+ * which path ran.
  *
- * Requests are structured-cloned to the worker (the source buffer stays
- * usable for the fallback); responses transfer their buffer back zero-copy.
+ * The pixels are copied to the worker (the source stays intact for the
+ * fallback) and the result is transferred back without a copy.
  */
 
 import { BackgroundKeyOptions, keyBackgroundPixels, sharpenPixels } from '../../domain/pixel-ops';
-import type { PixelWorkerRequest, PixelWorkerResponse } from './pixel.worker';
+import type { PixelWorkerRequest } from './pixel.worker';
 
-interface Pending {
-  resolve: (buffer: ArrayBuffer) => void;
-  reject: (reason: unknown) => void;
-}
-
-/** `undefined` = not yet created, `null` = unavailable (keep using fallback). */
-let worker: Worker | null | undefined;
-let nextId = 0;
-const pending = new Map<number, Pending>();
-
-function getWorker(): Worker | null {
-  if (worker !== undefined) {
-    return worker;
-  }
-  if (typeof Worker === 'undefined') {
-    worker = null;
-    return worker;
-  }
-
-  try {
-    worker = new Worker(new URL('./pixel.worker', import.meta.url), { type: 'module' });
-  } catch {
-    worker = null;
-    return worker;
-  }
-
-  worker.addEventListener('message', ({ data }: MessageEvent<PixelWorkerResponse>) => {
-    const entry = pending.get(data.id);
-    pending.delete(data.id);
-    entry?.resolve(data.buffer);
-  });
-  worker.addEventListener('error', () => {
-    for (const entry of pending.values()) {
-      entry.reject(new Error('The pixel worker failed.'));
-    }
-    pending.clear();
-    worker?.terminate();
-    worker = null;
-  });
-
-  return worker;
-}
-
-function post(request: PixelWorkerRequest): Promise<ArrayBuffer> | null {
-  const instance = getWorker();
-  if (!instance) {
-    return null;
-  }
-  return new Promise((resolve, reject) => {
-    pending.set(request.id, { resolve, reject });
-    instance.postMessage(request);
-  });
-}
-
-/** Sharpen a full-resolution export, preferring the worker. */
+/** Sharpen a full-resolution export; `amount` is 0..1. */
 export async function sharpenImageData(imageData: ImageData, amount: number): Promise<ImageData> {
-  const request = post({
-    id: nextId++,
-    op: 'sharpen',
-    buffer: imageData.data.buffer as ArrayBuffer,
-    width: imageData.width,
-    height: imageData.height,
-    amount,
-  });
-
-  if (request) {
-    try {
-      const buffer = await request;
-      return new ImageData(new Uint8ClampedArray(buffer), imageData.width, imageData.height);
-    } catch {
-      // Worker crashed mid-run — the source buffer was cloned, so fall through.
-    }
-  }
-
-  return new ImageData(
-    sharpenPixels(imageData.data, imageData.width, imageData.height, amount),
-    imageData.width,
-    imageData.height,
+  const { data, width, height } = imageData;
+  const pixels = await inWorker({ op: 'sharpen', buffer: data.buffer, width, height, amount }, () =>
+    sharpenPixels(data, width, height, amount),
   );
+  return new ImageData(pixels, width, height);
 }
 
-/** Key out a background color on a full-resolution export, preferring the worker. */
+/** Key out a background color on a full-resolution export. */
 export async function keyBackgroundImageData(
   imageData: ImageData,
-  options: BackgroundKeyOptions,
+  key: BackgroundKeyOptions,
 ): Promise<ImageData> {
-  const request = post({
-    id: nextId++,
-    op: 'background-key',
-    buffer: imageData.data.buffer as ArrayBuffer,
-    key: {
-      color: options.color,
-      tolerance: options.tolerance,
-      edgeSmoothing: options.edgeSmoothing,
-    },
+  const { data, width, height } = imageData;
+  const pixels = await inWorker({ op: 'background-key', buffer: data.buffer, key }, () => {
+    keyBackgroundPixels(data, key);
+    return data;
   });
+  return new ImageData(pixels, width, height);
+}
 
-  if (request) {
-    try {
-      const buffer = await request;
-      return new ImageData(new Uint8ClampedArray(buffer), imageData.width, imageData.height);
-    } catch {
-      // Worker crashed mid-run — the source buffer was cloned, so fall through.
-    }
+/** Run `request` in a new pixel worker, or `inline` if the worker fails or is unavailable. */
+async function inWorker(
+  request: PixelWorkerRequest,
+  inline: () => Uint8ClampedArray<ArrayBuffer>,
+): Promise<Uint8ClampedArray<ArrayBuffer>> {
+  try {
+    return new Uint8ClampedArray(await runWorker(request));
+  } catch {
+    return inline();
   }
+}
 
-  keyBackgroundPixels(imageData.data, options);
-  return imageData;
+function runWorker(request: PixelWorkerRequest): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('./pixel.worker', import.meta.url), { type: 'module' });
+    worker.onmessage = ({ data }: MessageEvent<ArrayBuffer>) => {
+      worker.terminate();
+      resolve(data);
+    };
+    worker.onerror = () => {
+      worker.terminate();
+      reject(new Error('The pixel worker failed.'));
+    };
+    worker.postMessage(request);
+  });
 }

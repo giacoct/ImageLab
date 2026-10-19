@@ -79,7 +79,9 @@ To add a tool:
 2. add an entry to `TOOLS`;
 3. add an icon `@case ('<id>')` in `shared/icon/icon.html`;
 4. put any new pure logic in `domain/` (tested) and rendering in
-   `ImageProcessingService`.
+   `ImageProcessingService`. A live preview that shows the export's result
+   draws it with the same `draw*` function from `services/canvas.ts`
+   (downscaled), so the two can't drift apart.
 
 **Every tool is the same 3-step workflow**: `/tools/<id>/import` (shared
 `ImportPage`) → `/tools/<id>/settings` (the tool's own page) →
@@ -104,7 +106,8 @@ can be chained into another (raster outputs only, not SVG/ICO).
 **Heavy per-pixel work** (sharpen, background key on full-resolution exports)
 runs in a Web Worker: pure functions in `domain/pixel-ops.ts` executed by
 `services/pixel-worker/pixel.worker.ts` through `pixel-worker.client.ts`
-(which falls back to running them inline if the worker is unavailable).
+(one worker per job; it falls back to running them inline if the worker
+fails or is unavailable).
 
 **Settings persistence.** `BaseTool.registerForm()` restores each tool's
 last-used settings from `localStorage` and saves them on every change.
@@ -158,7 +161,8 @@ npm run format   # Prettier over the frontend
 
 ## Conventions
 
-- Angular: standalone components, signals (`signal` / `computed` / `effect`),
+- Angular: standalone components, signals (`signal` / `computed` / `effect`,
+  and `resource` for state loaded asynchronously from other signals),
   `inject()` instead of constructor injection, `OnPush`, lazy
   `loadComponent` routes. No NgModules.
 - Every class/component starts with a short doc comment saying what it is;

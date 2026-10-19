@@ -13,7 +13,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, map } from 'rxjs';
 
-import { computeMergeLayout } from '../../domain/merge-layout';
+import { MergeAlignment, MergeDirection, MergeResize } from '../../domain/merge-layout';
+import { MergeSettings, drawMerged } from '../../services/canvas';
 import { ToolShell } from '../../shared/tool-shell/tool-shell';
 import { BaseTool } from '../base-tool';
 
@@ -32,11 +33,10 @@ export class Merge extends BaseTool {
   private readonly fb = inject(NonNullableFormBuilder);
 
   protected readonly toolId = 'merge';
-  protected override readonly errorMessage = 'The images could not be merged.';
   protected readonly form = this.fb.group({
-    direction: this.fb.control<'horizontal' | 'vertical'>('vertical'),
-    alignment: this.fb.control<'start' | 'center' | 'end'>('center'),
-    resize: this.fb.control<'none' | 'fill'>('none'),
+    direction: this.fb.control<MergeDirection>('vertical'),
+    alignment: this.fb.control<MergeAlignment>('center'),
+    resize: this.fb.control<MergeResize>('none'),
     transparent: [true],
     background: ['#ffffff'],
   });
@@ -79,45 +79,10 @@ export class Merge extends BaseTool {
     // Repaint whenever the bitmaps, the options, or the canvas change.
     effect(() => {
       const bitmaps = this.bitmaps();
-      const options = this.options();
       const canvas = this.canvasRef()?.nativeElement;
-      if (!canvas || bitmaps.length < 2) {
-        return;
+      if (canvas && bitmaps.length >= 2) {
+        drawMerged(canvas, bitmaps, mergeSettings(this.options()), PREVIEW_MAX_SIDE);
       }
-
-      const layout = computeMergeLayout(
-        bitmaps.map((bitmap) => ({ width: bitmap.width, height: bitmap.height })),
-        options,
-      );
-      if (layout.width === 0 || layout.height === 0) {
-        return;
-      }
-
-      const scale = Math.min(1, PREVIEW_MAX_SIDE / Math.max(layout.width, layout.height));
-      canvas.width = Math.max(1, Math.round(layout.width * scale));
-      canvas.height = Math.max(1, Math.round(layout.height * scale));
-
-      const context = canvas.getContext('2d');
-      if (!context) {
-        return;
-      }
-
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      if (!options.transparent) {
-        context.fillStyle = options.background;
-        context.fillRect(0, 0, canvas.width, canvas.height);
-      }
-      context.imageSmoothingEnabled = true;
-      context.imageSmoothingQuality = 'high';
-      layout.placements.forEach((place, i) => {
-        context.drawImage(
-          bitmaps[i],
-          place.x * scale,
-          place.y * scale,
-          place.width * scale,
-          place.height * scale,
-        );
-      });
     });
 
     inject(DestroyRef).onDestroy(() => this.releaseBitmaps());
@@ -156,18 +121,8 @@ export class Merge extends BaseTool {
 
   /** Merge produces one image from all files, not one per file. */
   protected override runJob(): Promise<void> {
-    const { direction, alignment, resize, transparent, background } = this.form.getRawValue();
-    const options = {
-      direction,
-      alignment,
-      resize,
-      background: transparent ? null : background,
-      fileName: 'merged.png',
-    };
-    return this.session.runCombined(
-      (files) => this.processing.renderMerged(files, options),
-      this.errorMessage,
-    );
+    const options = { ...mergeSettings(this.form.getRawValue()), fileName: 'merged.png' };
+    return this.session.runCombined((files) => this.processing.renderMerged(files, options));
   }
 
   private releaseBitmaps(): void {
@@ -176,4 +131,16 @@ export class Merge extends BaseTool {
     }
     this.bitmapByFile.set(new Map());
   }
+}
+
+/** The merge the form describes (an unticked "transparent" paints the background color). */
+function mergeSettings(value: {
+  direction: MergeDirection;
+  alignment: MergeAlignment;
+  resize: MergeResize;
+  transparent: boolean;
+  background: string;
+}): MergeSettings {
+  const { direction, alignment, resize, transparent, background } = value;
+  return { direction, alignment, resize, background: transparent ? null : background };
 }

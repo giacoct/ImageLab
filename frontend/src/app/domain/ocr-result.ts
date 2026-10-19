@@ -16,16 +16,7 @@ export function buildOcrResult(fileName: string, imageUrl: string, api: OcrApiRe
     top: word.top / h,
     width: word.width / w,
     height: word.height / h,
-    confidence: word.confidence,
-    line: word.line,
   }));
 
-  return {
-    fileName,
-    imageUrl,
-    width: api.width,
-    height: api.height,
-    text: api.text,
-    words,
-  };
+  return { fileName, imageUrl, text: api.text, words };
 }

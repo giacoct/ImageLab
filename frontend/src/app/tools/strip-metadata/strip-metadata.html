@@ -10,7 +10,8 @@
   @if (selectedFile(); as file) {
     <section preview class="tool-preview panel" aria-label="Embedded metadata">
       <h2>Embedded metadata</h2>
-      @if (exifEntries(); as entries) {
+      @if (exif.hasValue()) {
+        @let entries = exif.value();
         @if (entries.length > 0) {
           <dl class="exif-list">
             @for (entry of entries; track entry.label) {

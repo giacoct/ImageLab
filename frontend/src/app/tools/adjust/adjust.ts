@@ -1,11 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { map } from 'rxjs';
@@ -48,24 +41,12 @@ export class Adjust extends BaseTool {
     { initialValue: this.form.getRawValue() },
   );
 
-  protected readonly previewUrl = signal<string | null>(null);
+  protected readonly previewUrl = this.selectedFileUrl();
   protected readonly cssFilter = computed(() => buildFilter(this.formValue()));
 
   constructor() {
     super();
     this.registerForm(this.form);
-
-    // Keep the preview pointed at the selected file; revoke the old object URL.
-    effect((onCleanup) => {
-      const file = this.selectedFile();
-      if (!file) {
-        this.previewUrl.set(null);
-        return;
-      }
-      const url = URL.createObjectURL(file);
-      this.previewUrl.set(url);
-      onCleanup(() => URL.revokeObjectURL(url));
-    });
   }
 
   protected override createProcessor(): JobProcessor {

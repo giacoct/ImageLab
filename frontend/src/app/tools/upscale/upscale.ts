@@ -22,7 +22,6 @@ export class Upscale extends BaseTool {
   private readonly backend = inject(BackendService);
 
   protected readonly toolId = 'upscale';
-  protected override readonly errorMessage = 'The image could not be upscaled.';
 
   protected override createProcessor(): JobProcessor {
     return (file) => this.backend.upscale(file, renameFile(file.name, 'upscaled', 'image/png'));

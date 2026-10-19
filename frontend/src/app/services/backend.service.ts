@@ -5,7 +5,7 @@ import { OcrApiResponse, OcrResult } from '../domain/ocr-result.model';
 import { withExtension } from '../domain/image-files';
 import { buildOcrResult } from '../domain/ocr-result';
 import { UploadLimits, uploadProblem } from '../domain/upload-limits';
-import { ImageProcessingService } from './image-processing.service';
+import { ImageProcessingService, imageOutput } from './image-processing.service';
 
 export type VectorizeMode = 'spline' | 'polygon';
 export type VectorizePreset = 'auto' | 'manual';
@@ -27,7 +27,7 @@ export interface VectorizeOptions {
 }
 
 /** Native scale factor of the Real-ESRGAN model behind `/api/upscale`. */
-export const UPSCALE_FACTOR = 4;
+const UPSCALE_FACTOR = 4;
 
 /**
  * The three tools that run on the FastAPI backend (`/api/...`, see
@@ -58,7 +58,7 @@ export class BackendService {
       callApi('vectorize', 'vectorizer', { method: 'POST', body: form }),
       this.processing.getDimensions(file),
     ]);
-    return toOutput(await response.blob(), size.width, size.height, options.fileName);
+    return imageOutput(await response.blob(), size.width, size.height, options.fileName);
   }
 
   async upscale(file: File, fileName: string): Promise<ImageOutput> {
@@ -69,7 +69,7 @@ export class BackendService {
     await this.assertUploadable(file, size);
     const response = await callApi('upscale', 'upscaler', { method: 'POST', body: form });
     const blob = await response.blob();
-    return toOutput(blob, size.width * UPSCALE_FACTOR, size.height * UPSCALE_FACTOR, fileName);
+    return imageOutput(blob, size.width * UPSCALE_FACTOR, size.height * UPSCALE_FACTOR, fileName);
   }
 
   /** `lang` is a Tesseract language code (or several joined by `+`, e.g. `eng+ita`). */
@@ -149,10 +149,6 @@ export class BackendService {
       throw new Error(problem);
     }
   }
-}
-
-function toOutput(blob: Blob, width: number, height: number, fileName: string): ImageOutput {
-  return { fileName, blob, url: URL.createObjectURL(blob), size: blob.size, width, height };
 }
 
 /**

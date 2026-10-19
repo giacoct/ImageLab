@@ -14,13 +14,8 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { debounceTime, map } from 'rxjs';
 
 import { outputFormatForFile, renameFile } from '../../domain/image-files';
-import {
-  MarginSides,
-  MarginUnit,
-  marginFillStyle,
-  paintMarginBands,
-  resolveMarginSides,
-} from '../../domain/margins';
+import { MarginUnit } from '../../domain/margins';
+import { MarginSettings, drawMargins } from '../../services/canvas';
 import { JobProcessor } from '../../services/tool-session.service';
 import { Icon } from '../../shared/icon/icon';
 import { ToolShell } from '../../shared/tool-shell/tool-shell';
@@ -29,8 +24,11 @@ import { BaseTool } from '../base-tool';
 /** Longest side of the downscaled preview, in pixels. */
 const PREVIEW_MAX_SIDE = 480;
 
-/** The raw form value, used to derive the effective per-side thicknesses. */
+/** The raw form value, from which {@link marginSettings} derives the margin. */
 interface MarginFormValue {
+  unit: MarginUnit;
+  color: string;
+  opacity: number;
   linked: boolean;
   all: number;
   top: number;
@@ -51,7 +49,6 @@ export class Margin extends BaseTool {
   private readonly fb = inject(NonNullableFormBuilder);
 
   protected readonly toolId = 'margin';
-  protected override readonly errorMessage = 'The margin could not be applied.';
   protected readonly form = this.fb.group({
     unit: this.fb.control<MarginUnit>('px'),
     linked: [true],
@@ -108,54 +105,10 @@ export class Margin extends BaseTool {
     // Repaint whenever the snapshot, the settings, or the canvas change.
     effect(() => {
       const bitmap = this.bitmap();
-      const options = this.options();
       const canvas = this.canvasRef()?.nativeElement;
-      if (!bitmap || !canvas) {
-        return;
+      if (bitmap && canvas) {
+        drawMargins(canvas, bitmap, marginSettings(this.options()), PREVIEW_MAX_SIDE);
       }
-
-      const sides = resolveMarginSides(
-        effectiveSides(options),
-        options.unit,
-        bitmap.width,
-        bitmap.height,
-      );
-      const totalWidth = bitmap.width + sides.left + sides.right;
-      const totalHeight = bitmap.height + sides.top + sides.bottom;
-      const scale = Math.min(1, PREVIEW_MAX_SIDE / Math.max(totalWidth, totalHeight));
-
-      canvas.width = Math.max(1, Math.round(totalWidth * scale));
-      canvas.height = Math.max(1, Math.round(totalHeight * scale));
-
-      const context = canvas.getContext('2d');
-      if (!context) {
-        return;
-      }
-
-      const scaled: MarginSides = {
-        top: Math.round(sides.top * scale),
-        right: Math.round(sides.right * scale),
-        bottom: Math.round(sides.bottom * scale),
-        left: Math.round(sides.left * scale),
-      };
-
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      context.imageSmoothingEnabled = true;
-      context.imageSmoothingQuality = 'high';
-      context.drawImage(
-        bitmap,
-        scaled.left,
-        scaled.top,
-        Math.round(bitmap.width * scale),
-        Math.round(bitmap.height * scale),
-      );
-      paintMarginBands(
-        context,
-        canvas.width,
-        canvas.height,
-        scaled,
-        marginFillStyle(options.color, options.opacity),
-      );
     });
 
     inject(DestroyRef).onDestroy(() => this.bitmap()?.close());
@@ -173,17 +126,13 @@ export class Margin extends BaseTool {
   }
 
   protected override createProcessor(): JobProcessor {
-    const value = this.form.getRawValue();
-    const sides = effectiveSides(value);
+    const margin = marginSettings(this.form.getRawValue());
 
     return (file) => {
       // A semi-transparent margin needs an alpha-capable format.
-      const format = value.opacity < 100 ? 'image/png' : outputFormatForFile(file);
+      const format = margin.opacity < 100 ? 'image/png' : outputFormatForFile(file);
       return this.processing.renderMargins(file, {
-        unit: value.unit,
-        ...sides,
-        color: value.color,
-        opacity: value.opacity,
+        ...margin,
         format,
         quality: 1,
         fileName: renameFile(file.name, 'margin', format),
@@ -192,10 +141,11 @@ export class Margin extends BaseTool {
   }
 }
 
-/** When sides are linked, the single `all` value drives every edge. */
-function effectiveSides(value: MarginFormValue): MarginSides {
-  if (value.linked) {
-    return { top: value.all, right: value.all, bottom: value.all, left: value.all };
-  }
-  return { top: value.top, right: value.right, bottom: value.bottom, left: value.left };
+/** The margin the form describes: when sides are linked, `all` drives every edge. */
+function marginSettings(value: MarginFormValue): MarginSettings {
+  const { unit, color, opacity, linked, all } = value;
+  const sides = linked
+    ? { top: all, right: all, bottom: all, left: all }
+    : { top: value.top, right: value.right, bottom: value.bottom, left: value.left };
+  return { unit, color, opacity, ...sides };
 }

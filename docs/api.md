@@ -29,9 +29,10 @@ show exactly these).
 
 `POST /api/ocr` takes a `lang` field (Tesseract language code, default `eng`;
 combine with `+`, e.g. `eng+ita`) and returns JSON
-`{width, height, text, words}`, where each word carries its pixel bounding
-box, confidence, and line index — the app turns those boxes into a selectable
-text layer over the image.
+`{width, height, text, words}`. The words come in reading order (line by
+line, left to right), each with its pixel bounding box, confidence, and line
+index — the app turns those boxes into a selectable text layer over the image,
+so dragging across it selects and copies the text in order.
 
 `POST /api/upscale` returns a 4× super-resolved `image/png` (transparency is
 kept). It runs Real-ESRGAN (`realesr-general-x4v3`) on CPU — a learned model

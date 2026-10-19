@@ -44,8 +44,9 @@ settings. Heavy per-pixel work runs in a Web Worker so the UI stays responsive.
 
 Output keeps the source format and 100% quality, except **Convert** (you choose
 the format), **Compress** (you choose the quality or size budget), **Remove
-background** and **Merge** (always PNG), **Upscale** (PNG), **Convert to SVG**
-(SVG), and **Extract text** (plain text).
+background** and **Merge** (always PNG), **Add margin** (PNG when the margin is
+semi-transparent), **Upscale** (PNG), **Convert to SVG** (SVG), and **Extract
+text** (plain text).
 
 ## Getting started (development, macOS)
 

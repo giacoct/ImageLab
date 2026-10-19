@@ -40,7 +40,7 @@ frontend/               # Angular 22 app (its own package.json / angular.json)
     app.routes.ts       # routes, generated from the tool registry
     tool-registry.ts    # TOOLS: the single list of all tools
     domain/             # pure TypeScript: models + logic (unit-tested here)
-    services/           # Angular services: session, canvas rendering, backend, downloads, worker
+    services/           # session, canvas, backend, downloads, worker, settings, route reuse
     shared/             # reusable components (tool-shell, file-list, output-list, ...)
     pages/              # home/, import/, output/: the pages shared by every tool
     tools/              # base-tool.ts + one folder per tool (its settings page)
@@ -116,9 +116,10 @@ last-used settings from `localStorage` and saves them on every change.
 `/api/...` URLs. Files the backend would reject (over the size limit, or too
 large to upscale — limits come from `GET /api/limits`) fail before upload, and
 the settings pages of the backend tools list them up front
-(`<app-tool-shell uploadCheck="size|upscale">`). In development the Angular dev server proxies `/api` to the
-backend on :4201 (`frontend/proxy.conf.json`); in production the backend
-serves both the app and `/api` on one port, so no proxy is involved.
+(`<app-tool-shell uploadCheck="size|upscale">`). In development the Angular
+dev server proxies `/api` to the backend on :4201 (`frontend/proxy.conf.json`);
+in production the backend serves both the app and `/api` on one port, so no
+proxy is involved.
 
 ## Backend architecture
 
@@ -129,8 +130,9 @@ pool (`run_job`) and maps errors to status codes — `BadInputError` → 400,
 It also serves `frontend/dist/browser` with an SPA fallback to `index.html`.
 
 `vectorize.py`, `ocr.py`, `upscale.py` and `heic.py` take image bytes and
-return the result (SVG text, a dict, PNG bytes, converted image bytes). The upscaler caps input at 1500 px,
-processes it in tiles, and loads the ONNX model lazily on first use.
+return the result (SVG text, a dict, PNG bytes, converted image bytes). The
+upscaler caps input at 1500 px, processes it in tiles, and loads the ONNX model
+lazily on first use.
 
 ## Cross-file invariants (easy to break)
 
@@ -186,4 +188,8 @@ npm run format   # Prettier over the frontend
   don't flood the history with tiny commits, but don't bundle unrelated
   features or fixes together either. Commit messages follow conventional-commit
   style (`feat:`, `fix:`, …), in the imperative.
-- Keep the docs in `docs/` up to date in the same change as the code.
+- **Keep the docs in `docs/` up to date in the same change as the code**,
+  without waiting to be asked. Check every doc the change could affect — the
+  README's tool descriptions and output formats, `api.md`'s endpoints and
+  response shapes, this file's structure and rules, `deployment.md`'s steps —
+  not just the lines that name what changed.

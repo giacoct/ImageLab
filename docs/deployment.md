@@ -1,10 +1,11 @@
 # Deployment (GitHub Pages)
 
-ImageLab is a static site. Every push to `master` triggers
-`.github/workflows/pages.yml`, which installs dependencies, builds `dist/`
-(including the vendored OCR files and the upscaler model, see
+ImageLab is a static site. Every push to `master` that changes the app
+triggers `.github/workflows/pages.yml`, a single job that installs
+dependencies, builds `dist/` (including the vendored OCR files and the
+upscaler model, see
 [architecture.md](architecture.md#cross-file-invariants-easy-to-break)), and
-publishes it to GitHub Pages:
+publishes it to GitHub Pages, usually in well under a minute:
 
 **<https://giacoct.github.io/ImageLab/>**
 
@@ -21,8 +22,17 @@ Pages). The upscaler weights are downloaded during the build from the
 ## Updating
 
 Push to `master`. The Actions tab shows the run; a failed build doesn't
-replace the published site. To redeploy without a change, run the workflow
-by hand (**Actions → Deploy to GitHub Pages → Run workflow**).
+replace the published site. Changes only to `docs/`, Markdown files or editor
+settings don't deploy. To redeploy without a change, run the workflow by hand
+(**Actions → Deploy to GitHub Pages → Run workflow**).
+
+Publishing itself takes seconds, but GitHub Pages sometimes stalls on
+"syncing files". The workflow gives up on a stalled attempt after 2 minutes
+and retries once on its own. If both attempts stall, Pages is having trouble
+(see <https://www.githubstatus.com>); push again or run the workflow by hand
+later. A newer push waits for a running deployment rather than cancelling it,
+and cancelling one by hand is best avoided: a deployment stopped half-way can
+leave Pages stuck for that commit.
 
 The service worker serves the app from its cache when offline and picks up a
 new deploy on the next visit: reload once to see a fresh deploy right away.

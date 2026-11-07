@@ -1,11 +1,14 @@
 # Build the static site and publish it to GitHub Pages on every push to
-# master (or by hand from the Actions tab). This is the only workflow in the
-# repo: it deploys, it doesn't gate anything — run `npm test` locally.
+# master that changes the app (or by hand from the Actions tab). This is the
+# only workflow in the repo: it deploys, it doesn't gate anything — run
+# `npm test` locally.
 name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [master]
+    # Docs and editor settings aren't part of the site.
+    paths-ignore: ['docs/**', '**.md', '.vscode/**', '.claude/**']
   workflow_dispatch:
 
 permissions:
@@ -13,14 +16,19 @@ permissions:
   pages: write
   id-token: write
 
-# One deployment at a time; a newer push replaces a queued one.
+# One deployment at a time. A newer push waits for the running one instead of
+# cancelling it: a deployment cancelled half-way can leave Pages stuck.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.first.outputs.page_url || steps.retry.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -31,17 +39,20 @@ jobs:
       # `prebuild` copies the WASM/OCR files and downloads the upscaler model
       # (sha256-checked) from the models-v1 release.
       - run: npm run build
-      - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
+      # Publishing normally takes seconds. When GitHub Pages stalls ("syncing
+      # files"), give up after 2 minutes instead of the default 10 and try once
+      # more, rather than leaving the run hanging.
+      - id: first
         uses: actions/deploy-pages@v5
+        continue-on-error: true
+        with:
+          timeout: 120000
+      - id: retry
+        if: steps.first.outcome == 'failure'
+        uses: actions/deploy-pages@v5
+        with:
+          timeout: 180000

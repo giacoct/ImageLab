@@ -4,6 +4,8 @@
   tool (or saved into the recipe) as they change.
 -->
 <script lang="ts">
+  import { untrack } from 'svelte';
+
   import {
     forgetToolRecipe,
     recipes,
@@ -30,23 +32,30 @@
   let saveDialog: HTMLDialogElement;
   let recipeName = $state('');
 
-  // Load the recipe when the route changes (files stay).
+  // Load the recipe when the route changes (files stay). Only which tool or
+  // recipe is open counts: its contents change as the settings are saved.
   $effect.pre(() => {
-    if (tool) {
-      const loaded = toolRecipe(tool);
-      session.open(loaded.steps, loaded.export, tool.suffix);
-    } else if (recipe) {
-      session.open(structuredClone($state.snapshot(recipe.steps)), { ...recipe.export });
-    }
-    view = 'preview';
+    const [openTool, openRecipe] = [tool, recipe];
+    untrack(() => {
+      if (openTool) {
+        const loaded = toolRecipe(openTool);
+        session.open(loaded.steps, loaded.export, openTool.suffix);
+      } else if (openRecipe) {
+        session.open(structuredClone($state.snapshot(openRecipe.steps)), { ...openRecipe.export });
+      }
+      view = 'preview';
+    });
   });
 
-  // Remember the settings as they change.
+  // Remember the settings as they change. Saving reads the stored recipes, so
+  // it's untracked: otherwise writing the recipe would re-run this effect forever.
   $effect(() => {
     const steps = $state.snapshot(session.steps);
     const settings = $state.snapshot(session.exportSettings);
-    if (tool) saveToolRecipe(tool.id, { steps, export: settings });
-    else if (recipe) recipes.update(recipe.id, steps, settings);
+    untrack(() => {
+      if (tool) saveToolRecipe(tool.id, { steps, export: settings });
+      else if (recipe) recipes.update(recipe.id, steps, settings);
+    });
   });
 
   function run(): void {

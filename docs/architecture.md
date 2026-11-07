@@ -146,7 +146,10 @@ Rules for `run`:
   dark by setting `data-theme` on `<html>`, which forces the `color-scheme`.
   An inline script in `index.html` applies the saved choice before the first
   paint (keep its storage key in sync with `theme.svelte.ts`). Switching
-  reveals the new theme in a circle from the button (View Transitions).
+  reveals the new theme in a circle from the button (View Transitions). The
+  light theme uses soft teal-tinted neutrals; the dark one plain charcoal
+  greys, so the accent and the tool hues are the only color. Fade colors with
+  `color-mix(in srgb, …, transparent)`: in OKLCH the mix drifts toward red.
 - **Every tool and operation has a hue** (`ui/hues.ts`, keyed by icon), shown
   on its icon tile (`ui/Tile.svelte`, the `.tile` class) on the home page, in
   the workspace and in the "Add a step" menu. A new icon needs a hue there.

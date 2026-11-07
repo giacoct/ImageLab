@@ -5,6 +5,10 @@
  * Every color is defined once with light-dark(): the page follows the system
  * theme, and `data-theme="light|dark"` on <html> (app/theme.svelte.ts)
  * overrides it by forcing the color scheme.
+ *
+ * Fade a color with `color-mix(in srgb, <color> N%, transparent)`, not
+ * `in oklch`: mixing with transparent in OKLCH pulls the hue toward red,
+ * which turns neutral greys brown.
  */
 
 :root {

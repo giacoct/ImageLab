@@ -14,6 +14,9 @@ export default defineConfig({
   // would move the JS away from its .wasm files.
   optimizeDeps: {
     exclude: ['@jsquash/jpeg', '@jsquash/webp', '@jsquash/avif', 'onnxruntime-web', 'vtracer-wasm'],
+    // Imported only from the worker, which Vite doesn't scan: prepare them up
+    // front so the dev server doesn't reload the page the first time they load.
+    include: ['libheif-js/libheif-wasm/libheif-bundle.mjs', 'tesseract.js'],
   },
   test: {
     projects: [

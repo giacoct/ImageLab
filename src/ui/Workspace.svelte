@@ -1,10 +1,14 @@
 <!--
-  The workspace for a tool or saved recipe: images, steps and export on the
-  left; live preview and results on the right. Settings are remembered per
-  tool (or saved into the recipe) as they change.
+  The workspace for a tool or saved recipe. On the left, the recipe reads as
+  a pipeline (images → steps → export) joined by a connector that flows while
+  a batch runs, with the run button kept in reach at the bottom; on the right,
+  the live preview and the results. Settings are remembered per tool (or saved
+  into the recipe) as they change.
 -->
 <script lang="ts">
   import { untrack } from 'svelte';
+  import { flip } from 'svelte/animate';
+  import { fade, fly } from 'svelte/transition';
 
   import {
     forgetToolRecipe,
@@ -20,10 +24,13 @@
   import AddStep from './AddStep.svelte';
   import ExportCard from './ExportCard.svelte';
   import FileTray from './FileTray.svelte';
+  import { BRAND_HUE } from './hues';
   import Icon from './Icon.svelte';
+  import { ms } from './motion';
   import Preview from './Preview.svelte';
   import Results from './Results.svelte';
   import StepCard from './StepCard.svelte';
+  import Tile from './Tile.svelte';
 
   let { tool, recipe }: { tool?: Tool; recipe?: SavedRecipe } = $props();
 
@@ -89,91 +96,125 @@
     router.go({ page: 'home' });
   }
 
+  function openSaveDialog(): void {
+    recipeName = title;
+    saveDialog.showModal();
+  }
+
   const runLabel = $derived.by(() => {
     const count = session.items.filter((item) => !item.error).length;
-    if (session.merges) return `Merge ${count} images`;
+    if (session.merges) return count === 0 ? 'Merge images' : `Merge ${count} images`;
+    if (count === 0) return 'Process images';
     return count === 1 ? 'Process 1 image' : `Process ${count} images`;
   });
 </script>
 
-<div class="workspace">
+<div class="workspace page">
   <header class="title">
     <a class="icon-button back" href="#/" aria-label="All tools"><Icon name="back" /></a>
-    <div>
+    {#if tool}<Tile icon={tool.icon} />{:else}<Tile icon="sparkles" hue={BRAND_HUE} />{/if}
+    <div class="heading">
       <h1>{title}</h1>
       <p class="muted">{tool?.description ?? 'Your saved recipe.'}</p>
     </div>
     <div class="title-actions">
       {#if tool}
-        <button class="button small" type="button" onclick={reset}
-          ><Icon name="reload" size={16} />Reset</button
-        >
+        <button class="button small ghost" type="button" onclick={reset}>
+          <Icon name="reload" size={16} />Reset
+        </button>
       {:else}
         <button class="button small danger" type="button" onclick={deleteRecipe}>
           <Icon name="trash" size={16} />Delete
         </button>
       {/if}
-      <button
-        class="button small"
-        type="button"
-        onclick={() => {
-          recipeName = title;
-          saveDialog.showModal();
-        }}><Icon name="save" size={16} />Save as recipe</button
-      >
+      <button class="button small" type="button" onclick={openSaveDialog}>
+        <Icon name="save" size={16} />Save as recipe
+      </button>
     </div>
   </header>
 
   <div class="columns">
     <div class="controls">
-      <FileTray />
-      {#each session.steps as step, index (step.id)}
-        <StepCard {index} />
-      {/each}
-      <AddStep />
-      <ExportCard />
+      <div class="flow" class:running={session.running}>
+        <FileTray />
+        {#each session.steps as step, index (step.id)}
+          <div
+            animate:flip={{ duration: ms(280) }}
+            in:fly={{ y: -12, duration: ms(320) }}
+            out:fade={{ duration: ms(140) }}
+          >
+            <StepCard {index} />
+          </div>
+        {/each}
+        <AddStep />
+        <ExportCard />
+      </div>
 
       <div class="run">
         {#if session.running}
+          <div class="progress" aria-live="polite">
+            <span class="progress-label">
+              <span class="spinner"></span>
+              Processing… {session.progress.done} of {session.progress.total} done
+            </span>
+            <span class="track">
+              <span
+                class="fill"
+                style:width="{(session.progress.done / Math.max(1, session.progress.total)) * 100}%"
+              ></span>
+            </span>
+          </div>
           <button class="button" type="button" onclick={() => session.cancel()}>
             <Icon name="stop" size={16} />Cancel
           </button>
-          <span class="muted">{session.progress.done} / {session.progress.total}</span>
         {:else}
           <button
-            class="button primary"
+            class="button primary go"
             type="button"
             disabled={Boolean(session.blocker)}
             onclick={run}
           >
             <Icon name="play" size={16} />{runLabel}
           </button>
-          {#if session.blocker}<span class="hint">{session.blocker}</span>{/if}
+          {#if session.blocker}<span class="hint blocker">{session.blocker}</span>{/if}
         {/if}
       </div>
     </div>
 
     <div class="stage">
-      <div class="segmented tabs" role="group" aria-label="View">
+      <div class="tabs" role="group" aria-label="View" style:--index={view === 'preview' ? 0 : 1}>
+        <span class="thumb" aria-hidden="true"></span>
         <button type="button" aria-pressed={view === 'preview'} onclick={() => (view = 'preview')}>
-          Preview
+          <Icon name="image" size={15} />Preview
         </button>
         <button type="button" aria-pressed={view === 'results'} onclick={() => (view = 'results')}>
-          Results{session.results.length ? ` (${session.results.length})` : ''}
+          <Icon name="download" size={15} />Results
+          {#if session.results.length}
+            {#key session.results.length}
+              <span class="badge">{session.results.length}</span>
+            {/key}
+          {/if}
         </button>
       </div>
-      {#if view === 'preview'}
-        <Preview />
-      {:else}
-        <Results />
-      {/if}
+      {#key view}
+        <div class="view" in:fade={{ duration: ms(180) }}>
+          {#if view === 'preview'}
+            <Preview />
+          {:else}
+            <Results />
+          {/if}
+        </div>
+      {/key}
     </div>
   </div>
 </div>
 
 <dialog bind:this={saveDialog} class="panel dialog">
   <form onsubmit={saveRecipe} class="fields">
-    <h2 class="panel-title">Save as recipe</h2>
+    <div class="dialog-head">
+      <Tile icon="sparkles" hue={BRAND_HUE} />
+      <h2>Save as recipe</h2>
+    </div>
     <p class="hint">
       Keeps these steps and export settings under a name of your own, on the home page.
     </p>
@@ -182,8 +223,8 @@
       <input class="input" bind:value={recipeName} maxlength="60" required />
     </label>
     <div class="dialog-actions">
-      <button class="button" type="button" onclick={() => saveDialog.close()}>Cancel</button>
-      <button class="button primary" type="submit">Save</button>
+      <button class="button ghost" type="button" onclick={() => saveDialog.close()}>Cancel</button>
+      <button class="button primary" type="submit">Save recipe</button>
     </div>
   </form>
 </dialog>
@@ -191,44 +232,59 @@
 <style>
   .workspace {
     display: grid;
-    gap: 1.25rem;
+    gap: 1.5rem;
   }
 
   .title {
     align-items: center;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: 0.8rem;
   }
 
-  .title > div:nth-child(2) {
+  .heading {
     flex: 1;
     min-width: 12rem;
   }
 
   h1 {
-    font-size: 1.35rem;
+    font-size: clamp(1.4rem, 3vw, 1.75rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
   }
 
   .back {
-    border: 1px solid var(--border);
+    background: var(--panel);
+    border-color: var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .back:hover :global(svg) {
+    animation: nudge 500ms var(--ease);
+  }
+
+  @keyframes nudge {
+    40% {
+      transform: translateX(-3px);
+    }
   }
 
   .title-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
   }
 
   .columns {
     align-items: start;
     display: grid;
-    gap: 1.25rem;
+    gap: 1.5rem;
     grid-template-columns: minmax(0, 1fr);
   }
 
   @media (min-width: 960px) {
     .columns {
-      grid-template-columns: minmax(22rem, 26rem) minmax(0, 1fr);
+      grid-template-columns: minmax(22rem, 27rem) minmax(0, 1fr);
     }
 
     .stage {
@@ -240,36 +296,217 @@
   .controls,
   .stage {
     display: grid;
-    gap: 0.85rem;
+    gap: 1rem;
     min-width: 0;
   }
 
+  /*
+   * The pipeline: each card is joined to the one above by a dashed connector
+   * under its icon tile. While a batch runs, the dashes flow downwards.
+   */
+  .flow {
+    --gap: 1rem;
+    --rail: calc(1.1rem + 1rem - 1px); /* panel padding + half a small tile */
+    display: grid;
+    gap: var(--gap);
+  }
+
+  .flow > :global(*) {
+    position: relative;
+  }
+
+  .flow > :global(* + *)::before {
+    background: repeating-linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--accent) 35%, var(--border-strong)) 0 4px,
+      transparent 4px 8px
+    );
+    content: '';
+    height: var(--gap);
+    left: var(--rail);
+    position: absolute;
+    top: calc(-1 * var(--gap) - 1px);
+    width: 2px;
+  }
+
+  .flow.running > :global(* + *)::before {
+    animation: flow 500ms linear infinite;
+    background: repeating-linear-gradient(to bottom, var(--accent) 0 4px, transparent 4px 8px);
+  }
+
+  @keyframes flow {
+    to {
+      background-position: 0 8px;
+    }
+  }
+
+  /* The run button stays in reach at the bottom of the screen. */
   .run {
     align-items: center;
+    backdrop-filter: blur(14px);
+    background: color-mix(in oklch, var(--panel) 78%, transparent);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + 0.25rem);
+    bottom: 0.75rem;
+    box-shadow: var(--shadow-lg);
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: 0.6rem;
+    padding: 0.5rem;
+    position: sticky;
+    z-index: 5;
   }
 
-  .run .button {
+  .run .go {
     flex: 1;
-    min-height: 2.8rem;
+    font-size: 0.98rem;
+    min-height: 3rem;
   }
 
+  .run .go:not(:disabled) :global(svg) {
+    transition: transform 300ms var(--spring);
+  }
+
+  .run .go:hover:not(:disabled) :global(svg) {
+    transform: scale(1.2);
+  }
+
+  .blocker {
+    padding: 0 0.4rem 0.2rem;
+    width: 100%;
+  }
+
+  .progress {
+    display: grid;
+    flex: 1;
+    gap: 0.4rem;
+    padding: 0 0.4rem;
+  }
+
+  .progress-label {
+    align-items: center;
+    color: var(--accent-strong);
+    display: flex;
+    font-size: 0.88rem;
+    font-weight: 600;
+    gap: 0.5rem;
+  }
+
+  .track {
+    background: var(--panel-subtle);
+    border-radius: 999px;
+    height: 6px;
+    overflow: hidden;
+  }
+
+  .fill {
+    background: linear-gradient(
+      90deg,
+      var(--accent),
+      color-mix(in oklch, var(--accent) 60%, var(--spark)),
+      var(--accent)
+    );
+    background-size: 200% 100%;
+    border-radius: inherit;
+    display: block;
+    height: 100%;
+    min-width: 6px;
+    animation: shimmer 1.4s linear infinite;
+    transition: width 400ms var(--ease);
+  }
+
+  @keyframes shimmer {
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Preview / Results: a two-way switch with a sliding thumb. */
   .tabs {
+    background: var(--panel-subtle);
+    border: 1px solid var(--border);
+    border-radius: 0.8rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     justify-self: start;
+    padding: 0.2rem;
+    position: relative;
+  }
+
+  .tabs .thumb {
+    background: var(--panel);
+    border-radius: 0.6rem;
+    box-shadow:
+      var(--shadow-sm),
+      0 0 0 1px var(--border);
+    inset: 0.2rem auto 0.2rem 0.2rem;
+    position: absolute;
+    transform: translateX(calc(var(--index) * 100%));
+    transition: transform 320ms var(--spring);
+    width: calc(50% - 0.2rem);
+  }
+
+  .tabs button {
+    align-items: center;
+    background: none;
+    border: 0;
+    color: var(--muted);
+    display: flex;
+    font-size: 0.86rem;
+    font-weight: 600;
+    gap: 0.4rem;
+    justify-content: center;
+    min-height: 2.1rem;
+    padding: 0.25rem 1rem;
+    position: relative;
+    transition: color 200ms var(--ease);
+  }
+
+  .tabs button[aria-pressed='true'] {
+    color: var(--ink);
+  }
+
+  .tabs .badge {
+    animation: pop 420ms var(--ease);
+  }
+
+  .view {
+    min-width: 0;
   }
 
   .dialog {
     border: 1px solid var(--border);
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow-lg);
     color: var(--ink);
     max-width: min(26rem, calc(100vw - 2rem));
+    padding: 1.4rem;
     width: 100%;
   }
 
+  .dialog[open] {
+    animation: dialog-in 260ms var(--spring);
+  }
+
   .dialog::backdrop {
-    background: rgb(0 0 0 / 0.4);
+    backdrop-filter: blur(4px);
+    background: rgb(0 0 0 / 0.35);
+  }
+
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+  }
+
+  .dialog-head {
+    align-items: center;
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .dialog-head h2 {
+    font-size: 1.2rem;
   }
 
   .dialog-actions {

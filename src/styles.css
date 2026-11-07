@@ -1,66 +1,67 @@
 /*
- * Design tokens and shared building blocks (buttons, panels, fields).
+ * Design tokens and shared building blocks (buttons, panels, fields, tiles).
  * Components keep only what is specific to them in their own <style>.
+ *
+ * Every color is defined once with light-dark(): the page follows the system
+ * theme, and `data-theme="light|dark"` on <html> (app/theme.svelte.ts)
+ * overrides it by forcing the color scheme.
  */
 
 :root {
-  --surface: #f5f7f6;
-  --panel: #ffffff;
-  --panel-subtle: #eef3f2;
-  --ink: #15201d;
-  --muted: #5b6764;
-  --soft: #83908c;
-  --border: #dbe2e0;
-  --border-strong: #c3cecb;
-  --accent: #0b766f;
-  --accent-strong: #075c57;
-  --accent-soft: #dff2ef;
-  --on-accent: #ffffff;
-  --danger: #b42318;
-  --danger-soft: #fff1f0;
-  --warning: #8a4b00;
-  --warning-soft: #fff7e6;
-  --checker: #e3e8e7;
-  --shadow: 0 12px 32px rgb(21 32 29 / 0.08);
-  --radius: 0.75rem;
-  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  color-scheme: light dark;
 
-  color-scheme: light;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  --surface: light-dark(#f4f7f6, #101719);
+  --panel: light-dark(#ffffff, oklch(0.215 0.014 210));
+  --panel-subtle: light-dark(oklch(0.968 0.007 190), oklch(0.255 0.016 210));
+  --ink: light-dark(oklch(0.25 0.025 205), oklch(0.95 0.01 190));
+  --muted: light-dark(oklch(0.5 0.02 205), oklch(0.76 0.018 200));
+  --soft: light-dark(oklch(0.64 0.016 205), oklch(0.6 0.02 205));
+  --border: light-dark(oklch(0.915 0.01 200), oklch(0.3 0.016 210));
+  --border-strong: light-dark(oklch(0.85 0.014 200), oklch(0.38 0.02 210));
+
+  /* The brand teal (the logo's), and a warm coral for the odd highlight. */
+  --accent: light-dark(oklch(0.52 0.1 185), oklch(0.78 0.12 180));
+  --accent-strong: light-dark(oklch(0.44 0.085 187), oklch(0.86 0.1 180));
+  --accent-soft: light-dark(oklch(0.95 0.035 180), oklch(0.31 0.05 185));
+  --on-accent: light-dark(#ffffff, oklch(0.2 0.04 195));
+  --spark: light-dark(oklch(0.7 0.16 35), oklch(0.78 0.13 40));
+
+  --danger: light-dark(oklch(0.53 0.19 27), oklch(0.75 0.14 25));
+  --danger-soft: light-dark(oklch(0.96 0.03 25), oklch(0.29 0.06 25));
+  --warning: light-dark(oklch(0.52 0.12 65), oklch(0.85 0.12 80));
+  --warning-soft: light-dark(oklch(0.97 0.04 85), oklch(0.3 0.05 75));
+  --success: light-dark(oklch(0.52 0.13 150), oklch(0.8 0.14 150));
+  --success-soft: light-dark(oklch(0.96 0.04 150), oklch(0.3 0.06 150));
+
+  --checker: light-dark(oklch(0.93 0.006 200), oklch(0.27 0.012 210));
+  --shadow-color: light-dark(oklch(0.35 0.04 200 / 0.09), oklch(0 0 0 / 0.38));
+  --shadow-sm: 0 1px 2px var(--shadow-color);
+  --shadow: 0 1px 2px var(--shadow-color), 0 8px 24px -6px var(--shadow-color);
+  --shadow-lg: 0 2px 4px var(--shadow-color), 0 24px 48px -12px var(--shadow-color);
+
+  --radius: 1rem;
+  --radius-sm: 0.65rem;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --font-display: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-body:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.45;
   color: var(--ink);
+  -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface: #0f1514;
-    --panel: #172120;
-    --panel-subtle: #1d2928;
-    --ink: #e6efed;
-    --muted: #a2b1ad;
-    --soft: #7d8c88;
-    --border: #2a3836;
-    --border-strong: #3a4b48;
-    --accent: #3fb8ad;
-    --accent-strong: #6fd3c9;
-    --accent-soft: #173a37;
-    --on-accent: #062522;
-    --danger: #ff8a80;
-    --danger-soft: #3a1c1a;
-    --warning: #f5c26b;
-    --warning-soft: #3a2c12;
-    --checker: #26302f;
-    --shadow: 0 12px 32px rgb(0 0 0 / 0.35);
-    color-scheme: dark;
-  }
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 * {
@@ -81,6 +82,13 @@ p {
   margin: 0;
 }
 
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
 button,
 input,
 select,
@@ -91,6 +99,7 @@ textarea {
 
 button {
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button:disabled {
@@ -100,6 +109,10 @@ button:disabled {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in oklch, var(--accent) 30%, transparent);
 }
 
 img {
@@ -119,66 +132,158 @@ img {
   width: 1px;
 }
 
+/* The theme switch cross-fades the page with a circular reveal (theme.svelte.ts). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* --- motion -------------------------------------------------------------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* Every page fades up into place when it opens. */
+.page {
+  animation: rise 420ms var(--ease) both;
+}
+
+.spinner {
+  animation: spin 800ms linear infinite;
+  border: 2px solid color-mix(in oklch, currentColor 25%, transparent);
+  border-radius: 50%;
+  border-top-color: currentColor;
+  display: inline-block;
+  flex: none;
+  height: 0.9em;
+  width: 0.9em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
 /* --- buttons ------------------------------------------------------------- */
 
 .button {
   align-items: center;
   background: var(--panel);
   border: 1px solid var(--border-strong);
-  border-radius: 0.55rem;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
   display: inline-flex;
   font-size: 0.9rem;
   font-weight: 600;
   gap: 0.45rem;
   justify-content: center;
   min-height: 2.4rem;
-  padding: 0.45rem 0.9rem;
+  padding: 0.45rem 0.95rem;
   text-decoration: none;
   transition:
-    background 140ms var(--ease),
-    border-color 140ms var(--ease);
+    background 160ms var(--ease),
+    border-color 160ms var(--ease),
+    box-shadow 160ms var(--ease),
+    transform 160ms var(--ease);
   white-space: nowrap;
 }
 
 .button:hover:not(:disabled) {
   background: var(--panel-subtle);
+  border-color: color-mix(in oklch, var(--accent) 35%, var(--border-strong));
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--accent) 82%, white),
+    var(--accent) 60%
+  );
+  border-color: color-mix(in oklch, var(--accent) 80%, black);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    0 6px 16px -6px color-mix(in oklch, var(--accent) 80%, transparent);
   color: var(--on-accent);
 }
 
 .button.primary:hover:not(:disabled) {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
+  background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    0 10px 22px -8px color-mix(in oklch, var(--accent) 90%, transparent);
+  transform: translateY(-1px);
 }
 
 .button.danger {
   color: var(--danger);
 }
 
+.button.danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+  border-color: color-mix(in oklch, var(--danger) 40%, transparent);
+}
+
+.button.ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
 .button:disabled {
+  box-shadow: none;
   opacity: 0.5;
 }
 
 .button.small {
   font-size: 0.82rem;
   min-height: 2rem;
-  padding: 0.3rem 0.65rem;
+  padding: 0.3rem 0.7rem;
 }
 
 .icon-button {
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 0.45rem;
+  border-radius: 0.55rem;
   color: var(--muted);
   display: inline-flex;
+  flex: none;
   height: 2rem;
   justify-content: center;
   padding: 0;
+  transition:
+    background 140ms var(--ease),
+    color 140ms var(--ease),
+    transform 140ms var(--ease);
   width: 2rem;
 }
 
@@ -187,8 +292,17 @@ img {
   color: var(--ink);
 }
 
+.icon-button:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+.icon-button.danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
 .icon-button:disabled {
-  opacity: 0.35;
+  opacity: 0.3;
 }
 
 /* --- panels -------------------------------------------------------------- */
@@ -197,15 +311,49 @@ img {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+  padding: 1.1rem;
 }
 
 .panel-title {
   align-items: center;
   display: flex;
-  font-size: 0.95rem;
-  font-weight: 700;
+  font-size: 1.02rem;
+  font-weight: 650;
   gap: 0.5rem;
+}
+
+/* The small label above a card title: "Input", "Step 2", "Output". */
+.eyebrow {
+  color: var(--soft);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+/*
+ * A rounded icon tile tinted with a hue of its own (`--hue`, OKLCH degrees;
+ * see ui/hues.ts), so each tool and step is recognizable at a glance.
+ */
+.tile {
+  --hue: 185;
+  align-items: center;
+  background: light-dark(oklch(0.95 0.04 var(--hue)), oklch(0.32 0.06 var(--hue)));
+  border-radius: 0.8rem;
+  box-shadow: inset 0 0 0 1px light-dark(oklch(0.89 0.06 var(--hue)), oklch(0.4 0.07 var(--hue)));
+  color: light-dark(oklch(0.48 0.14 var(--hue)), oklch(0.87 0.11 var(--hue)));
+  display: inline-flex;
+  flex: none;
+  height: 2.6rem;
+  justify-content: center;
+  width: 2.6rem;
+}
+
+.tile.small {
+  border-radius: 0.6rem;
+  height: 2rem;
+  width: 2rem;
 }
 
 .muted {
@@ -217,10 +365,33 @@ img {
   font-size: 0.8rem;
 }
 
+.badge {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  color: var(--accent-strong);
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1.5;
+  min-width: 1.5em;
+  padding: 0 0.45rem;
+  text-align: center;
+}
+
 .notice {
-  border-radius: 0.55rem;
+  align-items: flex-start;
+  border-radius: var(--radius-sm);
+  display: flex;
   font-size: 0.85rem;
-  padding: 0.6rem 0.8rem;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+}
+
+.notice svg {
+  flex: none;
+  margin-top: 0.1rem;
 }
 
 .notice.error {
@@ -258,12 +429,12 @@ img {
 
 .fields {
   display: grid;
-  gap: 0.85rem;
+  gap: 1rem;
 }
 
 .field {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .field-label {
@@ -276,61 +447,210 @@ img {
 }
 
 .field-value {
+  background: var(--panel-subtle);
+  border-radius: 0.4rem;
   color: var(--muted);
+  font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 500;
+  font-weight: 600;
+  padding: 0.05rem 0.4rem;
 }
 
 .input,
 .select {
   background: var(--panel);
   border: 1px solid var(--border-strong);
-  border-radius: 0.5rem;
-  min-height: 2.3rem;
-  padding: 0.35rem 0.6rem;
+  border-radius: 0.6rem;
+  min-height: 2.4rem;
+  padding: 0.35rem 0.65rem;
+  transition:
+    border-color 140ms var(--ease),
+    box-shadow 140ms var(--ease);
   width: 100%;
+}
+
+.input:hover,
+.select:hover {
+  border-color: color-mix(in oklch, var(--accent) 40%, var(--border-strong));
+}
+
+.input:focus,
+.select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 22%, transparent);
+  outline: none;
+}
+
+.select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23889795' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-position: right 0.6rem center;
+  background-repeat: no-repeat;
+  cursor: pointer;
+  padding-right: 2rem;
 }
 
 .input-group {
   align-items: center;
   display: flex;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
 
 .input-group .input {
   flex: 1;
 }
 
+/*
+ * Sliders: a filled track (`--fill`, set by ParamForm) and a thumb that
+ * grows while dragged.
+ */
 input[type='range'] {
-  accent-color: var(--accent);
+  --fill: 50%;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  height: 1.4rem;
+  margin: 0;
   width: 100%;
 }
 
-input[type='checkbox'] {
-  accent-color: var(--accent);
-  height: 1.05rem;
-  width: 1.05rem;
+input[type='range']::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, var(--accent) var(--fill), var(--border) var(--fill));
+  border-radius: 999px;
+  height: 6px;
+}
+
+input[type='range']::-moz-range-track {
+  background: var(--border);
+  border-radius: 999px;
+  height: 6px;
+}
+
+input[type='range']::-moz-range-progress {
+  background: var(--accent);
+  border-radius: 999px;
+  height: 6px;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  height: 18px;
+  margin-top: -6px;
+  transition:
+    transform 160ms var(--spring),
+    box-shadow 160ms var(--ease);
+  width: 18px;
+}
+
+input[type='range']::-moz-range-thumb {
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  height: 14px;
+  transition:
+    transform 160ms var(--spring),
+    box-shadow 160ms var(--ease);
+  width: 14px;
+}
+
+input[type='range']:hover::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+
+input[type='range']:active::-webkit-slider-thumb {
+  box-shadow: 0 0 0 6px color-mix(in oklch, var(--accent) 20%, transparent);
+  transform: scale(1.2);
+}
+
+input[type='range']:hover::-moz-range-thumb {
+  transform: scale(1.12);
+}
+
+input[type='range']:active::-moz-range-thumb {
+  box-shadow: 0 0 0 6px color-mix(in oklch, var(--accent) 20%, transparent);
+  transform: scale(1.2);
+}
+
+input[type='range']:focus-visible {
+  outline: none;
+}
+
+input[type='range']:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent) 35%, transparent);
+}
+
+/* On/off settings are switches. */
+.switch {
+  appearance: none;
+  background: var(--border-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  flex: none;
+  height: 1.3rem;
+  margin: 0;
+  position: relative;
+  transition: background 200ms var(--ease);
+  width: 2.25rem;
+}
+
+.switch::after {
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  content: '';
+  height: calc(1.3rem - 6px);
+  left: 3px;
+  position: absolute;
+  top: 3px;
+  transition: transform 260ms var(--spring);
+  width: calc(1.3rem - 6px);
+}
+
+.switch:checked {
+  background: var(--accent);
+}
+
+.switch:checked::after {
+  transform: translateX(0.95rem);
 }
 
 input[type='color'] {
-  background: none;
+  background: var(--panel);
   border: 1px solid var(--border-strong);
-  border-radius: 0.5rem;
-  height: 2.3rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  height: 2.4rem;
   padding: 0.2rem;
   width: 3rem;
 }
 
-.check {
-  align-items: center;
-  display: flex;
-  font-size: 0.88rem;
-  gap: 0.55rem;
+input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
 }
 
+input[type='color']::-webkit-color-swatch {
+  border: 0;
+  border-radius: 0.4rem;
+}
+
+.check {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-size: 0.88rem;
+  gap: 0.6rem;
+}
+
+/* A row of choices; the chosen one is raised. */
 .segmented {
   background: var(--panel-subtle);
-  border-radius: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.2rem;
@@ -340,17 +660,27 @@ input[type='color'] {
 .segmented button {
   background: transparent;
   border: 0;
-  border-radius: 0.4rem;
+  border-radius: 0.5rem;
   color: var(--muted);
   flex: 1 1 auto;
   font-size: 0.84rem;
   font-weight: 600;
   min-height: 2rem;
-  padding: 0.25rem 0.6rem;
+  padding: 0.25rem 0.65rem;
+  transition:
+    background 180ms var(--ease),
+    color 180ms var(--ease),
+    box-shadow 180ms var(--ease);
+}
+
+.segmented button:hover {
+  color: var(--ink);
 }
 
 .segmented button[aria-pressed='true'] {
   background: var(--panel);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
-  color: var(--ink);
+  box-shadow:
+    var(--shadow-sm),
+    0 0 0 1px var(--border);
+  color: var(--accent-strong);
 }

@@ -50,7 +50,12 @@
         <p class="muted">No text was found.</p>
       {/if}
       <div class="actions">
-        <button class="button small" type="button" onclick={copy} disabled={!output.ocr?.text}>
+        <button
+          class="button small primary"
+          type="button"
+          onclick={copy}
+          disabled={!output.ocr?.text}
+        >
           <Icon name={copied ? 'check' : 'copy'} size={16} />{copied ? 'Copied' : 'Copy'}
         </button>
         <button
@@ -67,6 +72,7 @@
 
 <style>
   .ocr {
+    animation: rise 360ms var(--ease);
     display: grid;
     gap: 0.75rem;
   }
@@ -118,7 +124,8 @@
   textarea {
     background: var(--panel-subtle);
     border: 1px solid var(--border);
-    border-radius: 0.5rem;
+    border-radius: 0.7rem;
+    line-height: 1.55;
     min-height: 10rem;
     padding: 0.6rem;
     resize: vertical;

@@ -17,7 +17,7 @@ CI beyond the deploy workflow.
 ## Repository map
 
 ```
-index.html              # Vite entry
+index.html              # Vite entry; applies the saved theme before first paint
 vite.config.ts          # build + Vitest projects (unit: Node, browser: Chromium)
 scripts/assets.mjs      # copies OCR files into public/vendor, downloads the model
 public/                 # served as-is: logo, manifest, service worker (sw.js)
@@ -124,7 +124,11 @@ Rules for `run`:
 
 - One page per tool (`ui/Workspace.svelte`): images, steps, export and the run
   button on the left; preview / results on the right (stacked on phones). No
-  step-by-step routes.
+  step-by-step routes. The left column reads as a pipeline (Input → Step n →
+  Output, `ui/CardHead.svelte`) joined by a dashed connector that flows while
+  a batch runs; the run button sticks to the bottom of the screen.
+- Images can be dropped anywhere (`ui/DropOverlay.svelte`, which ignores the
+  file list's own drag-to-reorder) or pasted, on any page, including home.
 - `app/session.svelte.ts` holds the files, the recipe being edited, and the
   results, so files survive moving between tools and a batch keeps running
   while you browse. Results are marked out of date when the files or settings
@@ -133,6 +137,26 @@ Rules for `run`:
   GitHub Pages without rewrites.
 - Object URLs are owned by components (`ui/BlobImage.svelte` creates and
   revokes them), never by the state.
+
+### Look and feel
+
+- **Design tokens** live in `src/styles.css`, each color defined once with
+  `light-dark()`. The page follows the system theme; the header's switch
+  (`ui/ThemeSwitch.svelte`, state in `app/theme.svelte.ts`) can force light or
+  dark by setting `data-theme` on `<html>`, which forces the `color-scheme`.
+  An inline script in `index.html` applies the saved choice before the first
+  paint (keep its storage key in sync with `theme.svelte.ts`). Switching
+  reveals the new theme in a circle from the button (View Transitions).
+- **Every tool and operation has a hue** (`ui/hues.ts`, keyed by icon), shown
+  on its icon tile (`ui/Tile.svelte`, the `.tile` class) on the home page, in
+  the workspace and in the "Add a step" menu. A new icon needs a hue there.
+  The brand teal is for input, output and saved recipes.
+- **Fonts:** Bricolage Grotesque (bundled from `@fontsource-variable`, so it
+  works offline) for headings, the system font for everything else.
+- **Motion** is short and eased, and honors `prefers-reduced-motion`: CSS
+  animations and transitions through the reduced-motion rule in
+  `styles.css`, Svelte transitions by taking their durations from
+  `ui/motion.ts` (`ms(...)`).
 
 ## Cross-file invariants (easy to break)
 
@@ -154,6 +178,8 @@ import.meta.url)`. Keep them in `optimizeDeps.exclude` (vite.config.ts), and
 - **No cross-origin isolation:** GitHub Pages can't send COOP/COEP headers, so
   WASM runs single-threaded (onnxruntime's CPU fallback, AVIF encoding).
   WebGPU is unaffected.
+- **The theme's storage key** (`imagelab:theme`) is read both by the inline
+  script in `index.html` and by `app/theme.svelte.ts`.
 - **The service worker** (`public/sw.js`) caches everything same-origin. Bump
   `CACHE` if its strategy changes.
 

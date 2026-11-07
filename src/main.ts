@@ -1,5 +1,7 @@
 import { mount } from 'svelte';
 
+import '@fontsource-variable/bricolage-grotesque';
+
 import './styles.css';
 import App from './ui/App.svelte';
 

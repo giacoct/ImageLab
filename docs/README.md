@@ -40,11 +40,13 @@ run on the decoded pixels, and the image is encoded only once at the end, so
 chaining doesn't lose quality. Results can also be handed on to another tool.
 
 Every tool works on any number of images (a merge combines them all), and the
-order you give them is kept. Images can be dropped, picked, or pasted. iPhone
+order you give them is kept. Images can be dropped anywhere on the page,
+picked, or pasted, even on the home page before choosing a tool. iPhone
 **HEIC** photos open everywhere. Results can be renamed and downloaded one by
 one or as a ZIP. If some files fail, the rest still complete and the failures
 are listed. Each tool remembers its last settings. The app works offline once
-loaded, and can be installed as an app.
+loaded, and can be installed as an app. It has a light and a dark theme
+(following the device unless you pick one).
 
 ## Getting started
 

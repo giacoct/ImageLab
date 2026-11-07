@@ -147,7 +147,8 @@
   }
 
   .frame {
-    border-radius: 0.5rem;
+    border-radius: 0.7rem;
+    box-shadow: 0 0 0 1px var(--border);
     justify-self: center;
     line-height: 0;
     overflow: hidden; /* clips the dimming shadow around the crop box */
@@ -161,7 +162,31 @@
     max-width: 100%;
   }
 
+  /* Dashed thirds inside the crop box help with composition. */
   .box {
+    background:
+      linear-gradient(
+        to right,
+        transparent calc(100% / 3 - 0.5px),
+        rgb(255 255 255 / 0.45) 0,
+        rgb(255 255 255 / 0.45) calc(100% / 3 + 0.5px),
+        transparent 0,
+        transparent calc(200% / 3 - 0.5px),
+        rgb(255 255 255 / 0.45) 0,
+        rgb(255 255 255 / 0.45) calc(200% / 3 + 0.5px),
+        transparent 0
+      ),
+      linear-gradient(
+        to bottom,
+        transparent calc(100% / 3 - 0.5px),
+        rgb(255 255 255 / 0.45) 0,
+        rgb(255 255 255 / 0.45) calc(100% / 3 + 0.5px),
+        transparent 0,
+        transparent calc(200% / 3 - 0.5px),
+        rgb(255 255 255 / 0.45) 0,
+        rgb(255 255 255 / 0.45) calc(200% / 3 + 0.5px),
+        transparent 0
+      );
     border: 2px solid #fff;
     box-shadow:
       0 0 0 1px rgb(0 0 0 / 0.5),
@@ -172,11 +197,18 @@
 
   .handle {
     background: #fff;
-    border: 1px solid rgb(0 0 0 / 0.5);
-    border-radius: 2px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
     height: 14px;
     position: absolute;
+    transition: transform 160ms var(--spring);
     width: 14px;
+  }
+
+  .handle:hover,
+  .handle:active {
+    transform: scale(1.3);
   }
 
   .nw,

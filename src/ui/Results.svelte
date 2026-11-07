@@ -20,11 +20,12 @@
     images.some((result) => /^image\/(jpeg|png|webp|avif)$/.test(result.output.blob.type)),
   );
 
-  function change(result: (typeof session.results)[number]): string {
-    if (result.output.ocr || result.inputSize === 0) return '';
+  /** Size change against the input, e.g. "−42%"; `smaller` colors it. */
+  function change(result: (typeof session.results)[number]): { text: string; smaller: boolean } {
+    if (result.output.ocr || result.inputSize === 0) return { text: '', smaller: false };
     const ratio = result.output.blob.size / result.inputSize - 1;
     const sign = ratio > 0 ? '+' : '−';
-    return `${sign}${Math.abs(Math.round(ratio * 100))}%`;
+    return { text: `${sign}${Math.abs(Math.round(ratio * 100))}%`, smaller: ratio < 0 };
   }
 
   function useAsInput(): void {
@@ -37,12 +38,12 @@
   <div class="summary">
     <p>
       {#if session.running}
+        <span class="spinner"></span>
         Processing {session.progress.done} of {session.progress.total}…
       {:else if session.results.length}
+        <span class="done" class:stale={session.stale}><Icon name="check" size={14} /></span>
         <strong>{session.results.length}</strong>
         {session.results.length === 1 ? 'result' : 'results'} · {formatBytes(totalOut)}
-      {:else if !session.failures.length}
-        <span class="muted">Results appear here after you process the images.</span>
       {/if}
     </p>
     <div class="actions">
@@ -67,24 +68,32 @@
     </div>
   </div>
 
-  {#if session.running}
-    <progress max={session.progress.total} value={session.progress.done}></progress>
+  {#if !session.running && !session.results.length && !session.failures.length}
+    <div class="empty">
+      <span class="tile" aria-hidden="true"><Icon name="sparkles" size={22} /></span>
+      <strong>Nothing here yet</strong>
+      <span class="muted">Results appear here after you process the images.</span>
+    </div>
   {/if}
 
   {#if session.stale && !session.running}
     <p class="notice warning">
+      <Icon name="alert" size={16} />
       The settings or images changed since these results were made. Process again to update them.
     </p>
   {/if}
 
   {#if session.failures.length}
     <div class="notice error" role="alert">
-      <strong>{session.failures.length} failed:</strong>
-      <ul>
-        {#each session.failures as failure, index (index)}
-          <li>{failure.name}: {failure.message}</li>
-        {/each}
-      </ul>
+      <Icon name="alert" size={16} />
+      <div>
+        <strong>{session.failures.length} failed:</strong>
+        <ul>
+          {#each session.failures as failure, index (index)}
+            <li>{failure.name}: {failure.message}</li>
+          {/each}
+        </ul>
+      </div>
     </div>
   {/if}
 
@@ -94,8 +103,9 @@
 
   {#if images.length}
     <ul class="grid">
-      {#each images as result (result.id)}
-        <li class="panel card">
+      {#each images as result, index (result.id)}
+        {@const delta = change(result)}
+        <li class="panel card" style:--i={Math.min(index, 12)}>
           <div class="thumb checker">
             <BlobImage blob={result.output.blob} alt={result.output.name} />
           </div>
@@ -107,7 +117,9 @@
           />
           <p class="hint">
             {result.output.width} × {result.output.height} · {formatBytes(result.output.blob.size)}
-            {#if change(result)}<span class="change">{change(result)}</span>{/if}
+            {#if delta.text}
+              <span class="change" class:smaller={delta.smaller}>{delta.text}</span>
+            {/if}
           </p>
           <button
             class="button small primary"
@@ -125,7 +137,7 @@
 <style>
   .results {
     display: grid;
-    gap: 0.85rem;
+    gap: 0.9rem;
   }
 
   .summary {
@@ -137,15 +149,55 @@
     min-height: 2rem;
   }
 
+  .summary p {
+    align-items: center;
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .done {
+    align-items: center;
+    animation: pop 500ms var(--spring);
+    background: var(--success);
+    border-radius: 50%;
+    color: var(--panel);
+    display: inline-flex;
+    height: 1.4rem;
+    justify-content: center;
+    width: 1.4rem;
+  }
+
+  .done.stale {
+    background: var(--soft);
+  }
+
   .actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
   }
 
-  progress {
-    accent-color: var(--accent);
-    width: 100%;
+  .empty {
+    align-content: center;
+    background: color-mix(in oklch, var(--panel) 70%, transparent);
+    border: 1.5px dashed var(--border-strong);
+    border-radius: calc(var(--radius) + 0.25rem);
+    display: grid;
+    gap: 0.3rem;
+    justify-items: center;
+    min-height: 16rem;
+    padding: 1.5rem;
+    text-align: center;
+  }
+
+  .empty .tile {
+    --hue: 185;
+    margin-bottom: 0.4rem;
+  }
+
+  .empty strong {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
   }
 
   .notice ul {
@@ -155,23 +207,40 @@
 
   .grid {
     display: grid;
-    gap: 0.75rem;
-    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr));
     list-style: none;
     margin: 0;
     padding: 0;
   }
 
   .card {
+    animation: deal 420ms var(--spring) both;
+    animation-delay: calc(var(--i) * 45ms);
     display: grid;
-    gap: 0.5rem;
+    gap: 0.55rem;
     padding: 0.6rem;
+    transition:
+      box-shadow 220ms var(--ease),
+      transform 220ms var(--ease);
+  }
+
+  .card:hover {
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+  }
+
+  @keyframes deal {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.95);
+    }
   }
 
   .thumb {
     align-items: center;
     aspect-ratio: 4 / 3;
-    border-radius: 0.45rem;
+    border-radius: 0.6rem;
     display: flex;
     justify-content: center;
     overflow: hidden;
@@ -180,6 +249,11 @@
   .thumb :global(img) {
     max-height: 100%;
     object-fit: contain;
+    transition: transform 400ms var(--ease);
+  }
+
+  .card:hover .thumb :global(img) {
+    transform: scale(1.04);
   }
 
   .name {
@@ -187,9 +261,25 @@
     min-height: 2rem;
   }
 
+  .hint {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
   .change {
-    color: var(--muted);
+    background: var(--warning-soft);
+    border-radius: 999px;
+    color: var(--warning);
+    font-size: 0.72rem;
     font-variant-numeric: tabular-nums;
-    margin-left: 0.25rem;
+    font-weight: 700;
+    padding: 0 0.4rem;
+  }
+
+  .change.smaller {
+    background: var(--success-soft);
+    color: var(--success);
   }
 </style>

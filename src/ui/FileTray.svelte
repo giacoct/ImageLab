@@ -1,24 +1,22 @@
 <!--
-  The imported files: drop zone (click, drag & drop, or paste), and the list
-  with thumbnails, sizes, problems, drag-to-reorder (the order carries into
-  merges and outputs) and selection for the preview.
+  The imported files (the "Input" of the pipeline): a button to choose more
+  (dropping anywhere on the page and pasting also work, see DropOverlay), and
+  the list with thumbnails, sizes, problems, drag-to-reorder (the order
+  carries into merges and outputs) and selection for the preview.
 -->
 <script lang="ts">
+  import { flip } from 'svelte/animate';
+  import { fade, fly } from 'svelte/transition';
+
   import { session } from '../app/session.svelte';
   import { formatBytes } from '../core/files';
   import BlobImage from './BlobImage.svelte';
+  import CardHead from './CardHead.svelte';
   import Icon from './Icon.svelte';
+  import { ms } from './motion';
 
   let input: HTMLInputElement;
-  let dragging = $state(false);
   let dragFrom = $state<number | null>(null);
-
-  function onDrop(event: DragEvent): void {
-    event.preventDefault();
-    dragging = false;
-    if (dragFrom === null && event.dataTransfer?.files.length)
-      session.addFiles(event.dataTransfer.files);
-  }
 
   function onPaste(event: ClipboardEvent): void {
     const files = [...(event.clipboardData?.files ?? [])];
@@ -35,33 +33,30 @@
 <svelte:window onpaste={onPaste} />
 
 <section class="panel tray" aria-labelledby="files-title">
-  <div class="head">
-    <h2 class="panel-title" id="files-title">
-      <Icon name="image" />Images
-      {#if session.items.length}<span class="count">{session.items.length}</span>{/if}
-    </h2>
+  <CardHead icon="image" eyebrow="Input" title="Images" id="files-title">
     {#if session.items.length}
-      <button class="button small" type="button" onclick={() => session.clearFiles()}>Clear</button>
+      <span class="badge">{session.items.length}</span>
+      <button class="button small ghost" type="button" onclick={() => session.clearFiles()}>
+        Clear
+      </button>
     {/if}
-  </div>
+  </CardHead>
 
   <button
     type="button"
     class="drop"
-    class:dragging
     class:compact={session.items.length > 0}
     onclick={() => input.click()}
-    ondragover={(event) => {
-      event.preventDefault();
-      if (dragFrom === null) dragging = true;
-    }}
-    ondragleave={() => (dragging = false)}
-    ondrop={onDrop}
   >
-    <Icon name="upload" size={session.items.length ? 18 : 28} />
-    <span>
-      <strong>Choose images</strong> or drop them here
-      <span class="hint">— or paste from the clipboard. JPEG, PNG, WebP, AVIF, GIF, HEIC.</span>
+    <span class="drop-icon"><Icon name={session.items.length ? 'plus' : 'upload'} size={20} /></span
+    >
+    <span class="drop-text">
+      <strong>{session.items.length ? 'Add more images' : 'Choose images'}</strong>
+      <span class="hint">
+        {session.items.length
+          ? 'or drop them anywhere'
+          : 'or drop them anywhere, or paste. JPEG, PNG, WebP, AVIF, GIF, HEIC.'}
+      </span>
     </span>
   </button>
   <input
@@ -83,18 +78,25 @@
         {@const warnings = session.warnings(item)}
         <li
           class:selected={index === session.selected}
+          class:dragged={dragFrom === index}
           class:over={dragFrom !== null && dragFrom !== index}
           draggable="true"
+          animate:flip={{ duration: ms(260) }}
+          in:fly={{ x: -10, duration: ms(260) }}
+          out:fade={{ duration: ms(120) }}
           ondragstart={(event) => {
             dragFrom = index;
             event.dataTransfer?.setData('text/plain', item.id);
           }}
           ondragend={() => (dragFrom = null)}
-          ondragover={(event) => event.preventDefault()}
+          ondragover={(event) => {
+            if (dragFrom !== null) event.preventDefault();
+          }}
           ondrop={(event) => {
+            // Files dropped here bubble up to the page-wide drop handler.
+            if (dragFrom === null) return;
             event.preventDefault();
-            event.stopPropagation();
-            if (dragFrom !== null) session.moveItem(dragFrom, index);
+            session.moveItem(dragFrom, index);
             dragFrom = null;
           }}
         >
@@ -102,6 +104,8 @@
             <span class="thumb checker">
               {#if item.info}
                 <BlobImage blob={item.info.thumbnail} alt="" />
+              {:else if !item.error}
+                <span class="spinner"></span>
               {/if}
             </span>
             <span class="meta">
@@ -140,7 +144,7 @@
               ><Icon name="down" size={16} /></button
             >
             <button
-              class="icon-button"
+              class="icon-button danger"
               type="button"
               aria-label="Remove {item.file.name}"
               onclick={() => session.removeItem(item.id)}><Icon name="close" size={16} /></button
@@ -155,54 +159,69 @@
 <style>
   .tray {
     display: grid;
-    gap: 0.75rem;
-  }
-
-  .head {
-    align-items: center;
-    display: flex;
-    justify-content: space-between;
-  }
-
-  .count {
-    background: var(--accent-soft);
-    border-radius: 999px;
-    color: var(--accent-strong);
-    font-size: 0.75rem;
-    padding: 0.05rem 0.5rem;
+    gap: 0.85rem;
   }
 
   .drop {
     align-items: center;
     background: var(--panel-subtle);
     border: 1.5px dashed var(--border-strong);
-    border-radius: 0.65rem;
+    border-radius: 0.8rem;
     color: var(--muted);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 1.6rem 1rem;
+    gap: 0.6rem;
+    padding: 1.5rem 1rem;
     text-align: center;
     transition:
-      border-color 140ms var(--ease),
-      background 140ms var(--ease);
+      border-color 180ms var(--ease),
+      background 180ms var(--ease),
+      color 180ms var(--ease);
   }
 
   .drop.compact {
     flex-direction: row;
-    padding: 0.6rem 0.8rem;
+    gap: 0.7rem;
+    padding: 0.55rem 0.75rem;
     text-align: left;
   }
 
-  .drop.compact .hint {
-    display: none;
-  }
-
-  .drop:hover,
-  .drop.dragging {
+  .drop:hover {
     background: var(--accent-soft);
     border-color: var(--accent);
     color: var(--accent-strong);
+  }
+
+  .drop-icon {
+    align-items: center;
+    background: var(--panel);
+    border-radius: 50%;
+    box-shadow: var(--shadow-sm);
+    color: var(--accent);
+    display: flex;
+    flex: none;
+    height: 2.6rem;
+    justify-content: center;
+    transition: transform 400ms var(--spring);
+    width: 2.6rem;
+  }
+
+  .compact .drop-icon {
+    height: 2rem;
+    width: 2rem;
+  }
+
+  .drop:hover .drop-icon {
+    transform: translateY(-3px) scale(1.06);
+  }
+
+  .compact:hover .drop-icon {
+    transform: rotate(90deg);
+  }
+
+  .drop-text {
+    display: grid;
+    gap: 0.1rem;
   }
 
   .drop strong {
@@ -211,7 +230,7 @@
 
   .list {
     display: grid;
-    gap: 0.25rem;
+    gap: 0.3rem;
     list-style: none;
     margin: 0;
     max-height: 22rem;
@@ -222,15 +241,26 @@
   li {
     align-items: center;
     border: 1px solid transparent;
-    border-radius: 0.55rem;
+    border-radius: 0.7rem;
     display: flex;
     gap: 0.25rem;
-    padding: 0.25rem;
+    padding: 0.3rem;
+    transition:
+      background 160ms var(--ease),
+      border-color 160ms var(--ease);
+  }
+
+  li:hover {
+    background: var(--panel-subtle);
   }
 
   li.selected {
     background: var(--accent-soft);
-    border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+    border-color: color-mix(in oklch, var(--accent) 35%, transparent);
+  }
+
+  li.dragged {
+    opacity: 0.5;
   }
 
   li.over:hover {
@@ -244,7 +274,7 @@
     border: 0;
     display: flex;
     flex: 1;
-    gap: 0.65rem;
+    gap: 0.7rem;
     min-width: 0;
     padding: 0;
     text-align: left;
@@ -252,13 +282,20 @@
 
   .thumb {
     align-items: center;
-    border-radius: 0.4rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 0 0 1px var(--border);
+    color: var(--accent);
     display: flex;
     flex: none;
     height: 2.75rem;
     justify-content: center;
     overflow: hidden;
+    transition: transform 300ms var(--spring);
     width: 2.75rem;
+  }
+
+  .selected .thumb {
+    transform: scale(1.05) rotate(-3deg);
   }
 
   .thumb :global(img) {

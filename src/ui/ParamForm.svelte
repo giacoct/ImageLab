@@ -38,6 +38,13 @@
     return typeof param.unit === 'function' ? param.unit(values) : param.unit;
   }
 
+  /** How far along its range a slider is, for the filled part of the track. */
+  function fill(param: Param, value: unknown): string {
+    if (param.kind !== 'number') return '0%';
+    const ratio = (Number(value) - param.min) / (param.max - param.min || 1);
+    return `${Math.min(1, Math.max(0, ratio)) * 100}%`;
+  }
+
   function setNumber(key: string, param: Param, raw: string): void {
     const value = Number(raw);
     if (raw === '' || Number.isNaN(value)) return;
@@ -63,6 +70,7 @@
             max={param.max}
             step={param.step}
             value={values[key]}
+            style:--fill={fill(param, values[key])}
             oninput={(event) => setNumber(key, param, event.currentTarget.value)}
           />
         {:else}
@@ -118,6 +126,7 @@
     {:else if param.kind === 'boolean'}
       <label class="check">
         <input
+          class="switch"
           type="checkbox"
           checked={Boolean(values[key])}
           onchange={(event) => onchange(key, event.currentTarget.checked)}

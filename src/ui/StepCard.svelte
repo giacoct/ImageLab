@@ -5,6 +5,7 @@
 <script lang="ts">
   import { session } from '../app/session.svelte';
   import { isTerminal } from '../ops/op';
+  import CardHead from './CardHead.svelte';
   import CropEditor from './CropEditor.svelte';
   import Icon from './Icon.svelte';
   import ParamForm from './ParamForm.svelte';
@@ -18,35 +19,30 @@
 </script>
 
 <section class="panel step" aria-label="Step {index + 1}: {op.title}">
-  <header>
-    <span class="number">{index + 1}</span>
-    <Icon name={op.icon} />
-    <h3>{op.title}</h3>
-    <span class="tools">
-      <button
-        class="icon-button"
-        type="button"
-        aria-label="Move {op.title} up"
-        disabled={index === 0 || terminal}
-        onclick={() => session.moveStep(index, -1)}><Icon name="up" size={16} /></button
-      >
-      <button
-        class="icon-button"
-        type="button"
-        aria-label="Move {op.title} down"
-        disabled={index === session.steps.length - 1 ||
-          terminal ||
-          isTerminal(session.ops[index + 1])}
-        onclick={() => session.moveStep(index, 1)}><Icon name="down" size={16} /></button
-      >
-      <button
-        class="icon-button"
-        type="button"
-        aria-label="Remove {op.title}"
-        onclick={() => session.removeStep(index)}><Icon name="trash" size={16} /></button
-      >
-    </span>
-  </header>
+  <CardHead icon={op.icon} eyebrow="Step {index + 1}" title={op.title}>
+    <button
+      class="icon-button"
+      type="button"
+      aria-label="Move {op.title} up"
+      disabled={index === 0 || terminal}
+      onclick={() => session.moveStep(index, -1)}><Icon name="up" size={16} /></button
+    >
+    <button
+      class="icon-button"
+      type="button"
+      aria-label="Move {op.title} down"
+      disabled={index === session.steps.length - 1 ||
+        terminal ||
+        isTerminal(session.ops[index + 1])}
+      onclick={() => session.moveStep(index, 1)}><Icon name="down" size={16} /></button
+    >
+    <button
+      class="icon-button danger"
+      type="button"
+      aria-label="Remove {op.title}"
+      onclick={() => session.removeStep(index)}><Icon name="trash" size={16} /></button
+    >
+  </CardHead>
 
   {#if op.id === 'transform'}
     <CropEditor {index} />
@@ -66,34 +62,6 @@
 <style>
   .step {
     display: grid;
-    gap: 0.85rem;
-  }
-
-  header {
-    align-items: center;
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  h3 {
-    flex: 1;
-    font-size: 0.95rem;
-  }
-
-  .number {
-    align-items: center;
-    background: var(--accent-soft);
-    border-radius: 999px;
-    color: var(--accent-strong);
-    display: inline-flex;
-    font-size: 0.75rem;
-    font-weight: 700;
-    height: 1.4rem;
-    justify-content: center;
-    width: 1.4rem;
-  }
-
-  .tools {
-    display: flex;
+    gap: 1rem;
   }
 </style>

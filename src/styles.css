@@ -1,0 +1,356 @@
+/*
+ * Design tokens and shared building blocks (buttons, panels, fields).
+ * Components keep only what is specific to them in their own <style>.
+ */
+
+:root {
+  --surface: #f5f7f6;
+  --panel: #ffffff;
+  --panel-subtle: #eef3f2;
+  --ink: #15201d;
+  --muted: #5b6764;
+  --soft: #83908c;
+  --border: #dbe2e0;
+  --border-strong: #c3cecb;
+  --accent: #0b766f;
+  --accent-strong: #075c57;
+  --accent-soft: #dff2ef;
+  --on-accent: #ffffff;
+  --danger: #b42318;
+  --danger-soft: #fff1f0;
+  --warning: #8a4b00;
+  --warning-soft: #fff7e6;
+  --checker: #e3e8e7;
+  --shadow: 0 12px 32px rgb(21 32 29 / 0.08);
+  --radius: 0.75rem;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  color-scheme: light;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #0f1514;
+    --panel: #172120;
+    --panel-subtle: #1d2928;
+    --ink: #e6efed;
+    --muted: #a2b1ad;
+    --soft: #7d8c88;
+    --border: #2a3836;
+    --border-strong: #3a4b48;
+    --accent: #3fb8ad;
+    --accent-strong: #6fd3c9;
+    --accent-soft: #173a37;
+    --on-accent: #062522;
+    --danger: #ff8a80;
+    --danger-soft: #3a1c1a;
+    --warning: #f5c26b;
+    --warning-soft: #3a2c12;
+    --checker: #26302f;
+    --shadow: 0 12px 32px rgb(0 0 0 / 0.35);
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--surface);
+  min-width: 320px;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+.visually-hidden {
+  border: 0;
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* --- buttons ------------------------------------------------------------- */
+
+.button {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.55rem;
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 600;
+  gap: 0.45rem;
+  justify-content: center;
+  min-height: 2.4rem;
+  padding: 0.45rem 0.9rem;
+  text-decoration: none;
+  transition:
+    background 140ms var(--ease),
+    border-color 140ms var(--ease);
+  white-space: nowrap;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--panel-subtle);
+}
+
+.button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.button.primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.button.danger {
+  color: var(--danger);
+}
+
+.button:disabled {
+  opacity: 0.5;
+}
+
+.button.small {
+  font-size: 0.82rem;
+  min-height: 2rem;
+  padding: 0.3rem 0.65rem;
+}
+
+.icon-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
+  color: var(--muted);
+  display: inline-flex;
+  height: 2rem;
+  justify-content: center;
+  padding: 0;
+  width: 2rem;
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--panel-subtle);
+  color: var(--ink);
+}
+
+.icon-button:disabled {
+  opacity: 0.35;
+}
+
+/* --- panels -------------------------------------------------------------- */
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.panel-title {
+  align-items: center;
+  display: flex;
+  font-size: 0.95rem;
+  font-weight: 700;
+  gap: 0.5rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.notice {
+  border-radius: 0.55rem;
+  font-size: 0.85rem;
+  padding: 0.6rem 0.8rem;
+}
+
+.notice.error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.notice.warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.notice.info {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+/* Transparent areas of an image show as a checkerboard. */
+.checker {
+  background-color: var(--panel);
+  background-image:
+    linear-gradient(45deg, var(--checker) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--checker) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--checker) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--checker) 75%);
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+  background-size: 16px 16px;
+}
+
+/* --- form fields --------------------------------------------------------- */
+
+.fields {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.field-label {
+  align-items: baseline;
+  display: flex;
+  font-size: 0.85rem;
+  font-weight: 600;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.field-value {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.input,
+.select {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.5rem;
+  min-height: 2.3rem;
+  padding: 0.35rem 0.6rem;
+  width: 100%;
+}
+
+.input-group {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.input-group .input {
+  flex: 1;
+}
+
+input[type='range'] {
+  accent-color: var(--accent);
+  width: 100%;
+}
+
+input[type='checkbox'] {
+  accent-color: var(--accent);
+  height: 1.05rem;
+  width: 1.05rem;
+}
+
+input[type='color'] {
+  background: none;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.5rem;
+  height: 2.3rem;
+  padding: 0.2rem;
+  width: 3rem;
+}
+
+.check {
+  align-items: center;
+  display: flex;
+  font-size: 0.88rem;
+  gap: 0.55rem;
+}
+
+.segmented {
+  background: var(--panel-subtle);
+  border-radius: 0.55rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  padding: 0.2rem;
+}
+
+.segmented button {
+  background: transparent;
+  border: 0;
+  border-radius: 0.4rem;
+  color: var(--muted);
+  flex: 1 1 auto;
+  font-size: 0.84rem;
+  font-weight: 600;
+  min-height: 2rem;
+  padding: 0.25rem 0.6rem;
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--panel);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  color: var(--ink);
+}

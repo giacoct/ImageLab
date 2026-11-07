@@ -8,3 +8,8 @@
 *.jpg binary
 *.jpeg binary
 *.webp binary
+
+*.gz binary
+*.heic binary
+*.onnx binary
+*.wasm binary

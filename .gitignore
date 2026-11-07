@@ -1,18 +1,12 @@
-# Frontend (Angular)
 node_modules/
-frontend/dist/
-frontend/.angular/
-frontend/out-tsc/
-frontend/coverage/
+dist/
 npm-debug.log
-
-# Backend (Python)
-backend/.venv/
-__pycache__/
-*.pyc
-.pytest_cache/
-# Upscaler model weights: downloaded by `npm run setup`, never committed.
-backend/models/
+# Copied from node_modules / downloaded by `npm run assets`, never committed.
+public/vendor/
+public/models/
+# Vitest browser mode screenshots on failure.
+__screenshots__/
+.vitest/
 
 # Editors
 .idea/
@@ -21,7 +15,6 @@ backend/models/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-!.vscode/mcp.json
 .history/
 
 # System files

@@ -1,0 +1,4 @@
+dist/
+public/vendor/
+public/models/
+package-lock.json

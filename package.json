@@ -1,13 +1,46 @@
 {
   "name": "imagelab",
   "private": true,
-  "description": "Self-hosted browser image tools. Scripts only: the Angular app lives in frontend/, the FastAPI backend in backend/.",
+  "description": "Personal image tools that run entirely in the browser. Static site, deployed to GitHub Pages.",
+  "type": "module",
+  "engines": {
+    "node": ">=26"
+  },
   "scripts": {
-    "setup": "node scripts/setup.mjs",
-    "dev": "node scripts/dev.mjs",
-    "build": "npm --prefix frontend run build",
-    "test": "npm --prefix frontend test -- --watch=false && cd backend && .venv/bin/python -m pytest -q",
-    "start": "cd backend && .venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 4200",
-    "format": "npm --prefix frontend run format"
+    "assets": "node scripts/assets.mjs",
+    "predev": "npm run assets",
+    "dev": "vite",
+    "prebuild": "npm run assets",
+    "build": "svelte-check --fail-on-warnings && vite build",
+    "preview": "vite preview",
+    "pretest": "npm run assets",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "@tsconfig/svelte": "5.0.8",
+    "@types/node": "26.6.6",
+    "@vitest/browser-playwright": "5.1.0",
+    "playwright": "1.65.0",
+    "prettier": "3.9.10",
+    "prettier-plugin-svelte": "4.1.1",
+    "svelte": "5.57.3",
+    "svelte-check": "4.7.8",
+    "typescript": "6.0.3",
+    "vite": "8.3.6",
+    "vitest": "5.1.0"
+  },
+  "dependencies": {
+    "@jsquash/avif": "2.1.1",
+    "@jsquash/jpeg": "1.6.0",
+    "@jsquash/webp": "1.5.0",
+    "@tesseract.js-data/eng": "1.0.0",
+    "@tesseract.js-data/ita": "1.0.0",
+    "libheif-js": "1.23.5",
+    "onnxruntime-web": "1.31.1",
+    "tesseract.js": "7.0.0",
+    "vtracer-wasm": "0.1.0"
   }
 }

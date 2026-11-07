@@ -147,16 +147,16 @@
 
   .hero {
     display: grid;
-    gap: 0.9rem;
-    max-width: 46rem;
+    gap: 1rem;
     padding-top: 0.5rem;
   }
 
   h1 {
-    font-size: clamp(1.9rem, 5vw, 3rem);
+    font-size: clamp(2rem, 4.6vw, 3.6rem);
     font-weight: 750;
     letter-spacing: -0.03em;
     line-height: 1.05;
+    text-wrap: balance;
   }
 
   .mark {
@@ -197,8 +197,8 @@
 
   .lead {
     color: var(--muted);
-    font-size: 1.05rem;
-    max-width: 38rem;
+    font-size: clamp(1rem, 1.6vw, 1.2rem);
+    text-wrap: pretty;
   }
 
   .features {

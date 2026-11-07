@@ -118,7 +118,7 @@
     display: flex;
     justify-content: space-between;
     margin: 0 auto;
-    max-width: 82rem;
+    max-width: 92rem;
     padding: 1rem 1rem 0;
   }
 
@@ -165,7 +165,7 @@
 
   main {
     margin: 0 auto;
-    max-width: 82rem;
+    max-width: 92rem;
     padding: 1.5rem 1rem 3rem;
   }
 </style>

@@ -43,7 +43,7 @@
   .thumb {
     background: var(--accent-soft);
     border-radius: 999px;
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent) 30%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
     height: 2rem;
     left: 0.2rem;
     position: absolute;

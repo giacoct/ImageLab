@@ -55,7 +55,7 @@
 <style>
   .overlay {
     backdrop-filter: blur(6px);
-    background: color-mix(in oklch, var(--surface) 70%, transparent);
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
     display: grid;
     inset: 0;
     padding: 1rem;
@@ -66,7 +66,7 @@
 
   .target {
     align-content: center;
-    background: color-mix(in oklch, var(--accent-soft) 70%, transparent);
+    background: color-mix(in srgb, var(--accent-soft) 70%, transparent);
     border: 2px dashed var(--accent);
     border-radius: 1.5rem;
     display: grid;

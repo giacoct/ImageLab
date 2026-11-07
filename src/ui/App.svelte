@@ -49,7 +49,8 @@
 
 <style>
   /*
-   * Three large, soft blobs of color behind the page. Plain radial gradients
+   * Three large, soft blobs of color behind the page (in the dark theme only
+   * cool ones: a warm color turns muddy brown on dark grey). Plain radial gradients
    * (no blur filter) moved with transforms, so they cost nothing to animate.
    */
   .wash {
@@ -71,7 +72,7 @@
     animation: drift-a 38s ease-in-out infinite alternate;
     background: radial-gradient(
       closest-side,
-      light-dark(oklch(0.86 0.09 185 / 0.55), oklch(0.45 0.08 190 / 0.35)),
+      light-dark(oklch(0.86 0.09 185 / 0.55), oklch(0.55 0.1 185 / 0.16)),
       transparent
     );
     left: -22vmax;
@@ -82,7 +83,7 @@
     animation: drift-b 46s ease-in-out infinite alternate;
     background: radial-gradient(
       closest-side,
-      light-dark(oklch(0.88 0.08 45 / 0.42), oklch(0.45 0.08 35 / 0.2)),
+      light-dark(oklch(0.88 0.08 45 / 0.42), oklch(0.5 0.12 275 / 0.12)),
       transparent
     );
     right: -26vmax;
@@ -93,7 +94,7 @@
     animation: drift-a 52s ease-in-out infinite alternate-reverse;
     background: radial-gradient(
       closest-side,
-      light-dark(oklch(0.87 0.07 290 / 0.35), oklch(0.42 0.08 290 / 0.22)),
+      light-dark(oklch(0.87 0.07 290 / 0.35), oklch(0.5 0.1 230 / 0.1)),
       transparent
     );
     bottom: -40vmax;
@@ -139,7 +140,7 @@
   }
 
   .mark {
-    filter: drop-shadow(0 4px 8px color-mix(in oklch, var(--accent) 35%, transparent));
+    filter: drop-shadow(0 4px 8px color-mix(in srgb, var(--accent) 35%, transparent));
     transition: transform 400ms var(--spring);
   }
 

@@ -179,7 +179,7 @@
 
   .empty {
     align-content: center;
-    background: color-mix(in oklch, var(--panel) 70%, transparent);
+    background: color-mix(in srgb, var(--panel) 70%, transparent);
     border: 1.5px dashed var(--border-strong);
     border-radius: calc(var(--radius) + 0.25rem);
     display: grid;

@@ -13,7 +13,7 @@ export type ThemePreference = 'system' | 'light' | 'dark';
 
 const KEY = 'theme';
 /** The page background in each theme, for the browser's toolbar (theme-color). */
-const SURFACE = { light: '#f4f7f6', dark: '#101719' };
+const SURFACE = { light: '#f4f7f6', dark: '#111215' };
 
 const systemDark = matchMedia('(prefers-color-scheme: dark)');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');

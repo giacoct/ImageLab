@@ -47,7 +47,7 @@
   }
 
   summary {
-    background: color-mix(in oklch, var(--panel) 60%, transparent);
+    background: color-mix(in srgb, var(--panel) 60%, transparent);
     border-style: dashed;
     box-shadow: none;
     color: var(--muted);

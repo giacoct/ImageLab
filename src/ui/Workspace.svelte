@@ -344,7 +344,7 @@
   .run {
     align-items: center;
     backdrop-filter: blur(14px);
-    background: color-mix(in oklch, var(--panel) 78%, transparent);
+    background: color-mix(in srgb, var(--panel) 78%, transparent);
     border: 1px solid var(--border);
     border-radius: calc(var(--radius) + 0.25rem);
     bottom: 0.75rem;

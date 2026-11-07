@@ -159,7 +159,7 @@
     animation: appear 300ms var(--ease);
     border-radius: 2px;
     box-shadow:
-      0 0 0 1px color-mix(in oklch, var(--ink) 10%, transparent),
+      0 0 0 1px color-mix(in srgb, var(--ink) 10%, transparent),
       0 12px 32px -12px var(--shadow-color);
     max-height: 70vh;
     max-width: 100%;
@@ -182,7 +182,7 @@
   }
 
   .placeholder {
-    background: color-mix(in oklch, var(--panel) 85%, transparent);
+    background: color-mix(in srgb, var(--panel) 85%, transparent);
     border-radius: var(--radius);
     display: grid;
     gap: 0.3rem;
@@ -251,7 +251,7 @@
     align-items: center;
     animation: rise 200ms var(--ease);
     backdrop-filter: blur(8px);
-    background: color-mix(in oklch, var(--panel) 85%, transparent);
+    background: color-mix(in srgb, var(--panel) 85%, transparent);
     border: 1px solid var(--border);
     border-radius: 999px;
     box-shadow: var(--shadow);

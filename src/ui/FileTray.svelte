@@ -256,7 +256,7 @@
 
   li.selected {
     background: var(--accent-soft);
-    border-color: color-mix(in oklch, var(--accent) 35%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 35%, transparent);
   }
 
   li.dragged {

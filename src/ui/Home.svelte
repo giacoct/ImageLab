@@ -212,7 +212,7 @@
 
   .features li {
     align-items: center;
-    background: color-mix(in oklch, var(--panel) 70%, transparent);
+    background: color-mix(in srgb, var(--panel) 70%, transparent);
     border: 1px solid var(--border);
     border-radius: 999px;
     color: var(--muted);
@@ -231,7 +231,7 @@
 
   .start {
     align-items: center;
-    background: color-mix(in oklch, var(--panel) 75%, transparent);
+    background: color-mix(in srgb, var(--panel) 75%, transparent);
     border: 1.5px dashed var(--border-strong);
     border-radius: var(--radius);
     display: flex;
@@ -245,7 +245,7 @@
 
   .start.filled {
     background: var(--panel);
-    border-color: color-mix(in oklch, var(--accent) 45%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
     border-style: solid;
     box-shadow: var(--shadow);
   }

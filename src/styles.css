@@ -10,19 +10,23 @@
 :root {
   color-scheme: light dark;
 
-  --surface: light-dark(#f4f7f6, #101719);
-  --panel: light-dark(#ffffff, oklch(0.215 0.014 210));
-  --panel-subtle: light-dark(oklch(0.968 0.007 190), oklch(0.255 0.016 210));
-  --ink: light-dark(oklch(0.25 0.025 205), oklch(0.95 0.01 190));
-  --muted: light-dark(oklch(0.5 0.02 205), oklch(0.76 0.018 200));
-  --soft: light-dark(oklch(0.64 0.016 205), oklch(0.6 0.02 205));
-  --border: light-dark(oklch(0.915 0.01 200), oklch(0.3 0.016 210));
-  --border-strong: light-dark(oklch(0.85 0.014 200), oklch(0.38 0.02 210));
+  --surface: light-dark(#f4f7f6, #111215);
+  --panel: light-dark(#ffffff, #1a1b1f);
+  --panel-subtle: light-dark(oklch(0.968 0.007 190), #222328);
+  --ink: light-dark(oklch(0.25 0.025 205), #ececef);
+  --muted: light-dark(oklch(0.5 0.02 205), #a3a5ad);
+  --soft: light-dark(oklch(0.64 0.016 205), #7c7f88);
+  --border: light-dark(oklch(0.915 0.01 200), #2a2b31);
+  --border-strong: light-dark(oklch(0.85 0.014 200), #3a3c44);
 
-  /* The brand teal (the logo's), and a warm coral for the odd highlight. */
+  /*
+   * Light: soft teal-tinted neutrals. Dark: plain charcoal greys, so the teal
+   * and the tools' hues are the only color on the page.
+   * The brand teal (the logo's), and a warm coral for the odd highlight.
+   */
   --accent: light-dark(oklch(0.52 0.1 185), oklch(0.78 0.12 180));
   --accent-strong: light-dark(oklch(0.44 0.085 187), oklch(0.86 0.1 180));
-  --accent-soft: light-dark(oklch(0.95 0.035 180), oklch(0.31 0.05 185));
+  --accent-soft: light-dark(oklch(0.95 0.035 180), oklch(0.3 0.055 185));
   --on-accent: light-dark(#ffffff, oklch(0.2 0.04 195));
   --spark: light-dark(oklch(0.7 0.16 35), oklch(0.78 0.13 40));
 
@@ -33,8 +37,8 @@
   --success: light-dark(oklch(0.52 0.13 150), oklch(0.8 0.14 150));
   --success-soft: light-dark(oklch(0.96 0.04 150), oklch(0.3 0.06 150));
 
-  --checker: light-dark(oklch(0.93 0.006 200), oklch(0.27 0.012 210));
-  --shadow-color: light-dark(oklch(0.35 0.04 200 / 0.09), oklch(0 0 0 / 0.38));
+  --checker: light-dark(oklch(0.93 0.006 200), #26272c);
+  --shadow-color: light-dark(oklch(0.35 0.04 200 / 0.09), rgb(0 0 0 / 0.45));
   --shadow-sm: 0 1px 2px var(--shadow-color);
   --shadow: 0 1px 2px var(--shadow-color), 0 8px 24px -6px var(--shadow-color);
   --shadow-lg: 0 2px 4px var(--shadow-color), 0 24px 48px -12px var(--shadow-color);
@@ -112,7 +116,7 @@ button:disabled {
 }
 
 ::selection {
-  background: color-mix(in oklch, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 img {
@@ -170,7 +174,7 @@ img {
 
 .spinner {
   animation: spin 800ms linear infinite;
-  border: 2px solid color-mix(in oklch, currentColor 25%, transparent);
+  border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
   border-radius: 50%;
   border-top-color: currentColor;
   display: inline-block;
@@ -231,7 +235,7 @@ img {
   border-color: color-mix(in oklch, var(--accent) 80%, black);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.25),
-    0 6px 16px -6px color-mix(in oklch, var(--accent) 80%, transparent);
+    0 6px 16px -6px color-mix(in srgb, var(--accent) 80%, transparent);
   color: var(--on-accent);
 }
 
@@ -239,7 +243,7 @@ img {
   background: linear-gradient(180deg, var(--accent), var(--accent-strong));
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.25),
-    0 10px 22px -8px color-mix(in oklch, var(--accent) 90%, transparent);
+    0 10px 22px -8px color-mix(in srgb, var(--accent) 90%, transparent);
   transform: translateY(-1px);
 }
 
@@ -249,7 +253,7 @@ img {
 
 .button.danger:hover:not(:disabled) {
   background: var(--danger-soft);
-  border-color: color-mix(in oklch, var(--danger) 40%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
 }
 
 .button.ghost {
@@ -477,7 +481,7 @@ img {
 .input:focus,
 .select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 22%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
   outline: none;
 }
 
@@ -563,7 +567,7 @@ input[type='range']:hover::-webkit-slider-thumb {
 }
 
 input[type='range']:active::-webkit-slider-thumb {
-  box-shadow: 0 0 0 6px color-mix(in oklch, var(--accent) 20%, transparent);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 20%, transparent);
   transform: scale(1.2);
 }
 
@@ -572,7 +576,7 @@ input[type='range']:hover::-moz-range-thumb {
 }
 
 input[type='range']:active::-moz-range-thumb {
-  box-shadow: 0 0 0 6px color-mix(in oklch, var(--accent) 20%, transparent);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 20%, transparent);
   transform: scale(1.2);
 }
 
@@ -581,7 +585,7 @@ input[type='range']:focus-visible {
 }
 
 input[type='range']:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent) 35%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 /* On/off settings are switches. */

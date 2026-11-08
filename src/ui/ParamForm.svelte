@@ -158,7 +158,7 @@
 
 <style>
   .mono {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: var(--font-mono);
     max-width: 8rem;
   }
 </style>

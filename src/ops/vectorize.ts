@@ -1,5 +1,6 @@
 import wasmUrl from 'vtracer-wasm/vtracer.wasm?url';
 
+import { fitInside } from '../core/geometry';
 import { p, type Values } from '../core/params';
 import { hasTransparency, isFlatArt, medianFilter, modeFilter, quantize } from '../core/pixels';
 import { restoreSize, tracerConfig, type TraceSettings } from '../core/vector';
@@ -89,8 +90,8 @@ async function trace(image: Img, settings: TraceSettings): Promise<string> {
  */
 async function traceAuto(image: Img): Promise<string> {
   const original = { width: image.width, height: image.height };
-  const thumb = readPixels(downscaled(image, ...thumbSize(image))).data;
-  const flat = isFlatArt(thumb);
+  const thumbSize = fitInside(image, { width: 128, height: 128 });
+  const flat = isFlatArt(readPixels(downscaled(image, thumbSize.width, thumbSize.height)).data);
   const transparent = hasTransparency(readPixels(image).data);
 
   const longest = Math.max(image.width, image.height);
@@ -121,14 +122,6 @@ async function traceAuto(image: Img): Promise<string> {
     pathPrecision: factor > 1 ? 2 : 3,
   });
   return restoreSize(svg, original, work);
-}
-
-function thumbSize(image: Img): [number, number] {
-  const scale = Math.min(1, 128 / Math.max(image.width, image.height));
-  return [
-    Math.max(1, Math.round(image.width * scale)),
-    Math.max(1, Math.round(image.height * scale)),
-  ];
 }
 
 function manualSettings(values: Values<typeof PARAMS>): TraceSettings {

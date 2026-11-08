@@ -4,15 +4,13 @@
   import { EXPORT_PARAMS, exportContext } from '../core/recipe';
   import CardHead from './CardHead.svelte';
   import ParamForm from './ParamForm.svelte';
-
-  const terminal = $derived(session.ops.find((op) => op.kind === 'svg' || op.kind === 'text'));
 </script>
 
 <section class="panel export" aria-labelledby="export-title">
   <CardHead icon="download" eyebrow="Output" title="Save as" id="export-title" />
-  {#if terminal}
+  {#if session.terminal}
     <p class="hint">
-      {terminal.kind === 'svg'
+      {session.terminal.kind === 'svg'
         ? 'SVG files (scalable vectors).'
         : 'Plain text, selectable on the image.'}
     </p>

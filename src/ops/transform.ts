@@ -57,14 +57,13 @@ export function cropForImage(
   size: { width: number; height: number },
 ): Crop {
   const k = aspectFactor(aspect, size);
-  if (k === null) return crop;
+  if (k === null || Math.abs(crop.height - crop.width * k) < 1e-6) return crop; // free, or already this ratio
   let width = crop.width;
   let height = width * k;
   if (height > 1) {
     height = 1;
     width = 1 / k;
   }
-  if (Math.abs(crop.height - crop.width * k) < 1e-6) return crop; // already this ratio
   const cx = crop.x + crop.width / 2;
   const cy = crop.y + crop.height / 2;
   const x = Math.min(1 - width, Math.max(0, cx - width / 2));

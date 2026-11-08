@@ -29,21 +29,29 @@ function tooLarge(size: { width: number; height: number }): string | null {
     : null;
 }
 
-let session: Promise<InferenceSession> | undefined;
+interface Model {
+  ort: typeof import('onnxruntime-web/webgpu');
+  session: InferenceSession;
+}
+
+let model: Promise<Model> | undefined;
 
 /** Load onnxruntime and the model once per worker; WebGPU when available, else WASM (CPU). */
-function loadSession(asset: (path: string) => string): Promise<InferenceSession> {
-  session ??= (async () => {
+function loadModel(asset: (path: string) => string): Promise<Model> {
+  model ??= (async () => {
     const ort = await import('onnxruntime-web/webgpu');
     // Multi-threaded WASM needs cross-origin isolation; use what's available.
     ort.env.wasm.numThreads = self.crossOriginIsolated
       ? Math.min(4, navigator.hardwareConcurrency)
       : 1;
     const providers = 'gpu' in navigator ? ['webgpu', 'wasm'] : ['wasm'];
-    return ort.InferenceSession.create(asset(MODEL), { executionProviders: providers });
+    const session = await ort.InferenceSession.create(asset(MODEL), {
+      executionProviders: providers,
+    });
+    return { ort, session };
   })();
-  session.catch(() => (session = undefined)); // let a later run retry
-  return session;
+  model.catch(() => (model = undefined)); // let a later run retry
+  return model;
 }
 
 export const upscale = mapOp({
@@ -59,8 +67,7 @@ export const upscale = mapOp({
   async run(image, _values, context) {
     const problem = tooLarge(image);
     if (problem) throw new Error(problem);
-    const ort = await import('onnxruntime-web/webgpu');
-    const model = await loadSession(context.asset);
+    const { ort, session } = await loadModel(context.asset);
 
     const source = readPixels(image);
     const { width, height } = source;
@@ -89,8 +96,8 @@ export const upscale = mapOp({
             input[2 * tw * th + d] = source.data[s + 2] / 255;
           }
         }
-        const feeds = { [model.inputNames[0]]: new ort.Tensor('float32', input, [1, 3, th, tw]) };
-        const result = (await model.run(feeds))[model.outputNames[0]];
+        const feeds = { [session.inputNames[0]]: new ort.Tensor('float32', input, [1, 3, th, tw]) };
+        const result = (await session.run(feeds))[session.outputNames[0]];
         const output = (await result.getData()) as Float32Array;
         result.dispose();
 

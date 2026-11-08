@@ -12,10 +12,11 @@
   import { formatBytes } from '../core/files';
   import BlobImage from './BlobImage.svelte';
   import CardHead from './CardHead.svelte';
+  import FilePicker from './FilePicker.svelte';
   import Icon from './Icon.svelte';
   import { ms } from './motion';
 
-  let input: HTMLInputElement;
+  let picker: FilePicker;
   let dragFrom = $state<number | null>(null);
 
   function onPaste(event: ClipboardEvent): void {
@@ -46,7 +47,7 @@
     type="button"
     class="drop"
     class:compact={session.items.length > 0}
-    onclick={() => input.click()}
+    onclick={() => picker.open()}
   >
     <span class="drop-icon"><Icon name={session.items.length ? 'plus' : 'upload'} size={20} /></span
     >
@@ -59,23 +60,12 @@
       </span>
     </span>
   </button>
-  <input
-    bind:this={input}
-    class="visually-hidden"
-    type="file"
-    accept="image/*,.heic,.heif"
-    multiple
-    tabindex="-1"
-    onchange={(event) => {
-      session.addFiles(event.currentTarget.files ?? []);
-      event.currentTarget.value = '';
-    }}
-  />
+  <FilePicker bind:this={picker} />
 
   {#if session.items.length}
     <ul class="list">
       {#each session.items as item, index (item.id)}
-        {@const warnings = session.warnings(item)}
+        {@const warning = session.warning(item)}
         <li
           class:selected={index === session.selected}
           class:dragged={dragFrom === index}
@@ -121,9 +111,9 @@
                   Reading…
                 {/if}
               </span>
-              {#each warnings as warning (warning)}
+              {#if warning}
                 <span class="warning-text"><Icon name="alert" size={13} />{warning}</span>
-              {/each}
+              {/if}
             </span>
           </button>
           <span class="actions">

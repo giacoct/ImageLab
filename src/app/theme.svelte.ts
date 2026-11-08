@@ -12,8 +12,6 @@ import { load, save } from './storage';
 export type ThemePreference = 'system' | 'light' | 'dark';
 
 const KEY = 'theme';
-/** The page background in each theme, for the browser's toolbar (theme-color). */
-const SURFACE = { light: '#f4f7f6', dark: '#1d1e23' };
 
 const systemDark = matchMedia('(prefers-color-scheme: dark)');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -82,9 +80,11 @@ class Theme {
     const root = document.documentElement;
     if (this.preference === 'system') delete root.dataset.theme;
     else root.dataset.theme = this.preference;
-    // index.html has one theme-color per system scheme; both show the chosen theme.
+    // The browser's toolbar matches the page background. index.html has one
+    // theme-color per system scheme; both now show the chosen theme.
+    const surface = getComputedStyle(document.body).backgroundColor;
     for (const meta of document.querySelectorAll('meta[name="theme-color"]'))
-      meta.setAttribute('content', SURFACE[this.resolved]);
+      meta.setAttribute('content', surface);
   }
 }
 

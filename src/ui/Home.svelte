@@ -8,11 +8,12 @@
   import { TOOLS } from '../app/tools';
   import { findOp } from '../ops';
   import BlobImage from './BlobImage.svelte';
+  import FilePicker from './FilePicker.svelte';
   import { BRAND_HUE, hueOf } from './hues';
   import Icon from './Icon.svelte';
   import Tile from './Tile.svelte';
 
-  let input: HTMLInputElement;
+  let picker: FilePicker;
 
   const FEATURES = [
     { icon: 'shield', text: 'Private: nothing is uploaded' },
@@ -63,7 +64,7 @@
         <span class="muted">Pick a tool below to continue.</span>
       </p>
       <div class="start-actions">
-        <button class="button small" type="button" onclick={() => input.click()}>
+        <button class="button small" type="button" onclick={() => picker.open()}>
           <Icon name="plus" size={16} />Add more
         </button>
         <button class="button small ghost" type="button" onclick={() => session.clearFiles()}>
@@ -76,22 +77,11 @@
         <strong>Start with your images</strong>
         <span class="muted">Drop them anywhere, paste them, or choose them; then pick a tool.</span>
       </p>
-      <button class="button primary" type="button" onclick={() => input.click()}>
+      <button class="button primary" type="button" onclick={() => picker.open()}>
         Choose images
       </button>
     {/if}
-    <input
-      bind:this={input}
-      class="visually-hidden"
-      type="file"
-      accept="image/*,.heic,.heif"
-      multiple
-      tabindex="-1"
-      onchange={(event) => {
-        session.addFiles(event.currentTarget.files ?? []);
-        event.currentTarget.value = '';
-      }}
-    />
+    <FilePicker bind:this={picker} />
   </section>
 
   {#if recipes.list.length}

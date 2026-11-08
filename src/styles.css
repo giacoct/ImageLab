@@ -323,14 +323,6 @@ img {
   padding: 1.1rem;
 }
 
-.panel-title {
-  align-items: center;
-  display: flex;
-  font-size: 1.02rem;
-  font-weight: 650;
-  gap: 0.5rem;
-}
-
 /* The small label above a card title: "Input", "Step 2", "Output". */
 .eyebrow {
   color: var(--soft);

@@ -34,7 +34,6 @@ export interface Failure {
   message: string;
 }
 
-/** Results that can feed another tool (not SVG, ICO or text). */
 const CHAINABLE = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 
 let nextId = 0;
@@ -58,8 +57,13 @@ class Session {
 
   readonly selectedItem = $derived(this.items[Math.min(this.selected, this.items.length - 1)]);
   readonly ops = $derived(this.steps.map((step) => getOp(step.op)));
-  readonly terminal = $derived(this.ops.some(isTerminal));
+  /** The SVG or text step that ends the recipe, if any. */
+  readonly terminal = $derived(this.ops.find(isTerminal));
   readonly merges = $derived(this.ops.some((op) => op.kind === 'combine'));
+  /** Results that can feed another tool (not SVG, ICO or text). */
+  readonly chainable = $derived(
+    this.results.filter((result) => CHAINABLE.has(result.output.blob.type)),
+  );
   readonly signature = $derived(
     JSON.stringify([this.items.map((item) => item.id), this.steps, this.exportSettings]),
   );
@@ -88,27 +92,24 @@ class Session {
   // --- files ---------------------------------------------------------------
 
   addFiles(files: Iterable<File>): void {
-    const added: Item[] = [];
     for (const file of files) {
       if (!isImageFile(file)) continue;
-      added.push({ id: uid(), file });
+      const id = uid();
+      this.items.push({ id, file });
+      void this.inspect(id, file);
     }
-    if (added.length === 0) return;
-    this.items.push(...added);
-    for (const item of added) void this.inspect(item.id);
   }
 
-  private async inspect(id: string): Promise<void> {
-    const item = this.items.find((candidate) => candidate.id === id);
-    if (!item) return;
+  private async inspect(id: string, file: File): Promise<void> {
+    let found: Pick<Item, 'info' | 'error'>;
     try {
-      const info = await engine.run('inspect', { blob: item.file });
-      const current = this.items.find((candidate) => candidate.id === id);
-      if (current) current.info = info;
+      found = { info: await engine.run('inspect', { blob: file }) };
     } catch (error) {
-      const current = this.items.find((candidate) => candidate.id === id);
-      if (current) current.error = error instanceof Error ? error.message : String(error);
+      found = { error: error instanceof Error ? error.message : String(error) };
     }
+    // The file may have been removed meanwhile.
+    const item = this.items.find((candidate) => candidate.id === id);
+    if (item) Object.assign(item, found);
   }
 
   removeItem(id: string): void {
@@ -130,17 +131,15 @@ class Session {
     this.clearResults();
   }
 
-  /** Problems an operation reports for an item before running (e.g. too large to upscale). */
-  warnings(item: Item): string[] {
-    if (!item.info) return [];
-    // Sizes are only known before any step changes them, so check up to the first change.
-    const messages: string[] = [];
-    for (const [index, op] of this.ops.entries()) {
-      const problem = op.check?.(item.info, this.steps[index].params as never);
-      if (problem) messages.push(problem);
-      break;
-    }
-    return messages;
+  /**
+   * A problem the first step reports for the file before running (e.g. too
+   * large to upscale). Later steps can't tell: their input size is only known
+   * once the steps before them have run.
+   */
+  warning(item: Item): string | null {
+    const op = this.ops[0];
+    if (!item.info || !op?.check) return null;
+    return op.check(item.info, this.steps[0].params as never);
   }
 
   // --- steps -----------------------------------------------------------------
@@ -266,12 +265,9 @@ class Session {
 
   /** Raster results become the input files for the next tool. */
   useResultsAsInput(): void {
-    const files = this.results
-      .filter((result) => CHAINABLE.has(result.output.blob.type))
-      .map(
-        (result) =>
-          new File([result.output.blob], result.output.name, { type: result.output.blob.type }),
-      );
+    const files = this.chainable.map(
+      ({ output }) => new File([output.blob], output.name, { type: output.blob.type }),
+    );
     this.clearFiles();
     this.addFiles(files);
   }

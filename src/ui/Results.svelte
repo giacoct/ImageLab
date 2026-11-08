@@ -16,9 +16,6 @@
   const totalOut = $derived(
     session.results.reduce((sum, result) => sum + result.output.blob.size, 0),
   );
-  const chainable = $derived(
-    images.some((result) => /^image\/(jpeg|png|webp|avif)$/.test(result.output.blob.type)),
-  );
 
   /** Size change against the input, e.g. "−42%"; `smaller` colors it. */
   function change(result: (typeof session.results)[number]): { text: string; smaller: boolean } {
@@ -60,7 +57,7 @@
           <Icon name="download" size={16} />Download all (ZIP)
         </button>
       {/if}
-      {#if chainable && !session.running}
+      {#if session.chainable.length && !session.running}
         <button class="button small" type="button" onclick={useAsInput}>
           <Icon name="next" size={16} />Use in another tool
         </button>

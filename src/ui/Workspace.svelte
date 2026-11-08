@@ -112,28 +112,40 @@
   });
 </script>
 
-<div class="workspace page" style:--tool={patch.color}>
-  <header class="title">
-    <a class="icon-button back" href="#/" aria-label="All tools"><Icon name="back" /></a>
-    <span class="title-patch"><Tile icon={tool?.icon ?? 'sparkles'} {patch} /></span>
+<div
+  class="workspace page"
+  style:--tool={patch.color}
+  style:--tool-ink={patch.ink === 'light' ? '#ffffff' : '#1e1e1e'}
+  style:--slider={patch.color}
+>
+  <!-- The tool's patch, grown into a banner: the home page's patch morphs into it. -->
+  <header
+    class="banner ink-{patch.ink}"
+    style:--patch={patch.color}
+    style:view-transition-name={tool ? `tool-${tool.id}` : `recipe-${recipe?.id}`}
+    style:view-transition-class="patch"
+  >
+    <a class="back" href="#/" aria-label="All tools"><Icon name="back" /></a>
     <div class="heading">
       <h1>{title}</h1>
-      <p class="muted">{tool?.description ?? 'Your saved recipe.'}</p>
+      <p>{tool?.description ?? 'Your saved recipe.'}</p>
     </div>
     <div class="title-actions">
       {#if tool}
-        <button class="button small ghost" type="button" onclick={reset}>
+        <button class="button small on-patch" type="button" onclick={reset}>
           <Icon name="reload" size={16} />Reset
         </button>
       {:else}
-        <button class="button small danger" type="button" onclick={deleteRecipe}>
+        <button class="button small on-patch" type="button" onclick={deleteRecipe}>
           <Icon name="trash" size={16} />Delete
         </button>
       {/if}
-      <button class="button small" type="button" onclick={openSaveDialog}>
+      <button class="button small on-patch" type="button" onclick={openSaveDialog}>
         <Icon name="save" size={16} />Save as recipe
       </button>
     </div>
+    <span class="glyph" aria-hidden="true"><Icon name={tool?.icon ?? 'sparkles'} size={220} /></span
+    >
   </header>
 
   <div class="columns">
@@ -153,7 +165,7 @@
         <ExportCard />
       </div>
 
-      <div class="run">
+      <div class="run" class:busy={session.running}>
         {#if session.running}
           <div class="progress" aria-live="polite">
             <span class="progress-label">
@@ -167,16 +179,11 @@
               ></span>
             </span>
           </div>
-          <button class="button" type="button" onclick={() => session.cancel()}>
+          <button class="button small on-dock" type="button" onclick={() => session.cancel()}>
             <Icon name="stop" size={16} />Cancel
           </button>
         {:else}
-          <button
-            class="button primary go"
-            type="button"
-            disabled={Boolean(session.blocker)}
-            onclick={run}
-          >
+          <button class="button go" type="button" disabled={Boolean(session.blocker)} onclick={run}>
             <Icon name="play" size={16} />{runLabel}
           </button>
           {#if session.blocker}<span class="hint blocker">{session.blocker}</span>{/if}
@@ -184,7 +191,12 @@
       </div>
     </div>
 
-    <div class="stage">
+    <!-- On phones the images come first; the preview stays pinned while the settings scroll under it. -->
+    <div
+      class="stage"
+      class:first={session.items.length > 0}
+      class:pinned={view === 'preview' && session.items.length > 0}
+    >
       <div class="tabs" role="group" aria-label="View" style:--index={view === 'preview' ? 0 : 1}>
         <span class="thumb" aria-hidden="true"></span>
         <button type="button" aria-pressed={view === 'preview'} onclick={() => (view = 'preview')}>
@@ -235,44 +247,111 @@
 <style>
   .workspace {
     display: grid;
-    gap: 1.75rem;
+    gap: 1.5rem;
   }
 
-  .title {
+  /*
+   * The banner: the tool's chart patch at full width, its name in big
+   * expanded type and its pictogram, giant and tone on tone, off the edge.
+   */
+  .banner {
     align-items: center;
+    background: var(--patch);
+    border-radius: 12px;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.9rem;
+    gap: 1rem 1.25rem;
+    min-height: 8.5rem;
+    overflow: hidden;
+    padding: clamp(1.1rem, 2.5vw, 1.6rem) clamp(1.1rem, 3vw, 2rem);
+    position: relative;
   }
 
-  .title-patch :global(.tile) {
-    height: 3.1rem;
-    width: 3.1rem;
+  .banner > :not(.glyph) {
+    position: relative;
+    z-index: 1;
   }
 
   .heading {
     display: grid;
     flex: 1;
-    gap: 0.2rem;
+    gap: 0.35rem;
     min-width: 12rem;
   }
 
   h1 {
-    font-size: clamp(1.5rem, 2.8vw, 2.15rem);
+    font-size: clamp(1.7rem, 4.2vw, 3rem);
     font-stretch: 125%;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1.05;
+    font-weight: 780;
+    letter-spacing: -0.035em;
+    line-height: 0.98;
+  }
+
+  .heading p {
+    font-size: clamp(0.92rem, 1.3vw, 1.02rem);
+    max-width: 52ch;
+    opacity: 0.86;
+  }
+
+  /* Between the title and the actions on wide screens, so neither sits on it. */
+  .glyph {
+    display: flex;
+    opacity: 0.17;
+    pointer-events: none;
+    position: absolute;
+    right: -2.5rem;
+    rotate: -12deg;
+    top: 50%;
+    translate: 0 -46%;
+  }
+
+  @media (min-width: 960px) {
+    .glyph {
+      right: clamp(14rem, 24vw, 22rem);
+    }
+  }
+
+  @media (max-width: 639px) {
+    .glyph {
+      right: -3.25rem;
+      top: auto;
+      bottom: -3rem;
+      translate: none;
+    }
+
+    .glyph :global(svg) {
+      height: 150px;
+      width: 150px;
+    }
   }
 
   .back {
-    border-color: var(--border-strong);
-    height: 2.4rem;
-    width: 2.4rem;
+    align-items: center;
+    align-self: flex-start;
+    border: 1.5px solid color-mix(in srgb, currentColor 40%, transparent);
+    border-radius: 50%;
+    color: inherit;
+    display: flex;
+    flex: none;
+    height: 2.6rem;
+    justify-content: center;
+    transition:
+      background 160ms var(--ease),
+      border-color 160ms var(--ease);
+    width: 2.6rem;
+  }
+
+  .back:hover {
+    background: color-mix(in srgb, currentColor 14%, transparent);
+    border-color: currentColor;
   }
 
   .back:hover :global(svg) {
     animation: nudge 500ms var(--ease);
+  }
+
+  .back:focus-visible {
+    outline-color: currentColor;
   }
 
   @keyframes nudge {
@@ -283,7 +362,24 @@
 
   .title-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.4rem;
+  }
+
+  /* Buttons printed on the patch take its ink. */
+  .on-patch {
+    background: transparent;
+    border-color: color-mix(in srgb, currentColor 40%, transparent);
+    color: inherit;
+  }
+
+  .on-patch:hover:not(:disabled) {
+    background: color-mix(in srgb, currentColor 14%, transparent);
+    border-color: currentColor;
+  }
+
+  .on-patch:focus-visible {
+    outline-color: currentColor;
   }
 
   .columns {
@@ -332,13 +428,13 @@
    * patch and ends at the last one, however tall the sections are.
    */
   .flow > :global(*)::before {
-    background: var(--border-strong);
+    background: color-mix(in srgb, var(--ink) 22%, transparent);
     bottom: 0;
     content: '';
-    left: calc(1rem - 1px);
+    left: calc(1rem - 1.5px);
     position: absolute;
     top: 0;
-    width: 2px;
+    width: 3px;
   }
 
   .flow > :global(:first-child)::before {
@@ -352,12 +448,12 @@
 
   .flow.running > :global(*)::before {
     animation: flow 500ms linear infinite;
-    background: repeating-linear-gradient(to bottom, var(--tool) 0 5px, transparent 5px 9px);
+    background: repeating-linear-gradient(to bottom, var(--tool) 0 6px, transparent 6px 10px);
   }
 
   @keyframes flow {
     to {
-      background-position: 0 9px;
+      background-position: 0 10px;
     }
   }
 
@@ -379,27 +475,49 @@
     display: none;
   }
 
-  /* The run button stays in reach at the bottom of the screen. */
+  /*
+   * The run button sits in a dark dock that floats at the bottom of the
+   * screen; the button itself is the tool's color.
+   */
   .run {
     align-items: center;
-    backdrop-filter: blur(14px);
-    background: color-mix(in srgb, var(--panel) 82%, transparent);
-    border: 1px solid var(--border);
-    border-radius: calc(var(--radius) + 2px);
+    background: color-mix(in srgb, var(--frame) 94%, transparent);
+    border-radius: 16px;
     bottom: 0.75rem;
-    box-shadow: var(--shadow-lg);
+    box-shadow:
+      0 0 0 1px light-dark(transparent, #333333),
+      0 18px 40px -14px rgb(0 0 0 / 0.55);
+    color: #f3f3f2;
+    color-scheme: dark;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.6rem;
-    padding: 0.45rem;
+    gap: 0.5rem;
+    padding: 0.4rem;
     position: sticky;
     z-index: 5;
   }
 
   .run .go {
+    background: var(--tool);
+    border-color: transparent;
+    border-radius: 11px;
+    color: var(--tool-ink);
     flex: 1;
-    font-size: 0.98rem;
-    min-height: 3rem;
+    font-size: 1rem;
+    font-weight: 700;
+    min-height: 3.1rem;
+  }
+
+  .run .go:hover:not(:disabled) {
+    background: var(--tool);
+    border-color: transparent;
+    filter: brightness(1.07);
+  }
+
+  .run .go:disabled {
+    background: #3a3a3a;
+    color: #a9a9a5;
+    opacity: 1;
   }
 
   .run .go:not(:disabled) :global(svg) {
@@ -407,11 +525,22 @@
   }
 
   .run .go:hover:not(:disabled) :global(svg) {
-    transform: scale(1.2);
+    transform: scale(1.25);
+  }
+
+  .on-dock {
+    background: transparent;
+    border-color: #555555;
+    color: inherit;
+  }
+
+  .on-dock:hover:not(:disabled) {
+    background: #333333;
   }
 
   .blocker {
-    padding: 0 0.4rem 0.2rem;
+    color: #a9a9a5;
+    padding: 0 0.5rem 0.25rem;
     width: 100%;
   }
 
@@ -419,7 +548,7 @@
     display: grid;
     flex: 1;
     gap: 0.45rem;
-    padding: 0 0.5rem;
+    padding: 0.35rem 0.6rem;
   }
 
   .progress-label {
@@ -432,9 +561,9 @@
   }
 
   .track {
-    background: var(--accent-soft);
+    background: #3a3a3a;
     border-radius: 999px;
-    height: 5px;
+    height: 6px;
     overflow: hidden;
   }
 
@@ -445,6 +574,40 @@
     height: 100%;
     min-width: 6px;
     transition: width 400ms var(--ease);
+  }
+
+  /*
+   * Phones: the preview comes first and stays pinned to the top while the
+   * settings scroll under it, so a change shows as it's made.
+   */
+  @media (max-width: 959px) {
+    .stage.first {
+      order: -1;
+    }
+
+    .stage.pinned {
+      background: var(--surface);
+      box-shadow: 0 14px 18px -16px rgb(0 0 0 / 0.5);
+      margin-inline: -1.25rem;
+      padding: 0.6rem 1.25rem 0.75rem;
+      position: sticky;
+      top: 0;
+      z-index: 6;
+    }
+
+    .stage.pinned :global(.stage) {
+      min-height: 0;
+      padding: 0.75rem;
+    }
+
+    .stage.pinned :global(canvas) {
+      max-height: 34vh;
+    }
+
+    .stage.pinned :global(.metadata),
+    .stage.pinned :global(.preview > .hint) {
+      display: none;
+    }
   }
 
   /* Preview / Results: a two-way switch with a sliding thumb. */

@@ -242,21 +242,32 @@
     gap: 0.35rem;
   }
 
+  /* A quiet disclosure under the stage, not another box. */
   .metadata {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
     font-size: 0.85rem;
-    padding: 0.75rem 1rem;
+    padding: 0 0.25rem;
   }
 
   summary {
+    color: var(--muted);
     cursor: pointer;
     font-weight: 600;
+    width: fit-content;
+  }
+
+  summary:hover {
+    color: var(--ink);
   }
 
   summary::marker {
     color: var(--soft);
+  }
+
+  .metadata[open] {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
   }
 
   .metadata[open] dl {

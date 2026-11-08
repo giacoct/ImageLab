@@ -1,6 +1,6 @@
 <!--
   Light / system / dark theme switch, drawn as three patches of the chart's
-  grey row: white, half and half, black. The chosen one is ringed.
+  grey row: white, half and half, black. The chosen one stands out.
 -->
 <script lang="ts">
   import { theme, type ThemePreference } from '../app/theme.svelte';
@@ -23,30 +23,46 @@
       title={option.label}
       onclick={(event) => theme.set(option.value, event.currentTarget)}
     >
-      <Icon name={option.icon} size={14} />
+      <Icon name={option.icon} size={13} />
     </button>
   {/each}
 </div>
 
 <style>
+  /* A small tray of three swatches; the chosen one sits up, the others recede. */
   .switcher {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
     display: flex;
-    gap: 0.4rem;
+    gap: 2px;
+    padding: 3px;
   }
 
   button {
     align-items: center;
-    border: 1px solid var(--border-strong);
+    border: 1px solid rgb(0 0 0 / 0.12);
     border-radius: var(--radius-patch);
     display: flex;
-    height: 1.9rem;
+    height: 1.6rem;
     justify-content: center;
+    opacity: 0.5;
     padding: 0;
-    position: relative;
+    scale: 0.82;
     transition:
-      transform 200ms var(--ease),
-      box-shadow 200ms var(--ease);
-    width: 1.9rem;
+      opacity 200ms var(--ease),
+      scale 300ms var(--spring);
+    width: 1.6rem;
+  }
+
+  button:hover {
+    opacity: 0.85;
+    scale: 0.92;
+  }
+
+  button[aria-pressed='true'] {
+    opacity: 1;
+    scale: 1;
   }
 
   .light {
@@ -56,23 +72,13 @@
 
   .system {
     background: linear-gradient(135deg, #f3f3f2 50%, #343434 50%);
-    color: #7a7a79;
+    color: #8a8a86;
   }
 
   .dark {
     background: #343434;
-    border-color: #343434;
+    border-color: #4a4a4a;
     color: #f3f3f2;
-  }
-
-  button:hover {
-    transform: translateY(-1px);
-  }
-
-  button[aria-pressed='true'] {
-    box-shadow:
-      0 0 0 2px var(--surface),
-      0 0 0 3.5px var(--ink);
   }
 
   /* The chosen icon does a little turn: the sun spins, the moon rocks. */

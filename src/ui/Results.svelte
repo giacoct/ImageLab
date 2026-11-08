@@ -223,18 +223,23 @@
     padding: 0;
   }
 
+  /* Results develop in like prints: from a pale grey into their colors. */
   .card {
-    animation: deal 420ms var(--ease) both;
-    animation-delay: calc(var(--i) * 45ms);
+    animation: develop 800ms var(--ease) both;
+    animation-delay: calc(var(--i) * 70ms);
     display: grid;
     gap: 0.55rem;
     padding: 0.55rem 0.55rem 0.7rem;
   }
 
-  @keyframes deal {
-    from {
+  @keyframes develop {
+    0% {
+      filter: grayscale(1) brightness(1.5) contrast(0.5);
       opacity: 0;
-      transform: translateY(8px);
+      transform: translateY(6px);
+    }
+    35% {
+      opacity: 1;
     }
   }
 

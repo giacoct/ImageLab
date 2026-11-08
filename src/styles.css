@@ -149,11 +149,48 @@ img {
   width: 1px;
 }
 
-/* The theme switch cross-fades the page with a circular reveal (theme.svelte.ts). */
-::view-transition-old(root),
-::view-transition-new(root) {
+/* The theme switch reveals the new theme in a circle instead of cross-fading (theme.svelte.ts). */
+:root[data-transition='theme']::view-transition-old(root),
+:root[data-transition='theme']::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
+}
+
+/*
+ * Changing page: the old page fades out fast and the new one in, while a
+ * tool's patch grows into its workspace banner (or back). The two snapshots
+ * keep their own size, pinned to the top left, and the growing box clips
+ * them, so the banner is revealed rather than stretched.
+ */
+::view-transition-group(*) {
+  animation-duration: 440ms;
+  animation-timing-function: var(--ease);
+}
+
+::view-transition-old(root) {
+  animation-duration: 140ms;
+}
+
+::view-transition-new(root) {
+  animation-delay: 60ms;
+  animation-duration: 260ms;
+}
+
+::view-transition-image-pair(.patch) {
+  border-radius: 12px;
+  overflow: clip;
+}
+
+::view-transition-old(.patch),
+::view-transition-new(.patch) {
+  height: 100%;
+  object-fit: none;
+  object-position: left top;
+  width: 100%;
+}
+
+::view-transition-old(.patch) {
+  animation-duration: 160ms;
 }
 
 /* --- motion -------------------------------------------------------------- */
@@ -180,9 +217,11 @@ img {
   }
 }
 
-/* A page fades in when it opens: the answer to following a link. */
-.page {
-  animation: rise 320ms var(--ease) both;
+/* A page fades in when it opens, where View Transitions don't do it (router.svelte.ts). */
+@supports not (view-transition-name: none) {
+  .page {
+    animation: rise 320ms var(--ease) both;
+  }
 }
 
 .spinner {
@@ -567,7 +606,11 @@ input[type='range'] {
 }
 
 input[type='range']::-webkit-slider-runnable-track {
-  background: linear-gradient(to right, var(--ink) var(--fill), var(--border-strong) var(--fill));
+  background: linear-gradient(
+    to right,
+    var(--slider, var(--ink)) var(--fill),
+    var(--border-strong) var(--fill)
+  );
   border-radius: 999px;
   height: 3px;
 }
@@ -579,7 +622,7 @@ input[type='range']::-moz-range-track {
 }
 
 input[type='range']::-moz-range-progress {
-  background: var(--ink);
+  background: var(--slider, var(--ink));
   border-radius: 999px;
   height: 3px;
 }

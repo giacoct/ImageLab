@@ -59,7 +59,12 @@ class Theme {
     const x = box ? box.left + box.width / 2 : innerWidth / 2;
     const y = box ? box.top + box.height / 2 : 0;
     const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    // Marks this transition as the theme's, so its styles (styles.css) don't
+    // apply to the page transitions of the router.
+    const root = document.documentElement;
+    root.dataset.transition = 'theme';
     const transition = document.startViewTransition(change);
+    void transition.finished.finally(() => delete root.dataset.transition);
     transition.ready
       .then(() => {
         document.documentElement.animate(

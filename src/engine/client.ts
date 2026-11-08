@@ -15,6 +15,9 @@ export class Cancelled extends Error {
   }
 }
 
+/** Where the app is served from, so the worker can locate the files it serves. */
+const appUrl = new URL(import.meta.env.BASE_URL, document.baseURI).href;
+
 class EngineWorker {
   private worker: Worker | null = null;
   private nextId = 0;
@@ -48,7 +51,7 @@ class EngineWorker {
           reject(error);
         },
       });
-      worker.postMessage({ id, type, args } as RequestMessage);
+      worker.postMessage({ id, type, appUrl, args } as RequestMessage);
     });
   }
 

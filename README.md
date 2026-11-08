@@ -15,8 +15,18 @@ as you change the settings.
 - **Scale**: by percentage, to fit a box, or to a width or height.
 - **Adjust & filters**: brightness, contrast, saturation, grayscale, sepia,
   invert, blur, sharpen.
+- **Remove background**: make a plain background transparent; its color is
+  detected, and only the background around the subject goes.
+- **Add margin**: colored or transparent, in pixels or percent, the same on
+  every side or each its own.
+- **Merge images**: combine all the images into one, stacked or side by side.
 - **Convert format**: JPEG, PNG, WebP or AVIF.
 - **Compress**: to a chosen quality, or to fit a file size.
+- **Strip metadata**: remove camera, date and GPS details without
+  re-encoding the image.
+- **Convert to SVG**: trace the image into vector shapes (ends the chain).
+- **Extract text (OCR)**: read the text in the image, in English and/or
+  Italian (ends the chain).
 
 Images keep their format unless a Convert format step changes it. HEIC photos
 can be opened too. Results can be downloaded one by one or as a ZIP.

@@ -1,4 +1,7 @@
-<!-- "Add a step": a drop-down of every tool. Any tool can follow any other, any number of times. -->
+<!--
+  "Add a step": a drop-down of every tool. Any tool can follow any other, any
+  number of times; only one OCR or SVG step can end the chain.
+-->
 <script lang="ts">
   import { session } from '../app/session.svelte';
   import { OPS } from '../ops';
@@ -15,6 +18,6 @@
 >
   <option value="" disabled>+ Add a step…</option>
   {#each OPS as op (op.id)}
-    <option value={op.id}>{op.title}</option>
+    <option value={op.id} disabled={!session.canAdd(op)}>{op.title}</option>
   {/each}
 </select>

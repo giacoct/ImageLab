@@ -1,6 +1,8 @@
 <!--
-  Live preview of the selected image through the chain, rendered by the
-  engine on a downscaled copy with the same operations the processing uses.
+  Live preview of the chain, rendered by the engine on downscaled copies with
+  the same operations the processing uses: the selected image, or all of them
+  when the chain merges. It stops before an OCR or SVG step, whose result
+  isn't an image.
 -->
 <script lang="ts">
   import { untrack } from 'svelte';
@@ -25,21 +27,24 @@
   );
 
   const item = $derived(session.selected);
-  /** Previewable once the file has been read without problems. */
-  const file = $derived(item?.info ? item.file : undefined);
-  const key = $derived(item?.id);
+  /** The images shown, once they've been read without problems. */
+  const shown = $derived(
+    session.merges ? session.usable.filter((other) => other.info) : item?.info ? [item] : [],
+  );
+  /** Changes only when the images shown do, not when other details of the list arrive. */
+  const ids = $derived(shown.map((other) => other.id).join(' '));
+  const finalAt = $derived(session.ops.findIndex((op) => op.kind === 'final'));
 
-  // Re-render when the steps' settings or the file shown change.
+  // Re-render when the previewed steps' settings or the images shown change.
   $effect(() => {
-    const steps = $state.snapshot(session.steps);
-    if (!file || !key) {
+    const steps = $state.snapshot(session.steps.slice(0, finalAt === -1 ? undefined : finalAt));
+    if (!ids) {
       ready = false;
       return;
     }
     untrack(() =>
       previewer.request({
-        key,
-        blob: file,
+        files: shown.map(({ id, file }) => ({ key: id, blob: file })),
         steps,
         maxSide: Math.round((stage?.clientWidth || 800) * devicePixelRatio),
       }),
@@ -49,20 +54,29 @@
 
 <div class="preview">
   <div class="stage checker" bind:this={stage}>
-    <canvas bind:this={canvas} class:hidden={!ready || !file} aria-label="Preview of the result"
+    <canvas
+      bind:this={canvas}
+      class:hidden={!ready || shown.length === 0}
+      aria-label="Preview of the result"
     ></canvas>
     {#if !item}
       <p class="muted">Add images to see a preview.</p>
-    {:else if item.error}
+    {:else if shown.length === 0 && item.error}
       <p class="error-text">{item.file.name}: {item.error}</p>
-    {:else if !item.info}
+    {:else if shown.length === 0}
       <p class="muted">Reading {item.file.name}…</p>
     {/if}
     {#if busy}<span class="busy hint" aria-live="polite">Rendering…</span>{/if}
   </div>
 
-  {#if error && file}
+  {#if error && shown.length}
     <p class="notice error">{error}</p>
+  {/if}
+  {#if finalAt !== -1 && shown.length}
+    <p class="hint">
+      The preview stops before <strong>{session.ops[finalAt].title}</strong>, which runs when you
+      process the images.
+    </p>
   {/if}
 </div>
 

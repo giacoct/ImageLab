@@ -9,6 +9,9 @@ ImageLab is a set of image tools that can be chained without limit:
 - **A chain is a list of steps** (`Step` in `src/ops/op.ts`). Any tool can
   follow any other, any number of times, and the chain runs on every image
   loaded.
+- The only limits come from what a step outputs: OCR and Convert to SVG
+  produce something other than an image, so they end the chain (at most one
+  per chain, kept last), and after a merge there's a single image.
 
 It's a personal project: a static site with no backend, hosted on GitHub
 Pages. Keep every solution simple and proportionate.
@@ -29,35 +32,48 @@ src/core/    pure TypeScript (no DOM), unit-tested in Node
 
 An operation declares its settings once with the builders in
 `src/core/params.ts`; the schema gives the defaults and generates the settings
-form in the UI. There are two kinds (`src/ops/op.ts`):
+form in the UI. There are four kinds (`src/ops/op.ts`):
 
 - `map` changes the pixels: one `OffscreenCanvas` in, one out;
-- `file` changes how the image is saved (Convert format, Compress).
+- `file` changes how the image is saved (Convert format, Compress, Strip
+  metadata);
+- `combine` turns all the images into one (Merge images). Steps before it
+  run on each image as it loads; the session sends a merging chain as one
+  job with every image;
+- `final` ends the chain with a Blob of another kind (OCR text, SVG). The
+  live preview stops before it.
 
 Each image travels through the chain as a `Picture` (`src/engine/encode.ts`):
 its pixels, how it will be saved (`Encoding`, `src/core/encoding.ts`, which
 starts as the input's format), and the file holding exactly those pixels, if
-there is one. A `file` step writes the file right away and continues with its
-decoded pixels, so later steps and the preview see the real result, compression
-included. The output is that file, unless a later step changed the pixels; then
-the image is encoded once at the end.
+there is one: the input file itself (`original`) until a step changes the
+pixels, which is what lets Strip metadata clean it without re-encoding. Convert
+format and Compress write the file right away and continue with its decoded
+pixels, so later steps and the preview see the real result, compression
+included. The output is that file, unless a later step changed the pixels;
+then the image is encoded once at the end.
 
 To add a tool: create `src/ops/<id>.ts`, add it to `OPS`, and add an engine
 test. Put any pure math in `src/core/` with a unit test. In `run`:
 
 - multiply any setting given in pixels by `context.scale`, because the live
   preview runs the same code on a downscaled copy;
-- throw an `Error` with a message for the user when the input is unusable.
+- throw an `Error` with a message for the user when the input is unusable;
+- mark slow, memory-hungry steps `heavy` (OCR): a batch then runs one image
+  at a time.
 
 ## Engine
 
 `src/engine/client.ts` keeps a pool of workers for reading and processing
 files, plus one for previews, so previews never wait behind a batch.
 Cancelling terminates the worker, the only way to stop WASM mid-run.
-`src/engine/pipeline.ts` runs a chain on one file, and renders previews from a
-cached copy of each image downscaled to 1600 px at most. Decoding uses the
-browser, and libheif (WASM) for HEIC; JPEG, WebP and AVIF are encoded with the
-Squoosh codecs (WASM), PNG by the browser.
+`src/engine/pipeline.ts` runs a chain on a job's files, and renders previews
+from a cached copy of each image downscaled to 1600 px at most (all at one
+scale for a merge). Decoding uses the browser, and libheif (WASM) for HEIC;
+JPEG, WebP and AVIF are encoded with the Squoosh codecs (WASM), PNG by the
+browser. SVG tracing uses VTracer (WASM), OCR Tesseract (WASM, in a worker of
+its own inside the engine worker). Every WASM module loads the first time it's
+needed.
 
 ## UI
 
@@ -70,6 +86,12 @@ follow the system light/dark scheme. Images can be dropped or pasted anywhere.
 
 - **WASM modules are bundled by Vite** and must stay in
   `optimizeDeps.exclude` in `vite.config.ts`.
+- **Tesseract's files aren't bundled**: tesseract.js loads its worker, engine
+  and languages by URL, so the `ocrFiles` plugin in `vite.config.ts` serves
+  them from node_modules at `ocr/` (dev) and emits them there (build). A new
+  OCR language needs its `@tesseract.js-data/*` package, an entry there, and
+  an option in `src/ops/ocr.ts`. Passing language data directly is broken in
+  tesseract.js 7 (it joins `l.data` instead of `l.code`).
 - **The base path is relative** (`base: './'`), so the site works under
   `/ImageLab/`: use relative URLs.
 - **No cross-origin isolation** on GitHub Pages, so WASM is single-threaded.

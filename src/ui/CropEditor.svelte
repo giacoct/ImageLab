@@ -44,6 +44,9 @@
     const item = session.selected;
     const step = session.steps[index]; // briefly gone right after the step is removed
     if (!item?.info || !step) return;
+    // After a merge, the step's input is all the images combined.
+    const merged = session.ops.slice(0, index).some((op) => op.kind === 'combine');
+    const items = merged ? session.usable.filter((other) => other.info) : [item];
     const { id, op, params } = step;
     const self: Step = {
       id,
@@ -57,8 +60,7 @@
       },
     };
     previewer.request({
-      key: item.id,
-      blob: item.file,
+      files: items.map((other) => ({ key: other.id, blob: other.file })),
       steps: [...$state.snapshot(session.steps.slice(0, index)), self],
       maxSide: 900,
     });

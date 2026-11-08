@@ -1,7 +1,7 @@
 <!--
   The form generated from a settings schema: one field per visible setting
-  (sliders, number boxes, segmented choices or drop-downs, checkboxes).
-  Custom settings (the crop box) have their own editors.
+  (sliders, number boxes, segmented choices or drop-downs, checkboxes,
+  colors). Custom settings (the crop box) have their own editors.
 -->
 <script lang="ts">
   import type { AnyValues, NumberParam, Schema } from '../core/params';
@@ -103,6 +103,29 @@
         {/if}
         {#if param.hint}<span class="hint">{param.hint}</span>{/if}
       </div>
+    {:else if param.kind === 'color'}
+      <div class="field">
+        <label class="field-label" for={id}>{param.label}</label>
+        <div class="row">
+          <input
+            {id}
+            type="color"
+            value={values[key]}
+            oninput={(event) => onchange(key, event.currentTarget.value)}
+          />
+          <input
+            class="hex"
+            aria-label="{param.label} (hex)"
+            value={values[key]}
+            onchange={(event) => {
+              const hex = event.currentTarget.value.trim().replace(/^#?/, '#').toLowerCase();
+              if (/^#[0-9a-f]{6}$/.test(hex)) onchange(key, hex);
+              event.currentTarget.value = String(values[key]);
+            }}
+          />
+        </div>
+        {#if param.hint}<span class="hint">{param.hint}</span>{/if}
+      </div>
     {:else if param.kind === 'boolean'}
       <label class="check">
         <input
@@ -115,3 +138,10 @@
     {/if}
   {/each}
 </div>
+
+<style>
+  .hex {
+    font-family: ui-monospace, monospace;
+    width: 7rem;
+  }
+</style>

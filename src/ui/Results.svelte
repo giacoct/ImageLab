@@ -1,6 +1,6 @@
 <!--
-  The results of the last run: one entry per output with its download, a ZIP
-  of everything, and what failed.
+  The results of the last run: one entry per output with its download (OCR
+  text shown in full, to read and copy), a ZIP of everything, and what failed.
 -->
 <script lang="ts">
   import { downloadBlob, downloadZip } from '../app/download';
@@ -8,13 +8,27 @@
   import { formatBytes } from '../core/files';
   import BlobImage from './BlobImage.svelte';
 
+  const texts = $derived(session.results.filter((result) => result.output.text !== undefined));
+  const files = $derived(session.results.filter((result) => result.output.text === undefined));
   const totalOut = $derived(
     session.results.reduce((sum, result) => sum + result.output.blob.size, 0),
   );
 
+  let copied = $state<string | null>(null);
+
+  async function copy(result: Result): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(result.output.text ?? '');
+      copied = result.id;
+      setTimeout(() => (copied = null), 1500);
+    } catch {
+      // No clipboard access: the text box can still be selected and copied.
+    }
+  }
+
   /** Size change against the input, e.g. "−42%". */
   function change(result: Result): string {
-    if (result.inputSize === 0) return '';
+    if (result.inputSize === 0 || !result.output.blob.type.startsWith('image/')) return '';
     const ratio = result.output.blob.size / result.inputSize - 1;
     return `${ratio > 0 ? '+' : '−'}${Math.abs(Math.round(ratio * 100))}%`;
   }
@@ -63,9 +77,30 @@
     </div>
   {/if}
 
-  {#if session.results.length}
+  {#each texts as result (result.id)}
+    <article class="section">
+      <span class="name">{result.output.name}</span>
+      {#if result.output.text}
+        <textarea readonly aria-label="Text from {result.output.name}"
+          >{result.output.text}</textarea
+        >
+      {:else}
+        <p class="muted">No text was found.</p>
+      {/if}
+      <div class="row">
+        <button type="button" disabled={!result.output.text} onclick={() => copy(result)}>
+          {copied === result.id ? 'Copied' : 'Copy text'}
+        </button>
+        <button type="button" onclick={() => downloadBlob(result.output.blob, result.output.name)}>
+          Download .txt
+        </button>
+      </div>
+    </article>
+  {/each}
+
+  {#if files.length}
     <ul class="grid">
-      {#each session.results as result (result.id)}
+      {#each files as result (result.id)}
         <li>
           <div class="thumb checker">
             <BlobImage blob={result.output.thumbnail} alt={result.output.name} />
@@ -134,5 +169,11 @@
 
   .name {
     overflow-wrap: anywhere;
+  }
+
+  textarea {
+    min-height: 10rem;
+    resize: vertical;
+    width: 100%;
   }
 </style>

@@ -20,13 +20,15 @@ export interface Encoded {
 
 /**
  * An image on its way through the chain: its pixels, how it will be saved,
- * and the file Convert format or Compress wrote for exactly these pixels, if
- * any. That file is the output, unless a later step changes the pixels.
+ * and the file holding exactly these pixels, if there is one: the input file
+ * (`original`) until a step changes the pixels, or the file Convert format,
+ * Compress or Strip metadata wrote. That file is the output, unless a later
+ * step changes the pixels.
  */
 export interface Picture {
   image: Img;
   encoding: Encoding;
-  file: Blob | null;
+  file: { blob: Blob; original: boolean } | null;
 }
 
 /** Encode `image` as `encoding` says. */
@@ -47,7 +49,7 @@ export async function encodeImage(image: Img, encoding: Encoding): Promise<Encod
  */
 export async function writeNow(picture: Picture, encoding: Encoding): Promise<Picture> {
   const { blob } = await encodeImage(picture.image, encoding);
-  return { image: (await decode(blob)).image, encoding, file: blob };
+  return { image: (await decode(blob)).image, encoding, file: { blob, original: false } };
 }
 
 /** Encode at `quality` (1–100; ignored by PNG). */

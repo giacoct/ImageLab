@@ -36,12 +36,17 @@ export interface BooleanParam extends BaseParam<boolean> {
   kind: 'boolean';
 }
 
+/** A `#rrggbb` color. */
+export interface ColorParam extends BaseParam<string> {
+  kind: 'color';
+}
+
 /** A value edited by a custom editor (e.g. the crop box), never by the generated form. */
 export interface CustomParam<T> extends BaseParam<T> {
   kind: 'custom';
 }
 
-export type Param = NumberParam | ChoiceParam | BooleanParam | CustomParam<unknown>;
+export type Param = NumberParam | ChoiceParam | BooleanParam | ColorParam | CustomParam<unknown>;
 
 export type Schema = Readonly<Record<string, Param>>;
 
@@ -80,6 +85,10 @@ export const p = {
 
   boolean(options: Common<boolean>): BooleanParam {
     return { kind: 'boolean', ...options };
+  },
+
+  color(options: Common<string>): ColorParam {
+    return { kind: 'color', ...options };
   },
 
   custom<T>(options: Common<T>): CustomParam<T> {

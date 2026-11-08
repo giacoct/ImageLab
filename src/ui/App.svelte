@@ -15,8 +15,9 @@
 
   const runLabel = $derived.by(() => {
     const count = session.usable.length;
-    if (count === 0) return 'Process images';
-    return count === 1 ? 'Process 1 image' : `Process ${count} images`;
+    const verb = session.merges ? 'Merge' : 'Process';
+    if (count === 0) return `${verb} images`;
+    return count === 1 ? `${verb} 1 image` : `${verb} ${count} images`;
   });
 
   function run(): void {

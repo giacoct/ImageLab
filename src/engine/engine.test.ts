@@ -17,9 +17,12 @@ import { Cancelled, engine } from './client';
 import { decode } from './decode';
 import { encodeImage } from './encode';
 import heicUrl from './fixtures/logo.heic?url';
-import { processFile, renderPreview } from './pipeline';
+import { processJob, renderPreview, type Output } from './pipeline';
 
-const context: RunContext = { scale: 1 };
+const context: RunContext = {
+  scale: 1,
+  asset: (path) => new URL(path, `${location.origin}/`).href,
+};
 
 /** A `width`×`height` image: left half red, right half blue. */
 function twoTone(width = 40, height = 20): Img {
@@ -150,6 +153,36 @@ describe('operations', () => {
     expect(small.width).toBe(40); // never enlarges unless asked
   });
 
+  it('adds a margin, in pixels or percent, colored or transparent', async () => {
+    const framed = await run('margin', twoTone(), { size: 5, color: '#00ff00' });
+    expect([framed.width, framed.height]).toEqual([50, 30]);
+    expect(pixel(framed, 1, 1)).toEqual([0, 255, 0, 255]);
+    expect(pixel(framed, 6, 6)).toEqual([255, 0, 0, 255]);
+    const sides = await run('margin', twoTone(), {
+      unit: 'percent',
+      same: false,
+      top: 50,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      transparent: true,
+    });
+    expect([sides.width, sides.height]).toEqual([40, 30]); // 50% of the 20 px side on top
+    expect(pixel(sides, 1, 1)[3]).toBe(0);
+  });
+
+  it('removes a detected background', async () => {
+    const canvas = createCanvas(30, 30);
+    const ctx = context2d(canvas);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 30, 30);
+    ctx.fillStyle = '#0000ff';
+    ctx.fillRect(10, 10, 10, 10);
+    const keyed = await run('remove-background', canvas);
+    expect(pixel(keyed, 2, 2)[3]).toBe(0);
+    expect(pixel(keyed, 15, 15)).toEqual([0, 0, 255, 255]);
+  });
+
   it('adjusts colors', async () => {
     const gray = await run('adjust', twoTone(), { grayscale: 100 });
     const [r, g, b] = pixel(gray, 2, 2);
@@ -163,6 +196,17 @@ describe('pipeline', () => {
     name,
     blob: await pngBlob(image),
   });
+
+  /** Run a chain on one input, which gives one output. */
+  async function processFile(
+    one: { name: string; blob: Blob },
+    steps: Step[],
+    runContext: RunContext,
+  ): Promise<Output> {
+    const outputs = await processJob([one], steps, runContext);
+    expect(outputs).toHaveLength(1);
+    return outputs[0];
+  }
 
   it('chains steps, keeps the input format, and names the output after the last step', async () => {
     const output = await processFile(
@@ -237,21 +281,103 @@ describe('pipeline', () => {
   });
 
   it('previews on a downscaled copy, scaling pixel settings', async () => {
-    const request = { key: 'a', blob: await pngBlob(twoTone(400, 200)) };
+    const files = [{ key: 'a', blob: await pngBlob(twoTone(400, 200)) }];
     const steps = [step('scale', { mode: 'width', width: 200 })];
     // 400×200 → 100×50 preview; 200 px wide at full size is 50 px at this scale.
-    const preview = await renderPreview({ ...request, steps, maxSide: 100 });
+    const preview = await renderPreview({ files, steps, maxSide: 100 }, context.asset);
     expect([preview.width, preview.height]).toEqual([50, 25]);
     // Another size comes from the same cached copy, scaled the same way.
-    const larger = await renderPreview({ ...request, steps, maxSide: 200 });
+    const larger = await renderPreview({ files, steps, maxSide: 200 }, context.asset);
     expect([larger.width, larger.height]).toEqual([100, 50]);
+  });
+
+  it('previews a merge at one common scale', async () => {
+    const files = [
+      { key: 'm1', blob: await pngBlob(twoTone(400, 200)) },
+      { key: 'm2', blob: await pngBlob(twoTone(200, 100)) },
+    ];
+    const preview = await renderPreview(
+      { files, steps: [step('merge')], maxSide: 200 },
+      context.asset,
+    );
+    // Both at the scale where the larger fits 200 px, smaller for two images (÷√2).
+    expect(preview.width).toBe(Math.round(400 * (0.5 / Math.SQRT2)));
+    expect(preview.height).toBeGreaterThan(preview.width / 2);
+  });
+
+  it('merges all the inputs into one output', async () => {
+    const outputs = await processJob(
+      [await input('a.png'), await input('b.png', twoTone(20, 10))],
+      [step('scale', { percent: 50 }), step('merge', { gap: 4 })],
+      context,
+    );
+    expect(outputs).toHaveLength(1);
+    expect(outputs[0]).toMatchObject({ name: 'a-merged.png', width: 20, height: 19 });
+  });
+
+  it('strips metadata without re-encoding', async () => {
+    const jpeg = (await encodeImage(twoTone(), as('image/jpeg'))).blob;
+    const bytes = new Uint8Array(await jpeg.arrayBuffer());
+    const comment = [0xff, 0xfe, 0, 7, ...[...'hello'].map((c) => c.charCodeAt(0))];
+    const tagged = new Blob([bytes.subarray(0, 2), new Uint8Array(comment), bytes.subarray(2)], {
+      type: 'image/jpeg',
+    });
+    const output = await processFile(
+      { name: 'photo.jpg', blob: tagged },
+      [step('strip-metadata')],
+      context,
+    );
+    expect(output.name).toBe('photo-clean.jpg');
+    expect(new Uint8Array(await output.blob.arrayBuffer())).toEqual(bytes);
+  });
+
+  it('reads the text in an image, dark on light or light on dark', async () => {
+    const textImage = (text: string, ink: string, paper: string) => {
+      const canvas = createCanvas(640, 120);
+      const ctx = context2d(canvas);
+      ctx.fillStyle = paper;
+      ctx.fillRect(0, 0, 640, 120);
+      ctx.fillStyle = ink;
+      ctx.font = 'bold 56px sans-serif';
+      ctx.fillText(text, 20, 85);
+      return canvas;
+    };
+    const dark = await processFile(
+      await input('note.png', textImage('HELLO WORLD', '#000000', '#ffffff')),
+      [step('ocr')],
+      context,
+    );
+    expect(dark).toMatchObject({ name: 'note-text.txt', text: 'HELLO WORLD' });
+    expect(await dark.blob.text()).toBe('HELLO WORLD');
+    const light = await processFile(
+      await input('sign.png', textImage('INVERTED', '#ffffff', '#1a3a8a')),
+      [step('ocr', { layout: 'sparse' })],
+      context,
+    );
+    expect(light.text).toBe('INVERTED');
+  });
+
+  it('traces an image to SVG at its original size', async () => {
+    const output = await processFile(await input(), [step('vectorize')], context);
+    expect(output.name).toBe('photo-vector.svg');
+    const svg = await output.blob.text();
+    expect(svg).toMatch(/<svg[^>]*width="40" height="20" viewBox/);
+    expect(svg).toContain('<path');
+    const bw = await processFile(await input(), [step('vectorize', { colors: 'bw' })], context);
+    expect(await bw.blob.text()).toContain('<path');
+  });
+
+  it('keeps OCR and SVG steps last', async () => {
+    await expect(
+      processJob([await input()], [step('ocr'), step('scale')], context),
+    ).rejects.toThrow(/must be the last step/);
   });
 });
 
 describe('worker client', () => {
   it('runs jobs in the engine worker', async () => {
-    const output = await engine.run('process', {
-      input: { name: 'photo.png', blob: await pngBlob(twoTone()) },
+    const [output] = await engine.run('process', {
+      inputs: [{ name: 'photo.png', blob: await pngBlob(twoTone()) }],
       steps: [step('scale', { percent: 25 }), step('convert', { format: 'jpeg' })],
     });
     expect(output).toMatchObject({ name: 'photo-converted.jpg', width: 10, height: 5 });
@@ -259,8 +385,7 @@ describe('worker client', () => {
 
   it('renders previews in the preview worker', async () => {
     const bitmap = await engine.preview({
-      key: 'worker',
-      blob: await pngBlob(twoTone()),
+      files: [{ key: 'worker', blob: await pngBlob(twoTone()) }],
       steps: [],
       maxSide: 100,
     });
@@ -269,7 +394,7 @@ describe('worker client', () => {
 
   it('inspects files', async () => {
     const info = await engine.run('inspect', { blob: await pngBlob(twoTone()) });
-    expect(info).toMatchObject({ width: 40, height: 20, type: 'image/png' });
+    expect(info).toMatchObject({ width: 40, height: 20, type: 'image/png', metadata: [] });
     expect(info.thumbnail.size).toBeGreaterThan(0);
   });
 
@@ -285,7 +410,7 @@ describe('worker client', () => {
     const controller = new AbortController();
     // More jobs than workers, so some of them wait for a free one.
     const batch = Array.from({ length: 12 }, () =>
-      engine.run('process', { input: { name: 'n.png', blob }, steps }, controller.signal),
+      engine.run('process', { inputs: [{ name: 'n.png', blob }], steps }, controller.signal),
     );
     const waiting = engine.run('inspect', { blob });
     controller.abort();

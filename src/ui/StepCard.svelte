@@ -1,6 +1,7 @@
 <!--
   One step of the chain: its tool's generated settings form (plus the crop
-  editor for "Rotate, flip & crop"), with controls to reorder or remove it.
+  editor for "Rotate, flip & crop", and what "Strip metadata" will remove),
+  with controls to reorder or remove it.
 -->
 <script lang="ts">
   import { session } from '../app/session.svelte';
@@ -21,14 +22,14 @@
       class="icon"
       type="button"
       aria-label="Move {op.title} up"
-      disabled={index === 0}
+      disabled={!session.canMove(index, -1)}
       onclick={() => session.moveStep(index, -1)}>↑</button
     >
     <button
       class="icon"
       type="button"
       aria-label="Move {op.title} down"
-      disabled={index === session.steps.length - 1}
+      disabled={!session.canMove(index, 1)}
       onclick={() => session.moveStep(index, 1)}>↓</button
     >
     <button
@@ -42,6 +43,18 @@
 
   {#if op.id === 'transform'}
     <CropEditor {index} />
+  {:else if op.id === 'strip-metadata' && session.selected?.info}
+    {@const { file, info } = session.selected}
+    {#if info.metadata.length}
+      <div class="hint">
+        In {file.name}:
+        <ul>
+          {#each info.metadata as entry (entry)}<li>{entry}</li>{/each}
+        </ul>
+      </div>
+    {:else}
+      <p class="hint">No metadata in {file.name}.</p>
+    {/if}
   {/if}
   <ParamForm
     schema={op.params}
@@ -50,3 +63,10 @@
     onchange={(key, value) => session.setParam(index, key, value)}
   />
 </section>
+
+<style>
+  ul {
+    margin: 0.2rem 0 0;
+    padding-left: 1.1rem;
+  }
+</style>

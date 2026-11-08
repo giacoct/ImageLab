@@ -9,7 +9,7 @@ import { defaults } from '../core/params';
 import { Cancelled, engine } from '../engine/client';
 import type { Inspection, Output } from '../engine/pipeline';
 import { getOp } from '../ops';
-import type { Step } from '../ops/op';
+import type { Op, Step } from '../ops/op';
 
 export interface Item {
   id: string;
@@ -23,7 +23,7 @@ export interface Item {
 export interface Result {
   id: string;
   output: Output;
-  /** Size of the input file, to show how much the output grew or shrank. */
+  /** Size of the input file(s), to show how much the output grew or shrank. */
   inputSize: number;
 }
 
@@ -55,6 +55,11 @@ class Session {
     this.items.find((item) => item.id === this.selectedId) ?? this.items[0],
   );
   readonly usable = $derived(this.items.filter((item) => !item.error));
+  readonly ops = $derived(this.steps.map((step) => getOp(step.op)));
+  /** Whether a step combines all the images into one. */
+  readonly merges = $derived(this.ops.some((op) => op.kind === 'combine'));
+  /** The OCR or SVG step that ends the chain, if any. */
+  readonly final = $derived(this.ops.find((op) => op.kind === 'final'));
   private readonly signature = $derived(
     JSON.stringify([this.items.map((item) => item.id), this.steps]),
   );
@@ -104,19 +109,35 @@ class Session {
 
   // --- steps -----------------------------------------------------------------
 
+  /** Whether `op` can be added: a chain ends with at most one OCR or SVG step. */
+  canAdd(op: Op): boolean {
+    return op.kind !== 'final' || !this.final;
+  }
+
+  /** Add a step at the end, or just before the OCR or SVG step that must stay last. */
   addStep(opId: string): void {
-    this.steps.push({ id: uid(), op: opId, params: defaults(getOp(opId).params) });
+    const op = getOp(opId);
+    if (!this.canAdd(op)) return;
+    const step = { id: uid(), op: opId, params: defaults(op.params) };
+    const at = op.kind === 'final' || !this.final ? this.steps.length : this.steps.length - 1;
+    this.steps.splice(at, 0, step);
   }
 
   removeStep(index: number): void {
     this.steps.splice(index, 1);
   }
 
-  moveStep(index: number, delta: number): void {
+  /** Whether the step at `index` can move by `delta`; the final step stays last. */
+  canMove(index: number, delta: number): boolean {
     const to = index + delta;
-    if (to < 0 || to >= this.steps.length) return;
+    if (to < 0 || to >= this.steps.length) return false;
+    return this.ops[index].kind !== 'final' && this.ops[to].kind !== 'final';
+  }
+
+  moveStep(index: number, delta: number): void {
+    if (!this.canMove(index, delta)) return;
     const [step] = this.steps.splice(index, 1);
-    this.steps.splice(to, 0, step);
+    this.steps.splice(index + delta, 0, step);
   }
 
   setParam(index: number, key: string, value: unknown): void {
@@ -125,42 +146,52 @@ class Session {
 
   // --- running -----------------------------------------------------------------
 
-  /** Process every usable image; the engine runs as many at once as it has workers. */
+  /**
+   * Process the images: each on its own, or all together when the chain
+   * merges. The engine runs as many jobs at once as it has workers, except
+   * slow steps (OCR), which go one at a time.
+   */
   async run(): Promise<void> {
     if (this.running || this.blocker) return;
     const items = this.usable;
+    const jobs = this.merges ? [items] : items.map((item) => [item]);
     const steps = $state.snapshot(this.steps);
+    const parallel = this.ops.some((op) => op.heavy) ? 1 : jobs.length;
     const controller = new AbortController();
 
     this.clearResults();
     this.ranWith = this.signature;
     this.running = true;
-    this.progress = { done: 0, total: items.length };
+    this.progress = { done: 0, total: jobs.length };
     this.controller = controller;
     // Results keep the order of the images, whichever finishes first.
-    const slots: (Result | undefined)[] = [];
+    const slots: Result[][] = [];
 
-    await Promise.all(
-      items.map(async (item, index) => {
-        let failure: Failure | undefined;
-        try {
-          const output = await engine.run(
-            'process',
-            { input: { name: item.file.name, blob: item.file }, steps },
-            controller.signal,
-          );
-          slots[index] = { id: uid(), output, inputSize: item.file.size };
-        } catch (error) {
-          if (error instanceof Cancelled) return;
-          failure = { name: item.file.name, message: messageOf(error) };
-        }
-        // After a cancel, the state belongs to whatever came next.
-        if (controller.signal.aborted) return;
-        if (failure) this.failures.push(failure);
-        this.results = slots.filter((slot) => slot !== undefined);
-        this.progress.done += 1;
-      }),
-    );
+    const runJob = async (index: number) => {
+      const job = jobs[index];
+      let failure: Failure | undefined;
+      try {
+        const inputs = job.map((item) => ({ name: item.file.name, blob: item.file }));
+        const outputs = await engine.run('process', { inputs, steps }, controller.signal);
+        const inputSize = job.reduce((sum, item) => sum + item.file.size, 0);
+        slots[index] = outputs.map((output) => ({ id: uid(), output, inputSize }));
+      } catch (error) {
+        if (error instanceof Cancelled) return;
+        const name = job.length === 1 ? job[0].file.name : `${job.length} images`;
+        failure = { name, message: messageOf(error) };
+      }
+      // After a cancel, the state belongs to whatever came next.
+      if (controller.signal.aborted) return;
+      if (failure) this.failures.push(failure);
+      this.results = slots.flat();
+      this.progress.done += 1;
+    };
+
+    let next = 0;
+    const lane = async () => {
+      while (next < jobs.length && !controller.signal.aborted) await runJob(next++);
+    };
+    await Promise.all(Array.from({ length: parallel }, lane));
 
     if (this.controller === controller) {
       this.controller = null;

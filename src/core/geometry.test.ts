@@ -6,6 +6,8 @@ import {
   centeredCrop,
   cropPixels,
   fitInside,
+  marginPixels,
+  mergeLayout,
   orientedSize,
 } from './geometry';
 
@@ -73,5 +75,57 @@ describe('crop', () => {
   it('swaps the axes for quarter turns', () => {
     expect(orientedSize({ width: 400, height: 300 }, 90)).toEqual({ width: 300, height: 400 });
     expect(orientedSize({ width: 400, height: 300 }, 180)).toEqual({ width: 400, height: 300 });
+  });
+});
+
+describe('mergeLayout', () => {
+  const sizes = [
+    { width: 100, height: 50 },
+    { width: 50, height: 50 },
+  ];
+
+  it('stacks vertically, centered, at natural size', () => {
+    const layout = mergeLayout(sizes, {
+      direction: 'vertical',
+      align: 'center',
+      match: false,
+      gap: 0,
+    });
+    expect([layout.width, layout.height]).toEqual([100, 100]);
+    expect(layout.places[1]).toEqual({ x: 25, y: 50, width: 50, height: 50 });
+  });
+
+  it('matches heights and adds gaps side by side', () => {
+    const layout = mergeLayout(sizes, {
+      direction: 'horizontal',
+      align: 'start',
+      match: true,
+      gap: 10,
+    });
+    expect([layout.width, layout.height]).toEqual([160, 50]);
+    expect(layout.places[1]).toEqual({ x: 110, y: 0, width: 50, height: 50 });
+  });
+
+  it('lays out a single image as itself', () => {
+    const layout = mergeLayout([sizes[0]], {
+      direction: 'vertical',
+      align: 'end',
+      match: true,
+      gap: 20,
+    });
+    expect([layout.width, layout.height]).toEqual([100, 50]);
+  });
+});
+
+describe('marginPixels', () => {
+  it('measures percentages against the shorter side', () => {
+    const sides = { top: 10, right: 0, bottom: 5, left: 0 };
+    expect(marginPixels(sides, 'percent', { width: 400, height: 200 })).toEqual({
+      top: 20,
+      right: 0,
+      bottom: 10,
+      left: 0,
+    });
+    expect(marginPixels(sides, 'px', { width: 400, height: 200 }).top).toBe(10);
   });
 });

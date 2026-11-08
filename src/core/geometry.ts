@@ -1,6 +1,7 @@
 /**
- * Pure image geometry: sizes, orientation and crop boxes. Shared by the
- * operations (full-size processing and downscaled preview) and the crop editor.
+ * Pure image geometry: sizes, orientation, crop boxes, merge layouts and
+ * margins. Shared by the operations (full-size processing and downscaled
+ * preview) and the crop editor.
  */
 
 export interface Size {
@@ -136,6 +137,81 @@ export function cropPixels(crop: Crop, size: Size): Rect {
     y,
     width: clamp(Math.round(crop.width * size.width), 1, size.width - x),
     height: clamp(Math.round(crop.height * size.height), 1, size.height - y),
+  };
+}
+
+// --- merge -----------------------------------------------------------------
+
+export interface MergeOptions {
+  direction: 'vertical' | 'horizontal';
+  /** Placement across the direction: left/top, center, or right/bottom. */
+  align: 'start' | 'center' | 'end';
+  /** Scale each image to the widest (stacked) or tallest (side by side) one. */
+  match: boolean;
+  /** Space between images, in pixels. */
+  gap: number;
+}
+
+export interface MergeLayout extends Size {
+  /** Where each image is drawn, in whole pixels. */
+  places: Rect[];
+}
+
+export function mergeLayout(sizes: readonly Size[], options: MergeOptions): MergeLayout {
+  const vertical = options.direction === 'vertical';
+  const across = (s: Size) => (vertical ? s.width : s.height);
+  const along = (s: Size) => (vertical ? s.height : s.width);
+  const target = Math.max(...sizes.map(across));
+  const drawn = sizes.map((s) =>
+    options.match
+      ? roundSize({
+          width: (s.width * target) / across(s),
+          height: (s.height * target) / across(s),
+        })
+      : s,
+  );
+  const thickness = Math.max(...drawn.map(across));
+  const gap = Math.max(0, Math.round(options.gap));
+
+  let cursor = 0;
+  const places = drawn.map((s) => {
+    const free = thickness - across(s);
+    const offset =
+      options.align === 'start' ? 0 : options.align === 'center' ? Math.round(free / 2) : free;
+    const place = vertical
+      ? { x: offset, y: cursor, width: s.width, height: s.height }
+      : { x: cursor, y: offset, width: s.width, height: s.height };
+    cursor += along(s) + gap;
+    return place;
+  });
+  const length = Math.max(1, cursor - gap);
+  return vertical
+    ? { width: thickness, height: length, places }
+    : { width: length, height: thickness, places };
+}
+
+// --- margins ---------------------------------------------------------------
+
+export interface Sides {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/**
+ * Each side in whole pixels. In percent, sides are a percentage of the
+ * image's shorter side, so margins stay proportional across a batch.
+ */
+export function marginPixels(sides: Sides, unit: 'px' | 'percent', size: Size): Sides {
+  const base = Math.min(size.width, size.height);
+  const px = (value: number) =>
+    Math.max(0, Math.round(unit === 'percent' ? (base * value) / 100 : value));
+  return {
+    top: px(sides.top),
+    right: px(sides.right),
+    bottom: px(sides.bottom),
+    left: px(sides.left),
   };
 }
 

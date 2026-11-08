@@ -34,6 +34,6 @@ npm run build     # → dist/
 
 ## Deploying
 
-Every push to `master` builds the site and publishes it to GitHub Pages
+Every push to `main` builds the site and publishes it to GitHub Pages
 (`.github/workflows/pages.yml`): <https://giacoct.github.io/ImageLab/>. The
 repository's Pages source must be set to GitHub Actions.

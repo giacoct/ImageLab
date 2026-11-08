@@ -88,6 +88,6 @@ follow the system light/dark scheme. Images can be dropped or pasted anywhere.
   The one exception: TypeScript stays on 6 because `svelte-check` doesn't
   support 7 yet.
 - After a change, run `npm run check`, then commit (conventional commits:
-  `feat:`, `fix:`…, one commit per coherent change). A push to `master`
+  `feat:`, `fix:`…, one commit per coherent change). A push to `main`
   deploys.
 - Keep `docs/` in step with the code in the same commit.

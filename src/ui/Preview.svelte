@@ -5,11 +5,14 @@
   one (e.g. the background to remove).
 -->
 <script lang="ts">
+  import { untrack } from 'svelte';
+
   import { drawBitmap, Previewer } from '../app/previewer';
-  import { session } from '../app/session.svelte';
+  import { session, type Item } from '../app/session.svelte';
+  import type { Step } from '../core/recipe';
   import { engine } from '../engine/client';
-  import { getOp } from '../ops';
-  import { isTerminal } from '../ops/op';
+  import type { PreviewRequest } from '../engine/pipeline';
+  import { stopsPreview } from '../ops/op';
   import Icon from './Icon.svelte';
 
   let canvas: HTMLCanvasElement;
@@ -28,47 +31,54 @@
     (value) => (busy = value),
   );
 
-  /** The files a preview needs: just the selected one, or all of them for a merge. */
-  const files = $derived.by(() => {
-    const usable = session.items.filter((item) => item.info);
-    const chosen = session.selectedItem;
-    if (session.merges) return { list: usable, selected: 0 };
-    return chosen?.info ? { list: [chosen], selected: 0 } : { list: [], selected: 0 };
-  });
+  /** The files shown: the selected one, or all of them for a merge (once they've been read). */
+  const files = $derived<Item[]>(
+    session.merges
+      ? session.items.filter((item) => item.info)
+      : session.selectedItem?.info
+        ? [session.selectedItem]
+        : [],
+  );
+  /** Changes only when the files shown do, not when other details of the list arrive. */
+  const fileIds = $derived(files.map((item) => item.id).join(' '));
 
-  /** The first step the preview leaves out (slow or non-image), if any. */
-  const stoppedAt = $derived(session.ops.findIndex((op) => op.heavy || isTerminal(op)));
+  /** The first step the preview leaves out (slow or non-image), or -1. */
+  const stoppedAt = $derived(session.ops.findIndex(stopsPreview));
+  const previewedSteps = $derived(stoppedAt === -1 ? session.steps.length : stoppedAt);
 
-  /** The step whose color setting a click on the preview sets. */
+  /** The step whose color setting a click on the preview sets, or -1. */
   const pickStep = $derived(
-    session.steps.findIndex(
-      (step, index) =>
-        (stoppedAt === -1 || index < stoppedAt) &&
-        getOp(step.op).kind === 'map' &&
-        'pickColor' in getOp(step.op),
+    session.ops.findIndex(
+      (op, index) => index < previewedSteps && op.kind === 'map' && op.pickColor !== undefined,
     ),
   );
 
+  function request(steps: Step[]): PreviewRequest {
+    return {
+      files: files.map((item) => ({ key: item.id, blob: item.file })),
+      selected: 0,
+      steps,
+      maxSide: Math.round((stage?.clientWidth || 800) * devicePixelRatio),
+    };
+  }
+
+  // Re-render when the previewed steps' settings or the files shown change;
+  // settings of steps the preview leaves out don't matter.
   $effect(() => {
-    const steps = $state.snapshot(session.steps);
-    const list = files.list.map((item) => ({ key: item.id, blob: item.file }));
-    if (list.length === 0) {
+    const steps = $state.snapshot(session.steps.slice(0, previewedSteps));
+    if (!fileIds) {
       ready = false;
       return;
     }
-    const maxSide = Math.min(1600, Math.round((stage?.clientWidth || 800) * devicePixelRatio));
-    previewer.request({ files: list, selected: files.selected, steps, maxSide });
+    untrack(() => previewer.request(request(steps)));
   });
 
   async function pick(event: MouseEvent): Promise<void> {
-    if (pickStep === -1) return;
-    const op = getOp(session.steps[pickStep].op);
-    if (op.kind !== 'map' || !op.pickColor) return;
+    const op = session.ops[pickStep];
+    if (op?.kind !== 'map' || !op.pickColor) return;
     const rect = canvas.getBoundingClientRect();
     const { color } = await engine.preview('sample', {
-      files: files.list.map((item) => ({ key: item.id, blob: item.file })),
-      selected: files.selected,
-      steps: $state.snapshot(session.steps.slice(0, pickStep)),
+      ...request($state.snapshot(session.steps.slice(0, pickStep))),
       x: (event.clientX - rect.left) / rect.width,
       y: (event.clientY - rect.top) / rect.height,
     });
@@ -83,11 +93,11 @@
     <canvas
       bind:this={canvas}
       class:picking={pickStep !== -1}
-      class:hidden={!ready || files.list.length === 0}
+      class:hidden={!ready || files.length === 0}
       onclick={pick}
       aria-label="Preview of the result"
     ></canvas>
-    {#if files.list.length === 0}
+    {#if files.length === 0}
       <div class="placeholder">
         <span class="frames" aria-hidden="true">
           <span></span><span></span><span><Icon name="image" size={28} /></span>
@@ -103,14 +113,14 @@
 
   {#if error}
     <p class="notice error">{error}</p>
-  {:else if stoppedAt !== -1 && files.list.length}
+  {:else if stoppedAt !== -1 && files.length}
     <p class="hint">
       <Icon name="info" size={14} />
       The preview stops before <strong>{session.ops[stoppedAt].title}</strong>, which runs when you
       process the images.
     </p>
   {/if}
-  {#if pickStep !== -1 && files.list.length}
+  {#if pickStep !== -1 && files.length}
     <p class="hint pick">
       <Icon name="pipette" size={14} /> Click the preview to pick the background color.
     </p>

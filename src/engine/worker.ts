@@ -25,16 +25,14 @@ self.onmessage = async (event: MessageEvent<RequestMessage>) => {
         result = await processJob(message.args.inputs, message.args.recipe, { scale: 1, asset });
         break;
       case 'preview': {
-        const { files, selected, steps, maxSide } = message.args;
-        const image = await renderPreview(files, selected, steps, maxSide, asset);
-        const bitmap = image.transferToImageBitmap();
+        const bitmap = (await renderPreview(message.args, asset)).transferToImageBitmap();
         transfer.push(bitmap);
         result = { bitmap };
         break;
       }
       case 'sample': {
-        const { files, selected, steps, x, y } = message.args;
-        const image = await renderPreview(files, selected, steps, 1024, asset);
+        const { x, y, ...request } = message.args;
+        const image = await renderPreview(request, asset);
         const px = Math.min(image.width - 1, Math.max(0, Math.floor(x * image.width)));
         const py = Math.min(image.height - 1, Math.max(0, Math.floor(y * image.height)));
         const [r, g, b] = context2d(image).getImageData(px, py, 1, 1).data;
@@ -44,8 +42,8 @@ self.onmessage = async (event: MessageEvent<RequestMessage>) => {
     }
     self.postMessage({ id: message.id, ok: true, result } satisfies ResponseMessage, transfer);
   } catch (error) {
-    const text = error instanceof Error ? error.message : String(error);
     console.error(error);
+    const text = error instanceof Error ? error.message : String(error);
     self.postMessage({
       id: message.id,
       ok: false,

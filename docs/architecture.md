@@ -107,9 +107,15 @@ Rules for `run`:
   that's the only way to stop WASM mid-run. `app/previewer.ts` makes preview
   requests latest-wins.
 - **`engine/pipeline.ts`** runs a recipe. Steps before a merge run per image;
-  steps after it run on the merged image. The preview runs the steps before
-  the first heavy/terminal one, on a cached downscaled copy (at most 8 files
-  cached).
+  steps after it run on the merged image. Every output carries a small WebP
+  `thumbnail`: the results list shows those, never the full-size files, which
+  would each be decoded at full size.
+- **Previews** run the steps before the first heavy/terminal one
+  (`stopsPreview` in `ops/op.ts`). Each file is decoded once into a copy of at
+  most 1600 px (the 8 most recent are kept); every preview size, the crop
+  editor's and the color picker's are scaled down from it. Components ask for
+  a new preview only when the previewed steps or the files shown change (the
+  crop editor ignores its own crop box).
 - **Decode** (`engine/decode.ts`): the browser's decoder, which applies EXIF
   orientation, for everything it can open. HEIC/HEIF goes through libheif
   (WASM) otherwise. The real type is sniffed from the bytes (`sniffType`), not
@@ -137,6 +143,10 @@ Rules for `run`:
   GitHub Pages without rewrites.
 - Object URLs are owned by components (`ui/BlobImage.svelte` creates and
   revokes them), never by the state.
+- "Download all" builds the ZIP from the result Blobs themselves
+  (`core/zip.ts` returns the archive as parts around them), reading one file
+  at a time for its checksum, so a large batch is never copied into one
+  buffer.
 
 ### Look and feel
 

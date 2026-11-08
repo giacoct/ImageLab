@@ -1,24 +1,33 @@
 /** Minimal ZIP writer (STORE method: images are already compressed). */
 
-export interface ZipEntry {
+export interface ZipEntry<Data> {
   name: string;
-  data: Uint8Array;
+  /** The file's content, as bytes or anything standing for them (e.g. a Blob). */
+  data: Data;
+  /** Length of the content in bytes. */
+  size: number;
+  /** CRC-32 of the content (see {@link crc32}). */
+  crc: number;
 }
 
 /** General-purpose flag bit 11: file names are UTF-8 (so `città.jpg` unzips correctly). */
 const UTF8_NAMES = 0x0800;
 
-/** Build a ZIP archive; entry names must already be unique. */
-export function createZip(entries: readonly ZipEntry[]): Uint8Array<ArrayBuffer> {
+/**
+ * The archive's parts in order: the headers as bytes, each entry's data as
+ * given. `new Blob(parts)` then builds the file without copying every entry
+ * into one buffer. Entry names must already be unique.
+ */
+export function zipParts<Data>(
+  entries: readonly ZipEntry<Data>[],
+): (Uint8Array<ArrayBuffer> | Data)[] {
   const encoder = new TextEncoder();
-  const parts: Uint8Array[] = [];
-  const central: Uint8Array[] = [];
+  const parts: (Uint8Array<ArrayBuffer> | Data)[] = [];
+  const central: Uint8Array<ArrayBuffer>[] = [];
   let offset = 0;
 
-  for (const entry of entries) {
-    const name = encoder.encode(entry.name);
-    const crc = crc32(entry.data);
-    const size = entry.data.length;
+  for (const { name: fileName, data, size, crc } of entries) {
+    const name = encoder.encode(fileName);
 
     const local = new Uint8Array(30 + name.length);
     const lv = new DataView(local.buffer);
@@ -30,7 +39,7 @@ export function createZip(entries: readonly ZipEntry[]): Uint8Array<ArrayBuffer>
     lv.setUint32(22, size, true);
     lv.setUint16(26, name.length, true);
     local.set(name, 30);
-    parts.push(local, entry.data);
+    parts.push(local, data);
 
     const header = new Uint8Array(46 + name.length);
     const cv = new DataView(header.buffer);
@@ -58,14 +67,7 @@ export function createZip(entries: readonly ZipEntry[]): Uint8Array<ArrayBuffer>
   ev.setUint32(12, centralSize, true);
   ev.setUint32(16, offset, true);
 
-  const all = [...parts, ...central, end];
-  const out = new Uint8Array(all.reduce((sum, part) => sum + part.length, 0));
-  let at = 0;
-  for (const part of all) {
-    out.set(part, at);
-    at += part.length;
-  }
-  return out;
+  return [...parts, ...central, end];
 }
 
 const CRC_TABLE = (() => {

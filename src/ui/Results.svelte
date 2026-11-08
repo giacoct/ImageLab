@@ -104,7 +104,7 @@
         {@const delta = change(result)}
         <li class="panel card" style:--i={Math.min(index, 12)}>
           <div class="thumb checker">
-            <BlobImage blob={result.output.blob} alt={result.output.name} />
+            <BlobImage blob={result.output.thumbnail} alt={result.output.name} />
           </div>
           <input
             class="input name"

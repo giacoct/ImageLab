@@ -38,17 +38,27 @@
   const k = $derived(size ? aspectFactor(aspect, size) : null);
   const shown = $derived(size ? cropForImage(crop, aspect, size) : crop);
 
-  // The image entering this step, rotated/flipped but not cropped.
+  // The image entering this step, rotated/flipped but not cropped. Only what
+  // changes that image is read, so dragging the crop box doesn't re-render it.
   $effect(() => {
     const item = session.selectedItem;
     if (!item?.info) return;
-    const steps = $state.snapshot(session.steps.slice(0, index + 1)) as Step[];
-    const self = steps[index];
-    self.params = { ...self.params, crop: FULL_CROP, aspect: 'free' };
+    const { id, op, params } = session.steps[index];
+    const self: Step = {
+      id,
+      op,
+      params: {
+        rotate: params.rotate,
+        flipH: params.flipH,
+        flipV: params.flipV,
+        crop: FULL_CROP,
+        aspect: 'free',
+      },
+    };
     previewer.request({
       files: [{ key: item.id, blob: item.file }],
       selected: 0,
-      steps,
+      steps: [...$state.snapshot(session.steps.slice(0, index)), self],
       maxSide: 900,
     });
   });

@@ -1,19 +1,13 @@
 /** Messages between the main thread (`client.ts`) and the engine worker (`worker.ts`). */
 
-import type { Step } from '../core/recipe';
-import type { Inspection, Input, JobRecipe, Output, PreviewFile } from './pipeline';
+import type { Inspection, Input, JobRecipe, Output, PreviewRequest } from './pipeline';
 
 export interface Requests {
   inspect: { args: { blob: Blob }; result: Inspection };
   process: { args: { inputs: Input[]; recipe: JobRecipe }; result: Output[] };
-  preview: {
-    args: { files: PreviewFile[]; selected: number; steps: Step[]; maxSide: number };
-    result: { bitmap: ImageBitmap };
-  };
-  sample: {
-    args: { files: PreviewFile[]; selected: number; steps: Step[]; x: number; y: number };
-    result: { color: string };
-  };
+  preview: { args: PreviewRequest; result: { bitmap: ImageBitmap } };
+  /** The color at (`x`, `y`), fractions of the preview the same request renders. */
+  sample: { args: PreviewRequest & { x: number; y: number }; result: { color: string } };
 }
 
 export type RequestType = keyof Requests;

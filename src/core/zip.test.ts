@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { pngToIco } from './ico';
-import { crc32, createZip } from './zip';
+import { crc32, zipParts } from './zip';
 
-describe('createZip', () => {
-  it('writes a stored archive with UTF-8 names', () => {
+describe('zipParts', () => {
+  it('writes a stored archive with UTF-8 names', async () => {
     const data = new TextEncoder().encode('hello');
-    const zip = createZip([{ name: 'città.txt', data }]);
+    const parts = zipParts([{ name: 'città.txt', data, size: data.length, crc: crc32(data) }]);
+    expect(parts[1]).toBe(data); // the content is passed through, not copied
+    const zip = new Uint8Array(await new Blob(parts).arrayBuffer());
     const view = new DataView(zip.buffer);
     expect(view.getUint32(0, true)).toBe(0x04034b50);
     expect(view.getUint16(6, true) & 0x0800).toBe(0x0800);

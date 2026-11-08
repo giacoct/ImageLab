@@ -291,17 +291,40 @@ describe('pipeline', () => {
     expect(output.ocr).toBeDefined();
   });
 
+  it('makes small thumbnails of the results', async () => {
+    const big = { name: 'big.png', blob: await pngBlob(twoTone(2000, 1000)) };
+    const [output] = await processJob(
+      [big],
+      { steps: [], export: exportAs({ format: 'png' }) },
+      context,
+    );
+    expect(output.thumbnail.type).toBe('image/webp');
+    const { image } = await decode(output.thumbnail);
+    expect([image.width, image.height]).toEqual([480, 240]);
+  });
+
   it('previews on a downscaled copy and stops before slow steps', async () => {
     const files = [{ key: 'a', blob: await pngBlob(twoTone(400, 200)) }];
+    const steps = [step('margin', { all: 40 }), step('upscale')];
+    const preview = await renderPreview({ files, selected: 0, steps, maxSide: 100 }, context.asset);
+    // 400×200 → 100×50; the 40 px margin scales to 10 px; upscale is skipped.
+    expect([preview.width, preview.height]).toEqual([120, 70]);
+    // Another size comes from the same cached copy, scaled the same way.
+    const larger = await renderPreview({ files, selected: 0, steps, maxSide: 200 }, context.asset);
+    expect([larger.width, larger.height]).toEqual([240, 140]);
+  });
+
+  it('previews a merge at one common scale', async () => {
+    const files = [
+      { key: 'm1', blob: await pngBlob(twoTone(400, 200)) },
+      { key: 'm2', blob: await pngBlob(twoTone(200, 100)) },
+    ];
     const preview = await renderPreview(
-      files,
-      0,
-      [step('margin', { all: 40 }), step('upscale')],
-      100,
+      { files, selected: 0, steps: [step('merge')], maxSide: 200 },
       context.asset,
     );
-    // 400×200 → 100×50 proxy; the 40 px margin scales to 10 px; upscale is skipped.
-    expect([preview.width, preview.height]).toEqual([120, 70]);
+    // The larger image fits 200 px (scale ½), the other keeps its relative size.
+    expect([preview.width, preview.height]).toEqual([200, 150]);
   });
 });
 
@@ -312,6 +335,17 @@ describe('worker client', () => {
       recipe: { steps: [step('scale', { percent: 25 })], export: exportAs({ format: 'jpeg' }) },
     });
     expect(outputs[0]).toMatchObject({ name: 'photo-scaled.jpg', width: 10, height: 5 });
+  });
+
+  it('samples a color from the preview', async () => {
+    const files = [{ key: 'sample', blob: await pngBlob(twoTone()) }];
+    const request = { files, selected: 0, steps: [], maxSide: 100 };
+    expect(await engine.preview('sample', { ...request, x: 0.1, y: 0.5 })).toEqual({
+      color: '#ff0000',
+    });
+    expect(await engine.preview('sample', { ...request, x: 0.9, y: 0.5 })).toEqual({
+      color: '#0000ff',
+    });
   });
 
   it('inspects files', async () => {

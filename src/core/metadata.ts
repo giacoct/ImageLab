@@ -41,7 +41,7 @@ export function inspectMetadata(bytes: Uint8Array, type: string): MetadataSummar
  * JPEG keeps a minimal EXIF block with just the orientation so the photo
  * still displays upright; the color profile is always kept.
  */
-export function stripMetadata(bytes: Uint8Array, type: string): Uint8Array | null {
+export function stripMetadata(bytes: Uint8Array, type: string): Uint8Array<ArrayBuffer> | null {
   try {
     switch (type) {
       case 'image/jpeg':
@@ -94,7 +94,7 @@ function ascii(bytes: Uint8Array, offset: number, length: number): string {
   return text;
 }
 
-function concat(parts: readonly Uint8Array[]): Uint8Array {
+function concat(parts: readonly Uint8Array[]): Uint8Array<ArrayBuffer> {
   const out = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
   let at = 0;
   for (const part of parts) {
@@ -170,7 +170,7 @@ function keepJpegSegment(bytes: Uint8Array, segment: JpegSegment): boolean {
   );
 }
 
-function stripJpeg(bytes: Uint8Array): Uint8Array {
+function stripJpeg(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
   const { segments, scan } = jpegSegments(bytes);
   const { orientation } = summarize(jpegBlocks(bytes));
   const kept = segments.filter((segment) => keepJpegSegment(bytes, segment));
@@ -245,7 +245,7 @@ function pngBlocks(bytes: Uint8Array): Blocks {
   return blocks;
 }
 
-function stripPng(bytes: Uint8Array): Uint8Array | null {
+function stripPng(bytes: Uint8Array): Uint8Array<ArrayBuffer> | null {
   // Dropping a rotated EXIF orientation would turn the image; re-encode instead.
   if (summarize(pngBlocks(bytes)).orientation !== 1) return null;
   const chunks = pngChunks(bytes).filter((chunk) => !PNG_METADATA.has(chunk.type));
@@ -289,7 +289,7 @@ function webpBlocks(bytes: Uint8Array): Blocks {
   return blocks;
 }
 
-function stripWebp(bytes: Uint8Array): Uint8Array | null {
+function stripWebp(bytes: Uint8Array): Uint8Array<ArrayBuffer> | null {
   if (summarize(webpBlocks(bytes)).orientation !== 1) return null;
   const parts = webpChunks(bytes)
     .filter((chunk) => chunk.type !== 'EXIF' && chunk.type !== 'XMP ')

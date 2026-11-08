@@ -1,7 +1,7 @@
 /** Save produced files: one at a time, or all together as a ZIP. */
 
 import { uniqueNames } from '../core/files';
-import { createZip } from '../core/zip';
+import { crc32, zipParts, type ZipEntry } from '../core/zip';
 
 export function downloadBlob(blob: Blob, name: string): void {
   const url = URL.createObjectURL(blob);
@@ -18,11 +18,12 @@ export async function downloadZip(
   name: string,
 ): Promise<void> {
   const names = uniqueNames(files.map((file) => file.name));
-  const entries = await Promise.all(
-    files.map(async (file, i) => ({
-      name: names[i],
-      data: new Uint8Array(await file.blob.arrayBuffer()),
-    })),
-  );
-  downloadBlob(new Blob([createZip(entries)], { type: 'application/zip' }), name);
+  // Only the checksums need the bytes, one file at a time; the archive
+  // reuses the Blobs, so a large batch is never copied into one buffer.
+  const entries: ZipEntry<Blob>[] = [];
+  for (const [i, file] of files.entries()) {
+    const crc = crc32(new Uint8Array(await file.blob.arrayBuffer()));
+    entries.push({ name: names[i], data: file.blob, size: file.blob.size, crc });
+  }
+  downloadBlob(new Blob(zipParts(entries), { type: 'application/zip' }), name);
 }

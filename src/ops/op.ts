@@ -77,6 +77,11 @@ export function isTerminal(op: Op): op is SvgOp | TextOp {
   return op.kind === 'svg' || op.kind === 'text';
 }
 
+/** The live preview runs the steps before the first slow or terminal one. */
+export function stopsPreview(op: Op): boolean {
+  return Boolean(op.heavy) || isTerminal(op);
+}
+
 /** Typed helpers: the `values` passed to `run` follow the schema. */
 export function mapOp<S extends Schema>(op: MapOp<S>): Op {
   return op as unknown as Op;

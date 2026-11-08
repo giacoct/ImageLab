@@ -1,13 +1,10 @@
-<!-- An icon on a small square patch of its tool's chart color (see patches.ts). -->
+<!-- An icon on a small neutral tile: steps, menus, the input and the output. -->
 <script lang="ts">
   import Icon from './Icon.svelte';
-  import { patchOf, type Patch } from './patches';
 
-  let { icon, patch, small = false }: { icon: string; patch?: Patch; small?: boolean } = $props();
-
-  const shown = $derived(patch ?? patchOf(icon));
+  let { icon, small = false }: { icon: string; small?: boolean } = $props();
 </script>
 
-<span class="tile ink-{shown.ink}" class:small style:--patch={shown.color}>
+<span class="tile" class:small>
   <Icon name={icon} size={small ? 16 : 20} />
 </span>

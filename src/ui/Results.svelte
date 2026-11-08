@@ -67,8 +67,8 @@
   </div>
 
   {#if !session.running && !session.results.length && !session.failures.length}
-    <div class="empty">
-      <span class="frame crop-marks" aria-hidden="true"><Icon name="download" size={24} /></span>
+    <div class="empty canvas">
+      <span class="frame" aria-hidden="true"><Icon name="download" size={24} /></span>
       <strong>No results yet</strong>
       <span class="muted">Process the images, and the files to download appear here.</span>
     </div>
@@ -181,8 +181,8 @@
 
   .empty {
     align-content: center;
-    background: var(--stage);
-    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
     display: grid;
     gap: 0.35rem;
     justify-items: center;
@@ -192,8 +192,10 @@
   }
 
   .frame {
-    --mark-size: 14px;
     align-items: center;
+    background: var(--panel);
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius);
     color: var(--soft);
     display: flex;
     height: 5rem;
@@ -203,10 +205,9 @@
   }
 
   .empty strong {
-    font-family: var(--font-display);
-    font-size: 1.15rem;
-    font-stretch: 112%;
-    font-weight: 650;
+    font-size: 1.1rem;
+    font-weight: 620;
+    letter-spacing: -0.02em;
   }
 
   .notice ul {

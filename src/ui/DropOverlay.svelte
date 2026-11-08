@@ -44,8 +44,8 @@
 
 {#if visible}
   <div class="overlay" transition:fade={{ duration: ms(160) }}>
-    <div class="target crop-marks" transition:scale={{ start: 0.96, duration: ms(220) }}>
-      <span class="icon"><Icon name="upload" size={34} /></span>
+    <div class="target" transition:scale={{ start: 0.96, duration: ms(220) }}>
+      <span class="icon"><Icon name="upload" size={30} /></span>
       <strong>Drop to add images</strong>
       <span class="muted">They stay on this device.</span>
     </div>
@@ -54,41 +54,46 @@
 
 <style>
   .overlay {
-    backdrop-filter: blur(6px);
-    background: color-mix(in srgb, var(--surface) 72%, transparent);
+    backdrop-filter: blur(8px);
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
     display: grid;
     inset: 0;
-    padding: clamp(2.5rem, 6vw, 4.5rem);
+    padding: clamp(0.75rem, 3vw, 2rem);
     pointer-events: none;
     position: fixed;
     z-index: 100;
   }
 
-  /* The whole window becomes the light table. */
+  /* The whole window becomes the canvas. */
   .target {
-    --mark: var(--ink);
-    --mark-size: clamp(16px, 3vw, 28px);
-    --mark-gap: 8px;
     align-content: center;
-    background-color: color-mix(in srgb, var(--panel) 80%, transparent);
-    box-shadow: var(--shadow-lg);
+    background: color-mix(in srgb, var(--accent-soft) 75%, transparent);
+    border: 2px dashed var(--accent);
+    border-radius: 32px;
     display: grid;
-    gap: 0.35rem;
+    gap: 0.4rem;
     justify-items: center;
     text-align: center;
   }
 
   .icon {
+    align-items: center;
     animation: bob 1.2s var(--ease) infinite alternate;
-    margin-bottom: 0.4rem;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 14px 30px -12px var(--accent);
+    color: var(--on-accent);
+    display: flex;
+    height: 4.25rem;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+    width: 4.25rem;
   }
 
   strong {
-    font-family: var(--font-display);
-    font-size: clamp(1.5rem, 3vw, 2.2rem);
-    font-stretch: 125%;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    font-weight: 620;
+    letter-spacing: -0.035em;
   }
 
   @keyframes bob {

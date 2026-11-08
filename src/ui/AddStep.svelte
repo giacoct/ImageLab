@@ -6,6 +6,8 @@
   import { session } from '../app/session.svelte';
   import Icon from './Icon.svelte';
   import Tile from './Tile.svelte';
+  import { ART } from './ToolArt.svelte';
+  import ToolArt from './ToolArt.svelte';
 
   let menu: HTMLDetailsElement;
 
@@ -35,7 +37,11 @@
     {#each session.availableOps() as op (op.id)}
       <li>
         <button type="button" onclick={() => add(op.id)}>
-          <Tile icon={op.icon} small />
+          {#if ART.has(op.icon)}
+            <span class="thumb"><ToolArt icon={op.icon} /></span>
+          {:else}
+            <Tile icon={op.icon} />
+          {/if}
           <span>
             <strong>{op.title}</strong>
             <span class="hint">{op.description}</span>
@@ -56,7 +62,7 @@
   summary {
     align-items: center;
     border: 1px dashed var(--border-strong);
-    border-radius: var(--radius-sm);
+    border-radius: 999px;
     color: var(--muted);
     cursor: pointer;
     display: flex;
@@ -73,9 +79,9 @@
 
   summary:hover,
   .add[open] summary {
-    background: var(--panel-subtle);
-    border-color: var(--ink);
-    color: var(--ink);
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent-text);
   }
 
   summary::-webkit-details-marker {
@@ -86,7 +92,7 @@
     align-items: center;
     background: var(--panel);
     border: 1.5px dashed var(--border-strong);
-    border-radius: var(--radius-patch);
+    border-radius: 9px;
     color: var(--muted);
     display: flex;
     height: 2rem;
@@ -101,8 +107,8 @@
 
   summary:hover .slot,
   .add[open] .slot {
-    border-color: var(--ink);
-    color: var(--ink);
+    border-color: var(--accent);
+    color: var(--accent-text);
   }
 
   .plus {
@@ -162,12 +168,24 @@
     background: var(--hover);
   }
 
+  /* Each step shows its tool's illustration, as in the navigation's Tools menu. */
+  .thumb {
+    border-radius: 9px;
+    box-shadow: 0 0 0 1px var(--border);
+    flex: none;
+    height: 2.6rem;
+    overflow: hidden;
+    width: 4rem;
+  }
+
+  li button .thumb,
   li button :global(.tile) {
     transition: transform 300ms var(--spring);
   }
 
+  li button:hover .thumb,
   li button:hover :global(.tile) {
-    transform: scale(1.08) rotate(-5deg);
+    transform: scale(1.05) rotate(-2deg);
   }
 
   li span {

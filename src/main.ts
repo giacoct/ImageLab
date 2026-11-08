@@ -1,6 +1,6 @@
 import { mount } from 'svelte';
 
-import '@fontsource-variable/archivo/standard.css';
+import '@fontsource-variable/mona-sans';
 
 import './styles.css';
 import App from './ui/App.svelte';

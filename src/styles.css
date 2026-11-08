@@ -2,9 +2,10 @@
  * Design tokens and shared building blocks (buttons, sheets, fields, tiles).
  * Components keep only what is specific to them in their own <style>.
  *
- * The interface is neutral grey on purpose: a tinted surround changes how the
- * colors of a photo look. Color comes from the images themselves and from the
- * tools' chart patches (ui/patches.ts); the accent is the ink.
+ * The look: a creative-software canvas. Neutral greys and one ultramarine
+ * accent for actions; the color comes from the images, and from the tools'
+ * illustrations (ui/ToolArt.svelte). One family, Mona Sans, in a tight
+ * semibold for headings. Big radii for containers, pills for buttons.
  *
  * Every color is defined once with light-dark(): the page follows the system
  * theme, and `data-theme="light|dark"` on <html> (app/theme.svelte.ts)
@@ -18,55 +19,56 @@
 :root {
   color-scheme: light dark;
 
-  --surface: light-dark(#f1f1ef, #1a1a1a);
-  --panel: light-dark(#ffffff, #232323);
-  --panel-subtle: light-dark(#f5f5f3, #2a2a2a);
-  /* The neutral viewing surround behind previews and results. */
-  --stage: light-dark(#dcdcd9, #2e2e2e);
-  /* The black card the chart's patches sit in. */
-  --frame: light-dark(#202020, #0f0f0f);
-  --ink: light-dark(#1e1e1e, #ededeb);
-  --muted: light-dark(#5f5f5c, #a9a9a5);
-  --soft: light-dark(#8a8a86, #7d7d79);
-  --border: light-dark(#e3e3e0, #333333);
-  --border-strong: light-dark(#cdcdc9, #474747);
+  --surface: light-dark(#ffffff, #141416);
+  --panel: light-dark(#ffffff, #1c1c1f);
+  --panel-subtle: light-dark(#f7f7f9, #222226);
+  /* Cards and icon tiles. */
+  --tile: light-dark(#f4f4f6, #1f1f23);
+  /* The canvas behind previews and results. */
+  --stage: light-dark(#f0f0f3, #18181b);
+  --stage-dot: light-dark(#d9d9e1, #2c2c32);
+  --ink: light-dark(#18181b, #f2f2f5);
+  --muted: light-dark(#5f5f6b, #a1a1ad);
+  --soft: light-dark(#8e8e9a, #6e6e7a);
+  --border: light-dark(#e7e7ec, #2a2a2f);
+  --border-strong: light-dark(#d4d4dc, #3a3a41);
+  --hover: light-dark(#f0f0f3, #26262b);
 
-  /* The accent is the ink: buttons, sliders, switches, focus, selection. */
-  --accent: var(--ink);
-  --accent-strong: var(--ink);
-  --accent-soft: light-dark(#e9e9e6, #353535);
-  --on-accent: light-dark(#ffffff, #1a1a1a);
-  --hover: light-dark(#ececea, #2f2f2f);
+  /* The one accent: actions, selection, progress, focus. */
+  --accent: light-dark(#3d3df5, #5a5aff);
+  --accent-strong: light-dark(#2b2bd6, #7373ff);
+  --accent-soft: light-dark(#ececfe, #23234a);
+  --accent-text: light-dark(#3d3df5, #9d9dff);
+  --on-accent: #ffffff;
 
-  --danger: light-dark(#b42318, #ff8a7a);
-  --danger-soft: light-dark(#fdecea, #3a2421);
+  --danger: light-dark(#c4320a, #ff8a70);
+  --danger-soft: light-dark(#fdeee9, #3a221c);
   --warning: light-dark(#8a5a00, #f2c35b);
-  --warning-soft: light-dark(#fbf1d9, #382f1c);
-  --success: light-dark(#2f7a3a, #7fd18b);
-  --success-soft: light-dark(#e6f3e7, #22331f);
+  --warning-soft: light-dark(#fbf3dc, #36301c);
+  --success: light-dark(#1f7a4d, #6fd6a0);
+  --success-soft: light-dark(#e5f5ec, #1b3326);
 
-  --checker: light-dark(#e6e6e3, #3a3a3a);
-  --checker-base: light-dark(#ffffff, #2c2c2c);
-  --shadow-color: light-dark(rgb(20 20 18 / 0.08), rgb(0 0 0 / 0.4));
+  --checker: light-dark(#e6e6ec, #2e2e34);
+  --checker-base: light-dark(#ffffff, #232327);
+  --shadow-color: light-dark(rgb(24 24 40 / 0.08), rgb(0 0 0 / 0.45));
   --shadow-sm: 0 1px 2px var(--shadow-color);
-  --shadow: 0 1px 2px var(--shadow-color), 0 10px 28px -10px var(--shadow-color);
-  --shadow-lg: 0 2px 6px var(--shadow-color), 0 28px 56px -18px var(--shadow-color);
+  --shadow: 0 1px 2px var(--shadow-color), 0 12px 32px -12px var(--shadow-color);
+  --shadow-lg: 0 2px 6px var(--shadow-color), 0 30px 60px -20px var(--shadow-color);
 
-  /* Radii by size: sheets, controls, patches. */
-  --radius: 14px;
-  --radius-sm: 9px;
-  --radius-patch: 4px;
+  /* Radii by size: containers, cards inside them, controls. Buttons are pills. */
+  --radius-lg: 24px;
+  --radius: 16px;
+  --radius-sm: 10px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  --font-display: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-body:
-    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Mona Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-display);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
   font-family: var(--font-body);
   font-size: 15px;
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }
@@ -101,9 +103,8 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  font-stretch: 112%;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-weight: 620;
+  letter-spacing: -0.02em;
 }
 
 button,
@@ -124,12 +125,12 @@ button:disabled {
 }
 
 :focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--ink) 22%, transparent);
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 img {
@@ -158,12 +159,11 @@ img {
 
 /*
  * Changing page: the old page fades out fast and the new one in, while a
- * tool's patch grows into its workspace banner (or back). The two snapshots
- * keep their own size, pinned to the top left, and the growing box clips
- * them, so the banner is revealed rather than stretched.
+ * tool card's illustration flies to the workspace's header (they share a
+ * `view-transition-name`; router.svelte.ts).
  */
 ::view-transition-group(*) {
-  animation-duration: 440ms;
+  animation-duration: 460ms;
   animation-timing-function: var(--ease);
 }
 
@@ -174,23 +174,6 @@ img {
 ::view-transition-new(root) {
   animation-delay: 60ms;
   animation-duration: 260ms;
-}
-
-::view-transition-image-pair(.patch) {
-  border-radius: 12px;
-  overflow: clip;
-}
-
-::view-transition-old(.patch),
-::view-transition-new(.patch) {
-  height: 100%;
-  object-fit: none;
-  object-position: left top;
-  width: 100%;
-}
-
-::view-transition-old(.patch) {
-  animation-duration: 160ms;
 }
 
 /* --- motion -------------------------------------------------------------- */
@@ -252,26 +235,27 @@ img {
   align-items: center;
   background: var(--panel);
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
   display: inline-flex;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 560;
   gap: 0.45rem;
   justify-content: center;
-  min-height: 2.4rem;
-  padding: 0.45rem 0.95rem;
+  min-height: 2.5rem;
+  padding: 0.45rem 1.1rem;
   text-decoration: none;
   transition:
     background 160ms var(--ease),
     border-color 160ms var(--ease),
     color 160ms var(--ease),
+    box-shadow 160ms var(--ease),
     transform 160ms var(--ease);
   white-space: nowrap;
 }
 
 .button:hover:not(:disabled) {
   background: var(--hover);
-  border-color: color-mix(in srgb, var(--ink) 30%, var(--border-strong));
+  border-color: color-mix(in srgb, var(--ink) 25%, var(--border-strong));
 }
 
 .button:active:not(:disabled) {
@@ -279,14 +263,16 @@ img {
 }
 
 .button.primary {
-  background: var(--ink);
-  border-color: var(--ink);
+  background: var(--accent);
+  border-color: transparent;
+  box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--accent) 80%, transparent);
   color: var(--on-accent);
 }
 
 .button.primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--ink) 86%, var(--surface));
-  border-color: color-mix(in srgb, var(--ink) 86%, var(--surface));
+  background: var(--accent-strong);
+  border-color: transparent;
+  box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--accent) 90%, transparent);
 }
 
 .button.danger {
@@ -303,21 +289,25 @@ img {
   border-color: transparent;
 }
 
+.button.ghost:hover:not(:disabled) {
+  background: var(--hover);
+}
+
 .button:disabled {
   opacity: 0.45;
 }
 
 .button.small {
-  font-size: 0.82rem;
-  min-height: 2rem;
-  padding: 0.3rem 0.7rem;
+  font-size: 0.84rem;
+  min-height: 2.1rem;
+  padding: 0.3rem 0.85rem;
 }
 
 .icon-button {
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: 999px;
   color: var(--muted);
   display: inline-flex;
   flex: none;
@@ -354,14 +344,14 @@ img {
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: 1.1rem;
 }
 
 /*
  * A section of the workspace's process sheet (images, each step, output):
- * its patch sits in the gutter on the left, on the sheet's rail, and the
- * content lines up to the right of it.
+ * its icon tile sits in the gutter on the left, on the sheet's rail, and
+ * the content lines up to the right of it.
  */
 .section {
   display: grid;
@@ -374,21 +364,18 @@ img {
 /* The small label before a section title ("Step 2"). */
 .eyebrow {
   color: var(--soft);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 560;
 }
 
-/*
- * A square patch of chart color with an icon on it (`--patch`, see
- * ui/patches.ts), so each tool and step is recognizable at a glance.
- */
+/* An icon on a small rounded tile: steps, menus, the input and the output. */
 .tile {
-  --patch: #555555;
   align-items: center;
-  background: var(--patch);
-  border-radius: var(--radius-patch);
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+  background: var(--tile);
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--ink);
   display: inline-flex;
   flex: none;
   height: 2.6rem;
@@ -397,16 +384,9 @@ img {
 }
 
 .tile.small {
+  border-radius: 9px;
   height: 2rem;
   width: 2rem;
-}
-
-.ink-light {
-  color: #ffffff;
-}
-
-.ink-dark {
-  color: #1e1e1e;
 }
 
 .muted {
@@ -422,19 +402,18 @@ img {
 .facts {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 0 0.75rem;
   font-variant-numeric: tabular-nums;
+  gap: 0 0.75rem;
 }
 
 .badge {
   background: var(--accent-soft);
   border-radius: 999px;
-  color: var(--ink);
+  color: var(--accent-text);
   display: inline-block;
-  font-family: var(--font-body);
   font-size: 0.72rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: 650;
   line-height: 1.5;
   min-width: 1.5em;
   padding: 0 0.45rem;
@@ -452,7 +431,7 @@ img {
 
 .notice svg {
   flex: none;
-  margin-top: 0.1rem;
+  margin-top: 0.15rem;
 }
 
 .notice.error {
@@ -467,7 +446,7 @@ img {
 
 .notice.info {
   background: var(--accent-soft);
-  color: var(--ink);
+  color: var(--accent-text);
 }
 
 /* Transparent areas of an image show as a checkerboard: only behind the image itself. */
@@ -486,37 +465,11 @@ img {
   background-size: 16px 16px;
 }
 
-/*
- * Trim marks, like those printed around a sheet to cut it: short lines in
- * line with its edges, just outside its corners. They frame the "light
- * table" where images are dropped. The marks reach `--mark-gap +
- * --mark-size` outside the box, so keep that much room around it.
- */
-.crop-marks {
-  --mark: color-mix(in srgb, var(--ink) 50%, transparent);
-  --mark-size: 12px;
-  --mark-gap: 6px;
-  background-color: var(--panel);
-  position: relative;
-}
-
-.crop-marks::before {
-  --o: calc(var(--mark-gap) + var(--mark-size));
-  --h: linear-gradient(var(--mark), var(--mark));
-  background:
-    var(--h) 0 var(--o) / var(--mark-size) 1px,
-    var(--h) var(--o) 0 / 1px var(--mark-size),
-    var(--h) 100% var(--o) / var(--mark-size) 1px,
-    var(--h) calc(100% - var(--o)) 0 / 1px var(--mark-size),
-    var(--h) 0 calc(100% - var(--o)) / var(--mark-size) 1px,
-    var(--h) var(--o) 100% / 1px var(--mark-size),
-    var(--h) 100% calc(100% - var(--o)) / var(--mark-size) 1px,
-    var(--h) calc(100% - var(--o)) 100% / 1px var(--mark-size);
-  background-repeat: no-repeat;
-  content: '';
-  inset: calc(-1 * var(--o));
-  pointer-events: none;
-  position: absolute;
+/* The canvas: a quiet dot grid, as in design tools, behind previews and results. */
+.canvas {
+  background-color: var(--stage);
+  background-image: radial-gradient(var(--stage-dot) 1.1px, transparent 1.3px);
+  background-size: 18px 18px;
 }
 
 /* --- form fields --------------------------------------------------------- */
@@ -535,7 +488,7 @@ img {
   align-items: baseline;
   display: flex;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 560;
   gap: 0.5rem;
   justify-content: space-between;
 }
@@ -544,16 +497,16 @@ img {
   color: var(--muted);
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 560;
 }
 
 .input,
 .select {
   background: var(--panel);
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  min-height: 2.4rem;
-  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-sm);
+  min-height: 2.5rem;
+  padding: 0.35rem 0.75rem;
   transition:
     border-color 140ms var(--ease),
     box-shadow 140ms var(--ease);
@@ -562,23 +515,23 @@ img {
 
 .input:hover,
 .select:hover {
-  border-color: color-mix(in srgb, var(--ink) 35%, var(--border-strong));
+  border-color: color-mix(in srgb, var(--ink) 30%, var(--border-strong));
 }
 
 .input:focus,
 .select:focus {
-  border-color: var(--ink);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 14%, transparent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
   outline: none;
 }
 
 .select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a8a86' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-position: right 0.6rem center;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238e8e9a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-position: right 0.7rem center;
   background-repeat: no-repeat;
   cursor: pointer;
-  padding-right: 2rem;
+  padding-right: 2.1rem;
 }
 
 .input-group {
@@ -592,7 +545,7 @@ img {
 }
 
 /*
- * Sliders: a thin filled track (`--fill`, set by ParamForm) and a thumb that
+ * Sliders: a filled track (`--fill`, set by ParamForm) and a thumb that
  * grows while dragged.
  */
 input[type='range'] {
@@ -608,65 +561,75 @@ input[type='range'] {
 input[type='range']::-webkit-slider-runnable-track {
   background: linear-gradient(
     to right,
-    var(--slider, var(--ink)) var(--fill),
+    var(--accent) var(--fill),
     var(--border-strong) var(--fill)
   );
   border-radius: 999px;
-  height: 3px;
+  height: 4px;
 }
 
 input[type='range']::-moz-range-track {
   background: var(--border-strong);
   border-radius: 999px;
-  height: 3px;
+  height: 4px;
 }
 
 input[type='range']::-moz-range-progress {
-  background: var(--slider, var(--ink));
+  background: var(--accent);
   border-radius: 999px;
-  height: 3px;
+  height: 4px;
 }
 
 input[type='range']::-webkit-slider-thumb {
   appearance: none;
-  background: var(--panel);
-  border: 2px solid var(--ink);
+  background: #ffffff;
+  border: 0;
   border-radius: 50%;
-  height: 16px;
-  margin-top: -6.5px;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.08),
+    0 2px 6px rgb(0 0 0 / 0.22);
+  height: 18px;
+  margin-top: -7px;
   transition:
     transform 160ms var(--spring),
     box-shadow 160ms var(--ease);
-  width: 16px;
+  width: 18px;
 }
 
 input[type='range']::-moz-range-thumb {
-  background: var(--panel);
-  border: 2px solid var(--ink);
+  background: #ffffff;
+  border: 0;
   border-radius: 50%;
-  height: 12px;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.08),
+    0 2px 6px rgb(0 0 0 / 0.22);
+  height: 18px;
   transition:
     transform 160ms var(--spring),
     box-shadow 160ms var(--ease);
-  width: 12px;
+  width: 18px;
 }
 
 input[type='range']:hover::-webkit-slider-thumb {
-  transform: scale(1.12);
+  transform: scale(1.1);
 }
 
 input[type='range']:active::-webkit-slider-thumb {
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--ink) 14%, transparent);
-  transform: scale(1.2);
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--accent) 20%, transparent),
+    0 2px 6px rgb(0 0 0 / 0.22);
+  transform: scale(1.15);
 }
 
 input[type='range']:hover::-moz-range-thumb {
-  transform: scale(1.12);
+  transform: scale(1.1);
 }
 
 input[type='range']:active::-moz-range-thumb {
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--ink) 14%, transparent);
-  transform: scale(1.2);
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--accent) 20%, transparent),
+    0 2px 6px rgb(0 0 0 / 0.22);
+  transform: scale(1.15);
 }
 
 input[type='range']:focus-visible {
@@ -674,11 +637,11 @@ input[type='range']:focus-visible {
 }
 
 input[type='range']:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink) 30%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 input[type='range']:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink) 30%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 /* On/off settings are switches. */
@@ -688,41 +651,41 @@ input[type='range']:focus-visible::-moz-range-thumb {
   border-radius: 999px;
   cursor: pointer;
   flex: none;
-  height: 1.3rem;
+  height: 1.35rem;
   margin: 0;
   position: relative;
   transition: background 200ms var(--ease);
-  width: 2.25rem;
+  width: 2.35rem;
 }
 
 .switch::after {
-  background: var(--panel);
+  background: #ffffff;
   border-radius: 50%;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
   content: '';
-  height: calc(1.3rem - 6px);
+  height: calc(1.35rem - 6px);
   left: 3px;
   position: absolute;
   top: 3px;
   transition: transform 260ms var(--spring);
-  width: calc(1.3rem - 6px);
+  width: calc(1.35rem - 6px);
 }
 
 .switch:checked {
-  background: var(--ink);
+  background: var(--accent);
 }
 
 .switch:checked::after {
-  transform: translateX(0.95rem);
+  transform: translateX(1rem);
 }
 
 input[type='color'] {
   background: var(--panel);
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  height: 2.4rem;
-  padding: 0.2rem;
+  height: 2.5rem;
+  padding: 0.25rem;
   width: 3rem;
 }
 
@@ -732,7 +695,7 @@ input[type='color']::-webkit-color-swatch-wrapper {
 
 input[type='color']::-webkit-color-swatch {
   border: 0;
-  border-radius: 5px;
+  border-radius: 6px;
 }
 
 .check {
@@ -745,25 +708,24 @@ input[type='color']::-webkit-color-swatch {
 
 /* A row of choices; the chosen one is raised. */
 .segmented {
-  background: var(--panel-subtle);
-  border: 1px solid var(--border);
-  border-radius: 9px;
+  background: var(--tile);
+  border-radius: 999px;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.2rem;
+  gap: 0.15rem;
   padding: 0.2rem;
 }
 
 .segmented button {
   background: transparent;
   border: 0;
-  border-radius: 6px;
+  border-radius: 999px;
   color: var(--muted);
   flex: 1 1 auto;
   font-size: 0.84rem;
-  font-weight: 600;
+  font-weight: 560;
   min-height: 2rem;
-  padding: 0.25rem 0.65rem;
+  padding: 0.25rem 0.75rem;
   transition:
     background 180ms var(--ease),
     color 180ms var(--ease),
@@ -777,7 +739,7 @@ input[type='color']::-webkit-color-swatch {
 .segmented button[aria-pressed='true'] {
   background: var(--panel);
   box-shadow:
-    var(--shadow-sm),
-    0 0 0 1px var(--border-strong);
+    0 1px 2px var(--shadow-color),
+    0 0 0 1px var(--border);
   color: var(--ink);
 }

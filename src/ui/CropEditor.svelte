@@ -107,7 +107,10 @@
 </script>
 
 <div class="editor">
-  <div class="frame checker">
+  {#if !session.selectedItem?.info}
+    <p class="hint">Add an image to draw the crop on it.</p>
+  {/if}
+  <div class="frame checker" class:hidden={!size || !session.selectedItem?.info}>
     <canvas bind:this={canvas} aria-label="Image to crop"></canvas>
     {#if size}
       <div
@@ -157,8 +160,13 @@
     gap: 0.5rem;
   }
 
+  /* Kept in the page while empty: the canvas must exist to receive the image. */
+  .frame.hidden {
+    display: none;
+  }
+
   .frame {
-    border-radius: 0.7rem;
+    border-radius: var(--radius-sm);
     box-shadow: 0 0 0 1px var(--border);
     justify-self: center;
     line-height: 0;

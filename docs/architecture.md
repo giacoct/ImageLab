@@ -134,23 +134,27 @@ Rules for `run`:
 
 ## The UI
 
-- One page per tool (`ui/Workspace.svelte`), under a banner in the tool's
-  patch color: images, steps, export and the run button on the left; preview
-  / results on the right. No step-by-step routes. The left column is one
-  "process sheet": images, each step and the export are sections of it (the
-  `.section` class), each with its patch in a gutter on the left
-  (`ui/CardHead.svelte`), joined by a rail that flows in the tool's color
-  while a batch runs. Each section draws its own piece of the rail, so it
-  starts and ends on a patch. The run button, in the tool's color, sits in a
-  dark dock stuck to the bottom of the screen. On phones the preview (or the
-  results) comes first once there are images, and the preview stays pinned to
-  the top while the settings scroll under it.
-- The home page (`ui/Home.svelte`) is one color-calibration chart: a black
-  card with the headline printed on it, a lit white cell as the "light table"
-  where images are dropped first (trim marks: the `.crop-marks` class), one
-  patch per tool, and saved recipes as grey patches. The patches are direct
-  items of the chart's grid (their lists are `display: contents`), so they
-  flow around the headline and the light table.
+- A floating navigation bar on every page (`ui/NavBar.svelte`): the brand
+  (home), the **Tools** menu (a popover with every tool by group, and the
+  saved recipes), the theme switch (in the footer on phones), and "Add
+  images", which works on any page. How tools are grouped there, and their
+  order and sizes on the home page, is in `ui/catalog.ts`; a tool missing
+  from it is still shown, at the end.
+- The home page (`ui/Home.svelte`): a two-tone headline beside the canvas
+  where images come in (the tools' effects fanned out on it, then the user's
+  own images once there are some), then every tool as a card in a bento
+  (some cards are wide), and the saved recipes.
+- One page per tool (`ui/Workspace.svelte`): a header with the tool's
+  illustration, then images, steps, export and the run button on the left,
+  and the canvas with the preview / results on the right. No step-by-step
+  routes. The left column is one "process sheet": images, each step and the
+  export are sections of it (the `.section` class), each with its icon tile
+  in a gutter on the left (`ui/CardHead.svelte`), joined by a rail that
+  flows in the accent color while a batch runs. Each section draws its own
+  piece of the rail, so it starts and ends on a tile. The run button is
+  docked at the bottom of the screen. On phones the preview (or the results)
+  comes first once there are images, and the preview stays pinned to the top
+  while the settings scroll under it.
 - Images can be dropped anywhere (`ui/DropOverlay.svelte`, which ignores the
   file list's own drag-to-reorder) or pasted, on any page, including home.
 - `app/session.svelte.ts` holds the files, the recipe being edited, and the
@@ -158,10 +162,11 @@ Rules for `run`:
   while you browse. Results are marked out of date when the files or settings
   change after a run.
 - Routing is hash-based (`#/tool/<id>`, `#/recipe/<id>`) so it works on
-  GitHub Pages without rewrites. Pages change inside a View Transition: a
-  tool's home patch and its workspace banner share a `view-transition-name`
-  (and the `patch` view-transition class), so the patch grows into the banner
-  and back. The theme switch's own transition marks `<html>` with
+  GitHub Pages without rewrites. Pages change inside a View Transition: the
+  picture of the card that was clicked on the home page and the workspace
+  header's picture share a `view-transition-name`, so it flies from one to
+  the other and back. Only that card gets the name (the others would linger
+  as ghosts). The theme switch's own transition marks `<html>` with
   `data-transition="theme"` so its styles don't apply to page changes.
 - Object URLs are owned by components (`ui/BlobImage.svelte` creates and
   revokes them), never by the state.
@@ -172,47 +177,46 @@ Rules for `run`:
 
 ### Look and feel
 
-The idea: an imaging bench, playful in its color. The interface around the
-images is neutral grey on purpose (a tinted surround changes how a photo's
-colors look); color comes from the images and from the tools' chart patches,
-and each workspace takes its tool's color for the banner, the run button,
-the sliders and the progress.
+The idea: a creative-software canvas that shows its work. The chrome is
+neutral, with one ultramarine accent for actions, selection and progress;
+the color comes from the images and from the tools' illustrations.
 
 - **Design tokens** live in `src/styles.css`, each color defined once with
-  `light-dark()`. The page follows the system theme; the header's switch
-  (`ui/ThemeSwitch.svelte`, three patches of the chart's grey row; state in
-  `app/theme.svelte.ts`) can force light or dark by setting `data-theme` on
-  `<html>`, which forces the `color-scheme`. An inline script in `index.html`
-  applies the saved choice before the first paint (keep its storage key in
-  sync with `theme.svelte.ts`). Switching reveals the new theme in a circle
-  from the button (View Transitions). Both themes are true neutral greys; the
-  accent is the ink (primary buttons, switches, focus) outside a workspace,
-  where sliders take the tool's color through `--slider`. Parts that look the
-  same in both themes (the home chart, the lit light table, the run dock) set
-  their own `color-scheme`, so the `light-dark()` tokens inside them resolve
-  to that scheme. Previews and
-  results sit on `--stage`, a mid grey, and only the image itself shows the
-  transparency checkerboard. Fade colors with
-  `color-mix(in srgb, …, transparent)`: in OKLCH the mix drifts toward red.
-- **Every tool and operation is a chart patch** (`ui/patches.ts`, keyed by
-  icon): a color of the standard 24-patch calibration chart, the same in both
-  themes, with white or ink text, whichever reaches 4.5:1. It shows on the
-  home chart (with its icon, giant and tone on tone, off the corner), as the
-  workspace's banner, as the tile of a step (`ui/Tile.svelte`, the `.tile`
-  class) and in the "Add a step" menu. A new icon needs a patch there. The grey patches (`NEUTRAL`) are for
-  the input, the output and saved recipes. The logo (header and
-  `public/icon.svg`) is a 3×2 mini chart.
-- **Fonts:** Archivo (variable, with its width axis; bundled from
-  `@fontsource-variable/archivo`, so it works offline), set expanded for
-  headings and patch names, and the system font for everything else.
+  `light-dark()`. The page follows the system theme; the switch
+  (`ui/ThemeSwitch.svelte`, state in `app/theme.svelte.ts`) can force light
+  or dark by setting `data-theme` on `<html>`, which forces the
+  `color-scheme`. An inline script in `index.html` applies the saved choice
+  before the first paint (keep its storage key in sync with
+  `theme.svelte.ts`). Switching reveals the new theme in a circle from the
+  button (View Transitions). Previews and results sit on the `.canvas` (a
+  dot grid, as in design tools), and only the image itself shows the
+  transparency checkerboard. Big radii for containers (`--radius-lg`), pills
+  for buttons. Fade colors with `color-mix(in srgb, …, transparent)`: in
+  OKLCH the mix drifts toward red.
+- **Every tool and operation has an illustration** (`ui/ToolArt.svelte`,
+  keyed by icon): one shared scene, a hot-air balloon over hills, shown
+  "before" and "after" the tool (background removed, traced to vectors,
+  upscaled, cropped…), with a wider view for wide cards. `ui/Compare.svelte`
+  layers the two with a comparison divider that sweeps across on hover. The
+  illustrations appear on the home cards, in the hero, in the Tools and "Add
+  a step" menus, and in the workspace header. A new icon needs a drawing
+  there (otherwise the plain scene shows). Ids inside each SVG are made
+  unique with `$props.id()`, since the same art appears several times.
+- **Logo** (`ui/Logo.svelte`, and `public/icon.svg`, from which the PNG and
+  ICO icons are exported): a picture split by a comparison handle, half
+  accent, half transparency checkerboard.
+- **Fonts:** Mona Sans (variable weight; bundled from
+  `@fontsource-variable/mona-sans`, so it works offline) for everything,
+  semibold with tight tracking for headings. Headings come in two tones: the
+  statement in ink, its continuation in grey.
 - **Motion** is short and eased, and honors `prefers-reduced-motion`: CSS
   animations and transitions through the reduced-motion rule in
   `styles.css`, Svelte transitions by taking their durations from
   `ui/motion.ts` (`ms(...)`); the router skips page transitions too. Motion
-  answers actions (patches lift like stickers on hover, results develop in
-  like prints); the one unprompted moment is the home page's opening, once
-  per visit: the headline stretches from condensed to expanded, as if
-  resized, then the chart's patches develop from grey into color.
+  answers actions (the comparison sweeps on hover, cards lift, the clicked
+  card's picture flies into the workspace); the one unprompted motion is the
+  hero's centre card, whose divider sweeps slowly back and forth to show
+  what the tools do.
 
 ## Cross-file invariants (easy to break)
 

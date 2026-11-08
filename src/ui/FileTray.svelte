@@ -15,7 +15,6 @@
   import FilePicker from './FilePicker.svelte';
   import Icon from './Icon.svelte';
   import { ms } from './motion';
-  import { NEUTRAL } from './patches';
 
   let picker: FilePicker;
   let dragFrom = $state<number | null>(null);
@@ -35,7 +34,7 @@
 <svelte:window onpaste={onPaste} />
 
 <section class="section tray" aria-labelledby="files-title">
-  <CardHead icon="image" patch={NEUTRAL.input} title="Images" id="files-title">
+  <CardHead icon="image" title="Images" id="files-title">
     {#if session.items.length}
       <span class="badge">{session.items.length}</span>
       <button class="button small ghost" type="button" onclick={() => session.clearFiles()}>

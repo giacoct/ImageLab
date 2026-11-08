@@ -1,10 +1,10 @@
 <!--
-  The workspace for a tool or saved recipe. On the left, the recipe is one
-  process sheet (images, steps, export) whose sections hang on a rail that
-  flows while a batch runs, with the run button kept in reach at the bottom;
-  on the right,
-  the live preview and the results. Settings are remembered per tool (or saved
-  into the recipe) as they change.
+  The workspace for a tool or saved recipe: a header with the tool's
+  illustration (the home card's flies into it), then, on the left, the
+  recipe as one process sheet (images, steps, export) whose sections hang on
+  a rail that flows while a batch runs, with the run button docked at the
+  bottom; on the right, the canvas with the live preview and the results.
+  Settings are remembered per tool (or saved into the recipe) as they change.
 -->
 <script lang="ts">
   import { untrack } from 'svelte';
@@ -27,17 +27,15 @@
   import FileTray from './FileTray.svelte';
   import Icon from './Icon.svelte';
   import { ms } from './motion';
-  import { NEUTRAL, patchOf } from './patches';
   import Preview from './Preview.svelte';
   import Results from './Results.svelte';
   import StepCard from './StepCard.svelte';
   import Tile from './Tile.svelte';
+  import ToolArt from './ToolArt.svelte';
 
   let { tool, recipe }: { tool?: Tool; recipe?: SavedRecipe } = $props();
 
   const title = $derived(tool?.title ?? recipe?.title ?? '');
-  /** The tool's chart patch; its color marks the run's progress. */
-  const patch = $derived(tool ? patchOf(tool.icon) : NEUTRAL.recipe);
   let view = $state<'preview' | 'results'>('preview');
   let saveDialog: HTMLDialogElement;
   let recipeName = $state('');
@@ -112,40 +110,34 @@
   });
 </script>
 
-<div
-  class="workspace page"
-  style:--tool={patch.color}
-  style:--tool-ink={patch.ink === 'light' ? '#ffffff' : '#1e1e1e'}
-  style:--slider={patch.color}
->
-  <!-- The tool's patch, grown into a banner: the home page's patch morphs into it. -->
-  <header
-    class="banner ink-{patch.ink}"
-    style:--patch={patch.color}
-    style:view-transition-name={tool ? `tool-${tool.id}` : `recipe-${recipe?.id}`}
-    style:view-transition-class="patch"
-  >
-    <a class="back" href="#/" aria-label="All tools"><Icon name="back" /></a>
+<div class="workspace page">
+  <header class="head">
+    <span class="art" style:view-transition-name={tool ? `art-${tool.id}` : undefined}>
+      {#if tool}
+        <ToolArt icon={tool.icon} />
+      {:else}
+        <span class="recipe-art"><Icon name="sparkles" size={26} /></span>
+      {/if}
+    </span>
     <div class="heading">
+      <a class="crumb" href="#/"><Icon name="back" size={14} />All tools</a>
       <h1>{title}</h1>
       <p>{tool?.description ?? 'Your saved recipe.'}</p>
     </div>
     <div class="title-actions">
       {#if tool}
-        <button class="button small on-patch" type="button" onclick={reset}>
+        <button class="button small ghost" type="button" onclick={reset}>
           <Icon name="reload" size={16} />Reset
         </button>
       {:else}
-        <button class="button small on-patch" type="button" onclick={deleteRecipe}>
+        <button class="button small danger" type="button" onclick={deleteRecipe}>
           <Icon name="trash" size={16} />Delete
         </button>
       {/if}
-      <button class="button small on-patch" type="button" onclick={openSaveDialog}>
+      <button class="button small" type="button" onclick={openSaveDialog}>
         <Icon name="save" size={16} />Save as recipe
       </button>
     </div>
-    <span class="glyph" aria-hidden="true"><Icon name={tool?.icon ?? 'sparkles'} size={220} /></span
-    >
   </header>
 
   <div class="columns">
@@ -179,11 +171,16 @@
               ></span>
             </span>
           </div>
-          <button class="button small on-dock" type="button" onclick={() => session.cancel()}>
+          <button class="button small" type="button" onclick={() => session.cancel()}>
             <Icon name="stop" size={16} />Cancel
           </button>
         {:else}
-          <button class="button go" type="button" disabled={Boolean(session.blocker)} onclick={run}>
+          <button
+            class="button primary go"
+            type="button"
+            disabled={Boolean(session.blocker)}
+            onclick={run}
+          >
             <Icon name="play" size={16} />{runLabel}
           </button>
           {#if session.blocker}<span class="hint blocker">{session.blocker}</span>{/if}
@@ -227,7 +224,7 @@
 <dialog bind:this={saveDialog} class="panel dialog">
   <form onsubmit={saveRecipe} class="fields">
     <div class="dialog-head">
-      <Tile icon="sparkles" patch={NEUTRAL.recipe} />
+      <Tile icon="sparkles" />
       <h2>Save as recipe</h2>
     </div>
     <p class="hint">
@@ -247,111 +244,63 @@
 <style>
   .workspace {
     display: grid;
-    gap: 1.5rem;
+    gap: 1.75rem;
   }
 
-  /*
-   * The banner: the tool's chart patch at full width, its name in big
-   * expanded type and its pictogram, giant and tone on tone, off the edge.
-   */
-  .banner {
+  /* --- header: the tool's picture, its name, and what it does --- */
+
+  .head {
     align-items: center;
-    background: var(--patch);
-    border-radius: 12px;
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem 1.25rem;
-    min-height: 8.5rem;
-    overflow: hidden;
-    padding: clamp(1.1rem, 2.5vw, 1.6rem) clamp(1.1rem, 3vw, 2rem);
-    position: relative;
+    gap: 1rem 1.4rem;
   }
 
-  .banner > :not(.glyph) {
-    position: relative;
-    z-index: 1;
+  .art {
+    border-radius: 18px;
+    box-shadow:
+      0 0 0 1px var(--border),
+      var(--shadow);
+    display: block;
+    flex: none;
+    height: clamp(4.5rem, 8vw, 6.25rem);
+    overflow: hidden;
+    width: clamp(7rem, 12.5vw, 10rem);
+  }
+
+  .recipe-art {
+    align-items: center;
+    background: var(--accent-soft);
+    color: var(--accent-text);
+    display: flex;
+    height: 100%;
+    justify-content: center;
   }
 
   .heading {
     display: grid;
     flex: 1;
-    gap: 0.35rem;
-    min-width: 12rem;
+    gap: 0.3rem;
+    min-width: 14rem;
   }
 
-  h1 {
-    font-size: clamp(1.7rem, 4.2vw, 3rem);
-    font-stretch: 125%;
-    font-weight: 780;
-    letter-spacing: -0.035em;
-    line-height: 0.98;
-  }
-
-  .heading p {
-    font-size: clamp(0.92rem, 1.3vw, 1.02rem);
-    max-width: 52ch;
-    opacity: 0.86;
-  }
-
-  /* Between the title and the actions on wide screens, so neither sits on it. */
-  .glyph {
-    display: flex;
-    opacity: 0.17;
-    pointer-events: none;
-    position: absolute;
-    right: -2.5rem;
-    rotate: -12deg;
-    top: 50%;
-    translate: 0 -46%;
-  }
-
-  @media (min-width: 960px) {
-    .glyph {
-      right: clamp(14rem, 24vw, 22rem);
-    }
-  }
-
-  @media (max-width: 639px) {
-    .glyph {
-      right: -3.25rem;
-      top: auto;
-      bottom: -3rem;
-      translate: none;
-    }
-
-    .glyph :global(svg) {
-      height: 150px;
-      width: 150px;
-    }
-  }
-
-  .back {
+  .crumb {
     align-items: center;
-    align-self: flex-start;
-    border: 1.5px solid color-mix(in srgb, currentColor 40%, transparent);
-    border-radius: 50%;
-    color: inherit;
-    display: flex;
-    flex: none;
-    height: 2.6rem;
-    justify-content: center;
-    transition:
-      background 160ms var(--ease),
-      border-color 160ms var(--ease);
-    width: 2.6rem;
+    color: var(--muted);
+    display: inline-flex;
+    font-size: 0.84rem;
+    font-weight: 500;
+    gap: 0.3rem;
+    justify-self: start;
+    text-decoration: none;
   }
 
-  .back:hover {
-    background: color-mix(in srgb, currentColor 14%, transparent);
-    border-color: currentColor;
+  .crumb:hover {
+    color: var(--ink);
   }
 
-  .back:hover :global(svg) {
+  .crumb:hover :global(svg) {
     animation: nudge 500ms var(--ease);
-  }
-
-  .back:focus-visible {
-    outline-color: currentColor;
   }
 
   @keyframes nudge {
@@ -360,27 +309,25 @@
     }
   }
 
+  h1 {
+    font-size: clamp(1.7rem, 3vw, 2.4rem);
+    font-weight: 620;
+    letter-spacing: -0.035em;
+    line-height: 1.08;
+  }
+
+  .heading p {
+    color: var(--muted);
+    max-width: 56ch;
+  }
+
   .title-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
   }
 
-  /* Buttons printed on the patch take its ink. */
-  .on-patch {
-    background: transparent;
-    border-color: color-mix(in srgb, currentColor 40%, transparent);
-    color: inherit;
-  }
-
-  .on-patch:hover:not(:disabled) {
-    background: color-mix(in srgb, currentColor 14%, transparent);
-    border-color: currentColor;
-  }
-
-  .on-patch:focus-visible {
-    outline-color: currentColor;
-  }
+  /* --- columns --- */
 
   .columns {
     align-items: start;
@@ -391,13 +338,13 @@
 
   @media (min-width: 960px) {
     .columns {
-      gap: 2rem;
+      gap: 1.75rem;
       grid-template-columns: minmax(22rem, 27rem) minmax(0, 1fr);
     }
 
     .stage {
       position: sticky;
-      top: 1rem;
+      top: 5.25rem;
     }
   }
 
@@ -410,14 +357,15 @@
 
   /*
    * The process sheet: one sheet for the whole recipe, its sections ruled
-   * off, and a rail down the left joining the sections' patches. While a
-   * batch runs, the rail turns the tool's color and its dashes flow down.
+   * off, and a rail down the left joining the sections' tiles. While a batch
+   * runs, the rail turns the accent color and its dashes flow down.
    */
   .flow {
     --pad: 1.15rem;
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
     display: grid;
     padding: 0 var(--pad) 0.6rem;
     position: relative;
@@ -425,16 +373,16 @@
 
   /*
    * Each section draws its own piece of the rail, so it starts at the first
-   * patch and ends at the last one, however tall the sections are.
+   * tile and ends at the last one, however tall the sections are.
    */
   .flow > :global(*)::before {
-    background: color-mix(in srgb, var(--ink) 22%, transparent);
+    background: var(--border-strong);
     bottom: 0;
     content: '';
-    left: calc(1rem - 1.5px);
+    left: calc(1rem - 1px);
     position: absolute;
     top: 0;
-    width: 3px;
+    width: 2px;
   }
 
   .flow > :global(:first-child)::before {
@@ -448,7 +396,7 @@
 
   .flow.running > :global(*)::before {
     animation: flow 500ms linear infinite;
-    background: repeating-linear-gradient(to bottom, var(--tool) 0 6px, transparent 6px 10px);
+    background: repeating-linear-gradient(to bottom, var(--accent) 0 6px, transparent 6px 10px);
   }
 
   @keyframes flow {
@@ -475,49 +423,33 @@
     display: none;
   }
 
-  /*
-   * The run button sits in a dark dock that floats at the bottom of the
-   * screen; the button itself is the tool's color.
-   */
+  /* The run button, docked at the bottom of the screen on a sheet of frosted glass. */
   .run {
     align-items: center;
-    background: color-mix(in srgb, var(--frame) 94%, transparent);
-    border-radius: 16px;
-    bottom: 0.75rem;
-    box-shadow:
-      0 0 0 1px light-dark(transparent, #333333),
-      0 18px 40px -14px rgb(0 0 0 / 0.55);
-    color: #f3f3f2;
-    color-scheme: dark;
+    backdrop-filter: saturate(1.6) blur(16px);
+    background: color-mix(in srgb, var(--panel) 80%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    bottom: 0.9rem;
+    box-shadow: var(--shadow-lg);
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    padding: 0.4rem;
+    padding: 0.35rem;
     position: sticky;
     z-index: 5;
   }
 
+  .run.busy,
+  .run:has(.blocker) {
+    border-radius: 24px;
+  }
+
   .run .go {
-    background: var(--tool);
-    border-color: transparent;
-    border-radius: 11px;
-    color: var(--tool-ink);
     flex: 1;
     font-size: 1rem;
-    font-weight: 700;
-    min-height: 3.1rem;
-  }
-
-  .run .go:hover:not(:disabled) {
-    background: var(--tool);
-    border-color: transparent;
-    filter: brightness(1.07);
-  }
-
-  .run .go:disabled {
-    background: #3a3a3a;
-    color: #a9a9a5;
-    opacity: 1;
+    font-weight: 620;
+    min-height: 3rem;
   }
 
   .run .go:not(:disabled) :global(svg) {
@@ -528,19 +460,8 @@
     transform: scale(1.25);
   }
 
-  .on-dock {
-    background: transparent;
-    border-color: #555555;
-    color: inherit;
-  }
-
-  .on-dock:hover:not(:disabled) {
-    background: #333333;
-  }
-
   .blocker {
-    color: #a9a9a5;
-    padding: 0 0.5rem 0.25rem;
+    padding: 0 0.9rem 0.35rem;
     width: 100%;
   }
 
@@ -548,11 +469,12 @@
     display: grid;
     flex: 1;
     gap: 0.45rem;
-    padding: 0.35rem 0.6rem;
+    padding: 0.4rem 0.9rem;
   }
 
   .progress-label {
     align-items: center;
+    color: var(--accent-text);
     display: flex;
     font-size: 0.88rem;
     font-variant-numeric: tabular-nums;
@@ -561,14 +483,14 @@
   }
 
   .track {
-    background: #3a3a3a;
+    background: var(--accent-soft);
     border-radius: 999px;
     height: 6px;
     overflow: hidden;
   }
 
   .fill {
-    background: var(--tool);
+    background: var(--accent);
     border-radius: inherit;
     display: block;
     height: 100%;
@@ -577,8 +499,9 @@
   }
 
   /*
-   * Phones: the preview comes first and stays pinned to the top while the
-   * settings scroll under it, so a change shows as it's made.
+   * Phones: once there are images the canvas comes first, and the preview
+   * stays pinned to the top while the settings scroll under it, so a change
+   * shows as it's made.
    */
   @media (max-width: 959px) {
     .stage.first {
@@ -587,7 +510,7 @@
 
     .stage.pinned {
       background: var(--surface);
-      box-shadow: 0 14px 18px -16px rgb(0 0 0 / 0.5);
+      box-shadow: 0 14px 18px -16px rgb(0 0 0 / 0.4);
       margin-inline: -1.25rem;
       padding: 0.6rem 1.25rem 0.75rem;
       position: sticky;
@@ -612,9 +535,8 @@
 
   /* Preview / Results: a two-way switch with a sliding thumb. */
   .tabs {
-    background: var(--panel-subtle);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    background: var(--tile);
+    border-radius: 999px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     justify-self: start;
@@ -624,10 +546,10 @@
 
   .tabs .thumb {
     background: var(--panel);
-    border-radius: 7px;
+    border-radius: 999px;
     box-shadow:
-      var(--shadow-sm),
-      0 0 0 1px var(--border-strong);
+      0 1px 2px var(--shadow-color),
+      0 0 0 1px var(--border);
     inset: 0.2rem auto 0.2rem 0.2rem;
     position: absolute;
     transform: translateX(calc(var(--index) * 100%));
@@ -642,11 +564,11 @@
     color: var(--muted);
     display: flex;
     font-size: 0.86rem;
-    font-weight: 600;
+    font-weight: 560;
     gap: 0.4rem;
     justify-content: center;
-    min-height: 2.1rem;
-    padding: 0.25rem 1rem;
+    min-height: 2.15rem;
+    padding: 0.25rem 1.1rem;
     position: relative;
     transition: color 200ms var(--ease);
   }
@@ -668,7 +590,7 @@
     box-shadow: var(--shadow-lg);
     color: var(--ink);
     max-width: min(26rem, calc(100vw - 2rem));
-    padding: 1.4rem;
+    padding: 1.5rem;
     width: 100%;
   }
 
@@ -678,7 +600,7 @@
 
   .dialog::backdrop {
     backdrop-filter: blur(4px);
-    background: rgb(0 0 0 / 0.35);
+    background: rgb(10 10 20 / 0.35);
   }
 
   @keyframes dialog-in {

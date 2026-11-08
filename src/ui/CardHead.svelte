@@ -1,24 +1,21 @@
 <!--
-  The head of a section of the workspace's process sheet: the step's patch
-  (the node on the sheet's rail), where the section sits in the flow when it
+  The head of a section of the workspace's process sheet: the step's icon
+  tile (the node on the sheet's rail), where the section sits in the flow when it
   is a numbered step ("Step 2"), the title, and optional actions on the right.
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
-  import type { Patch } from './patches';
   import Tile from './Tile.svelte';
 
   let {
     icon,
-    patch,
     eyebrow,
     title,
     id,
     children,
   }: {
     icon: string;
-    patch?: Patch;
     eyebrow?: string;
     title: string;
     /** Id of the title, for `aria-labelledby`. */
@@ -28,7 +25,7 @@
 </script>
 
 <header class="head">
-  <span class="node"><Tile {icon} {patch} small /></span>
+  <span class="node"><Tile {icon} small /></span>
   <div class="titles">
     {#if eyebrow}<span class="eyebrow">{eyebrow}</span>{/if}
     <h2 {id}>{title}</h2>
@@ -44,7 +41,7 @@
     min-height: 2rem;
   }
 
-  /* The patch sits on the sheet's rail, in the gutter left of the content. */
+  /* The tile sits on the sheet's rail, in the gutter left of the content. */
   .node {
     display: flex;
     left: 0;

@@ -87,7 +87,7 @@
 </script>
 
 <div class="preview">
-  <div class="stage" bind:this={stage} class:empty={!ready}>
+  <div class="stage canvas" bind:this={stage} class:empty={!ready}>
     <!-- Color picking is a mouse/touch convenience; the color field is the accessible way. -->
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <canvas
@@ -100,7 +100,7 @@
     ></canvas>
     {#if files.length === 0}
       <div class="placeholder">
-        <span class="frame crop-marks" aria-hidden="true"><Icon name="image" size={26} /></span>
+        <span class="frame" aria-hidden="true"><Icon name="image" size={26} /></span>
         <strong>The live preview shows up here</strong>
         <span class="muted">Add images on the left, or drop them anywhere on the page.</span>
       </div>
@@ -149,11 +149,11 @@
     gap: 0.7rem;
   }
 
-  /* A neutral grey surround, as in a darkroom viewer, so it doesn't tint the image. */
+  /* The canvas: a neutral dot grid, as in design tools, so it doesn't tint the image. */
   .stage {
     align-items: center;
-    background: var(--stage);
-    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
     display: flex;
     justify-content: center;
     min-height: 22rem;
@@ -164,7 +164,10 @@
 
   canvas {
     animation: appear 300ms var(--ease);
-    box-shadow: 0 18px 40px -16px rgb(0 0 0 / 0.45);
+    border-radius: 3px;
+    box-shadow:
+      0 0 0 1px rgb(0 0 0 / 0.06),
+      0 24px 48px -20px rgb(20 20 40 / 0.45);
     max-height: 72vh;
     max-width: 100%;
     object-fit: contain;
@@ -195,16 +198,17 @@
   }
 
   .placeholder strong {
-    font-family: var(--font-display);
-    font-size: 1.15rem;
-    font-stretch: 112%;
-    font-weight: 650;
+    font-size: 1.1rem;
+    font-weight: 620;
+    letter-spacing: -0.02em;
   }
 
   /* An empty frame waiting for a picture. */
   .frame {
-    --mark-size: 14px;
     align-items: center;
+    background: var(--panel);
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius);
     color: var(--soft);
     display: flex;
     height: 5rem;

@@ -4,11 +4,10 @@
   import { EXPORT_PARAMS, exportContext } from '../core/recipe';
   import CardHead from './CardHead.svelte';
   import ParamForm from './ParamForm.svelte';
-  import { NEUTRAL } from './patches';
 </script>
 
 <section class="section export" aria-labelledby="export-title">
-  <CardHead icon="download" patch={NEUTRAL.output} title="Save as" id="export-title" />
+  <CardHead icon="download" title="Save as" id="export-title" />
   {#if session.terminal}
     <p class="hint">
       {session.terminal.kind === 'svg'

@@ -41,7 +41,9 @@ chaining doesn't lose quality. Results can also be handed on to another tool.
 
 Every tool works on any number of images (a merge combines them all), and the
 order you give them is kept. Images can be dropped anywhere on the page,
-picked, or pasted, even on the home page before choosing a tool. iPhone
+picked, or pasted, even on the home page before choosing a tool, and the
+Tools menu at the top of every page switches to another tool (or a saved
+recipe) with the same images. iPhone
 **HEIC** photos open everywhere. Results can be renamed and downloaded one by
 one or as a ZIP. If some files fail, the rest still complete and the failures
 are listed. Each tool remembers its last settings. The app works offline once

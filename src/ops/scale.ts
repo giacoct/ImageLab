@@ -5,7 +5,7 @@ import { mapOp } from './op';
 
 const PIXEL_MODES = new Set(['fit', 'width', 'height', 'exact']);
 
-export const SCALE_PARAMS = {
+const PARAMS = {
   mode: p.choice({
     label: 'Scale',
     default: 'percent',
@@ -52,7 +52,7 @@ export const SCALE_PARAMS = {
 };
 
 /** The output size for an input of `size`; `scale` is the preview factor (see RunContext). */
-export function scaledSize(size: Size, values: Values<typeof SCALE_PARAMS>, scale = 1): Size {
+function scaledSize(size: Size, values: Values<typeof PARAMS>, scale = 1): Size {
   const width = values.width * scale;
   const height = values.height * scale;
   switch (values.mode) {
@@ -78,7 +78,7 @@ export const scale = mapOp({
   title: 'Scale',
   description: 'Resize by a percentage, to fit a box, or to an exact width/height.',
   suffix: 'scaled',
-  params: SCALE_PARAMS,
+  params: PARAMS,
   run(image, values, context) {
     // Pixel targets are relative to the full-size image; previews are smaller.
     const target = scaledSize(image, values, PIXEL_MODES.has(values.mode) ? context.scale : 1);

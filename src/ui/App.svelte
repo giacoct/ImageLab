@@ -1,68 +1,133 @@
 <!--
-  Root shell: the header (with the theme choice), the current page (home, a
-  tool, or a saved recipe), and the page-wide drop and paste handling.
+  The whole app on one page: the images, the chain of steps and the run
+  button on the left; the live preview and the results on the right.
 -->
 <script lang="ts">
-  import { recipes } from '../app/recipes.svelte';
-  import { router } from '../app/router.svelte';
-  import { theme, type ThemePreference } from '../app/theme.svelte';
-  import { findOp } from '../ops';
+  import { session } from '../app/session.svelte';
+  import AddStep from './AddStep.svelte';
   import DropOverlay from './DropOverlay.svelte';
-  import Home from './Home.svelte';
-  import Workspace from './Workspace.svelte';
+  import FileTray from './FileTray.svelte';
+  import Preview from './Preview.svelte';
+  import Results from './Results.svelte';
+  import StepCard from './StepCard.svelte';
 
-  const route = $derived(router.route);
-  const tool = $derived(route.page === 'tool' ? findOp(route.id) : undefined);
-  const recipe = $derived(route.page === 'recipe' ? recipes.find(route.id) : undefined);
+  let view = $state<'preview' | 'results'>('preview');
+
+  const runLabel = $derived.by(() => {
+    const count = session.usable.length;
+    if (count === 0) return 'Process images';
+    return count === 1 ? 'Process 1 image' : `Process ${count} images`;
+  });
+
+  function run(): void {
+    view = 'results';
+    void session.run();
+  }
 </script>
 
 <header>
-  <a href="#/">ImageLab</a>
-  <select
-    aria-label="Theme"
-    value={theme.preference}
-    onchange={(event) => theme.set(event.currentTarget.value as ThemePreference)}
-  >
-    <option value="system">System theme</option>
-    <option value="light">Light</option>
-    <option value="dark">Dark</option>
-  </select>
+  <strong>ImageLab</strong>
+  <span class="muted">Image tools that run in your browser. Nothing is uploaded.</span>
 </header>
 
 <main>
-  {#if tool}
-    {#key tool.id}
-      <Workspace {tool} />
-    {/key}
-  {:else if recipe}
-    {#key recipe.id}
-      <Workspace {recipe} />
-    {/key}
-  {:else}
-    <Home />
-  {/if}
+  <div class="controls">
+    <FileTray />
+    {#each session.steps as step, index (step.id)}
+      <StepCard {index} />
+    {/each}
+    <AddStep />
+
+    <div class="run">
+      {#if session.running}
+        <div class="row">
+          <progress value={session.progress.done} max={Math.max(1, session.progress.total)}
+          ></progress>
+          <span>{session.progress.done} of {session.progress.total} done</span>
+          <button type="button" onclick={() => session.cancel()}>Cancel</button>
+        </div>
+      {:else}
+        <button class="primary" type="button" disabled={Boolean(session.blocker)} onclick={run}>
+          {runLabel}
+        </button>
+        {#if session.blocker}<p class="hint">{session.blocker}</p>{/if}
+      {/if}
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="row" role="group" aria-label="View">
+      <button type="button" aria-pressed={view === 'preview'} onclick={() => (view = 'preview')}>
+        Preview
+      </button>
+      <button type="button" aria-pressed={view === 'results'} onclick={() => (view = 'results')}>
+        Results{session.results.length ? ` (${session.results.length})` : ''}
+      </button>
+    </div>
+    {#if view === 'preview'}
+      <Preview />
+    {:else}
+      <Results />
+    {/if}
+  </div>
 </main>
 
 <DropOverlay />
 
 <style>
   header {
-    align-items: center;
+    align-items: baseline;
     border-bottom: 1px solid var(--border);
     display: flex;
-    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
     padding: 0.6rem 1rem;
   }
 
-  header a {
-    color: inherit;
-    font-weight: 700;
-    text-decoration: none;
-  }
-
   main {
+    align-items: start;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr);
     margin: 0 auto;
     max-width: 90rem;
     padding: 1rem 1rem 3rem;
+  }
+
+  @media (min-width: 900px) {
+    main {
+      grid-template-columns: minmax(20rem, 26rem) minmax(0, 1fr);
+    }
+
+    /* The preview stays in view while the settings scroll. */
+    .stage {
+      position: sticky;
+      top: 1rem;
+    }
+  }
+
+  .controls,
+  .stage {
+    display: grid;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .run {
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  .run .primary {
+    padding: 0.5rem;
+  }
+
+  progress {
+    flex: 1;
+  }
+
+  [aria-pressed='true'] {
+    border-color: var(--ink);
+    font-weight: 600;
   }
 </style>

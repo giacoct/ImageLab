@@ -1,31 +1,22 @@
 <!--
-  The results of the last run: one entry per output (rename, download), a ZIP
-  of everything, failures, and handing the images on to another tool.
+  The results of the last run: one entry per output with its download, a ZIP
+  of everything, and what failed.
 -->
 <script lang="ts">
   import { downloadBlob, downloadZip } from '../app/download';
-  import { router } from '../app/router.svelte';
-  import { session } from '../app/session.svelte';
+  import { session, type Result } from '../app/session.svelte';
   import { formatBytes } from '../core/files';
   import BlobImage from './BlobImage.svelte';
-  import OcrText from './OcrText.svelte';
 
-  const images = $derived(session.results.filter((result) => !result.output.ocr));
-  const texts = $derived(session.results.filter((result) => result.output.ocr));
   const totalOut = $derived(
     session.results.reduce((sum, result) => sum + result.output.blob.size, 0),
   );
 
   /** Size change against the input, e.g. "−42%". */
-  function change(result: (typeof session.results)[number]): string {
-    if (result.output.ocr || result.inputSize === 0) return '';
+  function change(result: Result): string {
+    if (result.inputSize === 0) return '';
     const ratio = result.output.blob.size / result.inputSize - 1;
     return `${ratio > 0 ? '+' : '−'}${Math.abs(Math.round(ratio * 100))}%`;
-  }
-
-  function useAsInput(): void {
-    session.useResultsAsInput();
-    router.go({ page: 'home' });
   }
 </script>
 
@@ -41,20 +32,17 @@
         <span class="muted">No results yet. Process the images to see them here.</span>
       {/if}
     </span>
-    {#if session.results.length > 1}
+    {#if session.results.length > 1 && !session.running}
       <button
         type="button"
         onclick={() =>
           downloadZip(
-            session.results.map((r) => r.output),
+            session.results.map((result) => result.output),
             'imagelab.zip',
           )}
       >
         Download all (ZIP)
       </button>
-    {/if}
-    {#if session.chainable.length && !session.running}
-      <button type="button" onclick={useAsInput}>Use in another tool</button>
     {/if}
   </div>
 
@@ -75,22 +63,14 @@
     </div>
   {/if}
 
-  {#each texts as result (result.id)}
-    <OcrText output={result.output} />
-  {/each}
-
-  {#if images.length}
+  {#if session.results.length}
     <ul class="grid">
-      {#each images as result (result.id)}
+      {#each session.results as result (result.id)}
         <li>
           <div class="thumb checker">
             <BlobImage blob={result.output.thumbnail} alt={result.output.name} />
           </div>
-          <input
-            aria-label="File name"
-            value={result.output.name}
-            onchange={(event) => session.renameResult(result.id, event.currentTarget.value)}
-          />
+          <span class="name">{result.output.name}</span>
           <span class="hint">
             {result.output.width} × {result.output.height} · {formatBytes(result.output.blob.size)}
             {change(result)}
@@ -152,8 +132,7 @@
     object-fit: contain;
   }
 
-  input {
-    min-width: 0;
-    width: 100%;
+  .name {
+    overflow-wrap: anywhere;
   }
 </style>

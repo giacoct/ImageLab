@@ -31,7 +31,7 @@ export class Previewer {
       const args = this.next;
       this.next = null;
       try {
-        const { bitmap } = await engine.preview('preview', args);
+        const bitmap = await engine.preview(args);
         if (this.next)
           bitmap.close(); // already outdated
         else this.onImage(bitmap);

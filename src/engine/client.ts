@@ -1,8 +1,8 @@
 /**
  * Main-thread access to the engine: a small pool of engine workers for
- * imports and exports, plus one dedicated worker for live previews so slider
- * drags never wait behind a batch. Cancelling a request terminates its
- * worker, which is the only way to stop WASM code mid-run.
+ * reading and processing files, plus one dedicated worker for live previews.
+ * Cancelling a request terminates its worker, which is the only way to stop
+ * WASM code mid-run.
  */
 
 import type { RequestType, Requests, RequestMessage, ResponseMessage } from './protocol';
@@ -14,9 +14,6 @@ export class Cancelled extends Error {
     this.name = 'Cancelled';
   }
 }
-
-/** Where the app is served from, so workers can locate models and vendored files. */
-const appUrl = new URL(import.meta.env.BASE_URL, document.baseURI).href;
 
 class EngineWorker {
   private worker: Worker | null = null;
@@ -51,7 +48,7 @@ class EngineWorker {
           reject(error);
         },
       });
-      worker.postMessage({ id, type, appUrl, args } as RequestMessage);
+      worker.postMessage({ id, type, args } as RequestMessage);
     });
   }
 
@@ -93,38 +90,36 @@ const POOL_SIZE = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) -
 
 class Engine {
   private readonly pool = Array.from({ length: POOL_SIZE }, () => new EngineWorker());
-  private readonly waiting: (() => void)[] = [];
+  private waiting: (() => void)[] = [];
   private readonly previewWorker = new EngineWorker();
 
-  readonly poolSize = POOL_SIZE;
-
-  /** Run a request on the first idle pool worker (lowest index first, so warm models get reused). */
+  /** Run a request on the first idle pool worker, waiting for one if they're all busy. */
   async run<K extends RequestType>(
     type: K,
     args: Requests[K]['args'],
     signal?: AbortSignal,
   ): Promise<Requests[K]['result']> {
-    let worker = this.pool.find((candidate) => !candidate.busy);
-    while (!worker) {
-      await new Promise<void>((resolve) => this.waiting.push(resolve));
+    for (;;) {
       if (signal?.aborted) throw new Cancelled();
-      worker = this.pool.find((candidate) => !candidate.busy);
-    }
-    worker.busy = true;
-    try {
-      return await worker.call(type, args, signal);
-    } finally {
-      worker.busy = false;
-      this.waiting.shift()?.();
+      const worker = this.pool.find((candidate) => !candidate.busy);
+      if (worker) {
+        worker.busy = true;
+        try {
+          return await worker.call(type, args, signal);
+        } finally {
+          worker.busy = false;
+          // Wake every waiter: each checks again, so a cancelled one can't
+          // swallow the wake-up another needs.
+          for (const wake of this.waiting.splice(0)) wake();
+        }
+      }
+      await new Promise<void>((resolve) => this.waiting.push(resolve));
     }
   }
 
-  /** Run on the preview worker. */
-  preview<K extends 'preview' | 'sample'>(
-    type: K,
-    args: Requests[K]['args'],
-  ): Promise<Requests[K]['result']> {
-    return this.previewWorker.call(type, args);
+  /** Run on the preview worker, so previews never wait behind a batch. */
+  preview(args: Requests['preview']['args']): Promise<ImageBitmap> {
+    return this.previewWorker.call('preview', args);
   }
 }
 

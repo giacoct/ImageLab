@@ -2,8 +2,7 @@
  * Global styles: a few color tokens, plain native controls, and the handful
  * of shared classes (sections, notices, the transparency checkerboard).
  * Components keep only their own layout in their <style>. Colors are defined
- * once with `light-dark()`: the page follows the system scheme, and
- * `data-theme="light|dark"` on <html> (app/theme.svelte.ts) forces one.
+ * once with `light-dark()`, so the page follows the system's light/dark scheme.
  */
 
 :root {
@@ -18,7 +17,6 @@
   --on-accent: light-dark(#ffffff, #10131a);
   --danger: light-dark(#b42318, #ff8a80);
   --warning: light-dark(#8a5300, #f2c26b);
-  --success: light-dark(#18794e, #6fd39b);
   --checker: light-dark(#e6e6e6, #2c2c2c);
 
   font-family:
@@ -30,14 +28,6 @@
   font-size: 15px;
   line-height: 1.45;
   color: var(--ink);
-}
-
-:root[data-theme='light'] {
-  color-scheme: light;
-}
-
-:root[data-theme='dark'] {
-  color-scheme: dark;
 }
 
 * {
@@ -105,10 +95,6 @@ button.primary {
   font-weight: 600;
 }
 
-button.danger {
-  color: var(--danger);
-}
-
 /* A compact square button for ↑ ↓ × controls. */
 button.icon {
   line-height: 1;
@@ -132,7 +118,7 @@ textarea {
   outline-offset: 1px;
 }
 
-/* A block of the workspace: images, a step, the export. */
+/* A block of the controls: the images, or a step. */
 .section {
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -181,16 +167,8 @@ textarea {
   color: var(--warning);
 }
 
-.notice.info {
-  color: var(--muted);
-}
-
 .error-text {
   color: var(--danger);
-}
-
-.warning-text {
-  color: var(--warning);
 }
 
 /* Shows transparency behind an image. */
@@ -207,15 +185,6 @@ textarea {
     8px -8px,
     -8px 0;
   background-size: 16px 16px;
-}
-
-.visually-hidden {
-  clip-path: inset(50%);
-  height: 1px;
-  overflow: hidden;
-  position: absolute;
-  white-space: nowrap;
-  width: 1px;
 }
 
 /* Generated settings forms (ParamForm). */

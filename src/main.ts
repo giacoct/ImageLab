@@ -5,12 +5,11 @@ import App from './ui/App.svelte';
 
 mount(App, { target: document.getElementById('app')! });
 
-// Offline support and caching of the large WASM/model files (production only:
-// in development it would serve stale modules).
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {
-      // Without it the app still works; it just isn't available offline.
-    });
-  });
-}
+// Earlier versions installed a service worker for offline use. Remove it and
+// its cache, so old installs load the current version from the network.
+navigator.serviceWorker?.getRegistrations().then(
+  (registrations) => registrations.forEach((registration) => void registration.unregister()),
+  () => {},
+);
+// Both only exist on secure origins (HTTPS, localhost).
+if ('caches' in globalThis) caches.delete('imagelab').catch(() => {});

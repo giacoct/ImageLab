@@ -1,14 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  formatBytes,
-  isHeic,
-  isImageFile,
-  outputName,
-  sameFormat,
-  sniffType,
-  uniqueNames,
-} from './files';
+import { formatBytes, isImageFile, outputName, savedFormat, sniffType, uniqueNames } from './files';
 
 describe('files', () => {
   it('formats sizes', () => {
@@ -21,20 +13,17 @@ describe('files', () => {
     expect(outputName('photo.final.png', 'scaled', 'webp')).toBe('photo.final-scaled.webp');
   });
 
-  it('recognizes HEIC with or without a type', () => {
-    expect(isHeic({ name: 'IMG_1.HEIC', type: '' })).toBe(true);
-    expect(isHeic({ name: 'x', type: 'image/heif' })).toBe(true);
-    expect(isHeic({ name: 'x.jpg', type: 'image/jpeg' })).toBe(false);
+  it('recognizes images, HEIC with or without a type', () => {
     expect(isImageFile({ name: 'IMG_1.heic', type: '' })).toBe(true);
+    expect(isImageFile({ name: 'x', type: 'image/heif' })).toBe(true);
     expect(isImageFile({ name: 'notes.txt', type: 'text/plain' })).toBe(false);
   });
 
-  it('keeps the source format unless it cannot hold transparency', () => {
-    expect(sameFormat('image/jpeg', false)).toBe('image/jpeg');
-    expect(sameFormat('image/jpeg', true)).toBe('image/png');
-    expect(sameFormat('image/webp', true)).toBe('image/webp');
-    expect(sameFormat('image/heic', false)).toBe('image/jpeg');
-    expect(sameFormat('image/gif', true)).toBe('image/png');
+  it('keeps the source format when it can write it', () => {
+    expect(savedFormat('image/jpeg')).toBe('image/jpeg');
+    expect(savedFormat('image/webp')).toBe('image/webp');
+    expect(savedFormat('image/heic')).toBe('image/jpeg');
+    expect(savedFormat('image/gif')).toBe('image/jpeg');
   });
 
   it('numbers duplicate names', () => {

@@ -1,8 +1,7 @@
 <!--
-  Images can be dropped or pasted anywhere on any page. While files are
-  dragged over the window an overlay says so; dropping adds them to the
-  session. Dragging a file in the list to reorder it carries no files, so
-  it's ignored.
+  Images can be dropped or pasted anywhere on the page. While files are
+  dragged over the window an overlay says so; dropping adds them. Drags that
+  carry no files (e.g. selected text) are ignored.
 -->
 <script lang="ts">
   import { session } from '../app/session.svelte';

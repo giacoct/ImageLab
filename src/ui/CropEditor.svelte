@@ -16,7 +16,7 @@
     type Crop,
     type DragMode,
   } from '../core/geometry';
-  import type { Step } from '../core/recipe';
+  import type { Step } from '../ops/op';
   import { cropForImage } from '../ops/transform';
 
   let { index }: { index: number } = $props();
@@ -41,8 +41,8 @@
   // The image entering this step, rotated/flipped but not cropped. Only what
   // changes that image is read, so dragging the crop box doesn't re-render it.
   $effect(() => {
-    const item = session.selectedItem;
-    const step = session.steps[index]; // gone while a removed step fades out
+    const item = session.selected;
+    const step = session.steps[index]; // briefly gone right after the step is removed
     if (!item?.info || !step) return;
     const { id, op, params } = step;
     const self: Step = {
@@ -57,23 +57,11 @@
       },
     };
     previewer.request({
-      files: [{ key: item.id, blob: item.file }],
-      selected: 0,
+      key: item.id,
+      blob: item.file,
       steps: [...$state.snapshot(session.steps.slice(0, index)), self],
       maxSide: 900,
     });
-  });
-
-  // Choosing a ratio starts from the largest centered crop of that ratio.
-  let lastAspect: AspectPreset | undefined;
-  $effect(() => {
-    const current = aspect;
-    const factor = k;
-    if (!size) return;
-    if (lastAspect !== undefined && lastAspect !== current) {
-      session.setParam(index, 'crop', centeredCrop(factor));
-    }
-    lastAspect = current;
   });
 
   let drag: { mode: DragMode; x: number; y: number; start: Crop; rect: DOMRect } | null = null;

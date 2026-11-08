@@ -1,28 +1,25 @@
 /**
  * Engine tests in a real browser (Vitest browser mode, Chromium): decoding,
- * encoding, every operation, chains of steps, and the worker round trip. Images are drawn
- * synthetically so the expected pixels are known.
+ * encoding, every operation, chains of steps, and the worker round trip.
+ * Images are drawn synthetically so the expected pixels are known.
  */
 
 import { describe, expect, it } from 'vitest';
 
-import { initialEncoding, type Encoding, type FileFormat } from '../core/encoding';
+import { initialEncoding, type Encoding } from '../core/encoding';
+import type { ImageFormat } from '../core/files';
 import { defaults } from '../core/params';
-import type { Step } from '../core/recipe';
 import { getOp } from '../ops';
-import type { RunContext } from '../ops/op';
+import type { RunContext, Step } from '../ops/op';
 import { cropForImage } from '../ops/transform';
 import { context2d, createCanvas, readPixels, type Img } from './canvas';
-import { engine } from './client';
+import { Cancelled, engine } from './client';
 import { decode } from './decode';
 import { encodeImage } from './encode';
 import heicUrl from './fixtures/logo.heic?url';
-import { processJob, renderPreview } from './pipeline';
+import { processFile, renderPreview } from './pipeline';
 
-const context: RunContext = {
-  scale: 1,
-  asset: (path) => new URL(path, location.origin + '/').href,
-};
+const context: RunContext = { scale: 1 };
 
 /** A `width`×`height` image: left half red, right half blue. */
 function twoTone(width = 40, height = 20): Img {
@@ -39,7 +36,7 @@ function pixel(image: Img, x: number, y: number): number[] {
   return [...context2d(image).getImageData(x, y, 1, 1).data];
 }
 
-async function pngBlob(image: Img): Promise<Blob> {
+function pngBlob(image: Img): Promise<Blob> {
   return image.convertToBlob({ type: 'image/png' });
 }
 
@@ -48,7 +45,7 @@ function step(op: string, params: Record<string, unknown> = {}): Step {
 }
 
 /** Save as `format`, as a Convert format step would. */
-const as = (format: FileFormat, settings: Partial<Encoding> = {}): Encoding => ({
+const as = (format: ImageFormat, settings: Partial<Encoding> = {}): Encoding => ({
   ...initialEncoding('image/png'),
   format,
   chosen: true,
@@ -114,10 +111,10 @@ describe('encode', () => {
     expect(best.blob.size).toBeGreaterThan(30 * 1024);
   });
 
-  it('writes a letterboxed ICO', async () => {
-    const { blob, width } = await encodeImage(twoTone(), as('image/x-icon', { icoSize: 32 }));
-    expect(blob.type).toBe('image/x-icon');
-    expect(width).toBe(32);
+  it('meets a target size for PNG by lowering the dimensions', async () => {
+    const { blob, width } = await encodeImage(noise(), as('image/png', { targetBytes: 50 * 1024 }));
+    expect(blob.size).toBeLessThanOrEqual(50 * 1024);
+    expect(width).toBeLessThan(300);
   });
 });
 
@@ -159,85 +156,6 @@ describe('operations', () => {
     expect(r).toBe(g);
     expect(g).toBe(b);
   });
-
-  it('removes a background color', async () => {
-    const keyed = await run('remove-background', twoTone(), { color: '#0000ff', tolerance: 5 });
-    expect(pixel(keyed, 30, 5)[3]).toBe(0);
-    expect(pixel(keyed, 5, 5)[3]).toBe(255);
-  });
-
-  it('adds a margin', async () => {
-    const framed = await run('margin', twoTone(), { all: 5, color: '#00ff00' });
-    expect([framed.width, framed.height]).toEqual([50, 30]);
-    expect(pixel(framed, 1, 1)).toEqual([0, 255, 0, 255]);
-    expect(pixel(framed, 6, 6)).toEqual([255, 0, 0, 255]);
-  });
-
-  it('merges images', async () => {
-    const op = getOp('merge');
-    if (op.kind !== 'combine') throw new Error('merge should combine');
-    const merged = await op.run(
-      [twoTone(), twoTone(20, 10)],
-      step('merge', { gap: 2 }).params,
-      context,
-    );
-    expect([merged.width, merged.height]).toEqual([40, 32]);
-  });
-
-  it('upscales 4× with the model', async () => {
-    const out = await run('upscale', twoTone(16, 8));
-    expect([out.width, out.height]).toEqual([64, 32]);
-    expect(pixel(out, 4, 16)[0]).toBeGreaterThan(200); // still red on the left
-    expect(pixel(out, 60, 16)[2]).toBeGreaterThan(200); // still blue on the right
-  });
-
-  it('refuses images too large to upscale', async () => {
-    await expect(run('upscale', createCanvas(2000, 10))).rejects.toThrow(/at most 1500/);
-  });
-
-  it('traces to SVG', async () => {
-    const op = getOp('vectorize');
-    if (op.kind !== 'svg') throw new Error('vectorize should produce SVG');
-    const auto = await op.run(twoTone(), step('vectorize').params, context);
-    expect(auto).toMatch(/<svg[^>]*width="40" height="20"/);
-    expect(auto).toContain('<path');
-    const manual = await op.run(
-      twoTone(),
-      step('vectorize', { preset: 'manual', mode: 'polygon' }).params,
-      context,
-    );
-    expect(manual).toContain('<path');
-  });
-
-  it('recognizes dark text on light and light text on dark', async () => {
-    const op = getOp('ocr');
-    if (op.kind !== 'text') throw new Error('ocr should produce text');
-    const textImage = (text: string, ink: string, paper: string) => {
-      const canvas = createCanvas(600, 120);
-      const ctx = context2d(canvas);
-      ctx.fillStyle = paper;
-      ctx.fillRect(0, 0, 600, 120);
-      ctx.fillStyle = ink;
-      ctx.font = 'bold 48px sans-serif';
-      ctx.fillText(text, 20, 80);
-      return canvas;
-    };
-
-    const dark = await op.run(
-      textImage('HELLO WORLD', '#000000', '#ffffff'),
-      step('ocr').params,
-      context,
-    );
-    expect(dark.text).toBe('HELLO WORLD');
-    expect(dark.words[0].left).toBeGreaterThan(0);
-    expect(dark.words[0].left).toBeLessThan(0.1);
-    const light = await op.run(
-      textImage('INVERTED', '#ffffff', '#1a3a8a'),
-      step('ocr').params,
-      context,
-    );
-    expect(light.text).toBe('INVERTED');
-  });
 });
 
 describe('pipeline', () => {
@@ -247,18 +165,18 @@ describe('pipeline', () => {
   });
 
   it('chains steps, keeps the input format, and names the output after the last step', async () => {
-    const [output] = await processJob(
-      [await input()],
-      [step('scale', { percent: 50 }), step('margin', { all: 2 })],
+    const output = await processFile(
+      await input(),
+      [step('scale', { percent: 50 }), step('transform', { rotate: '90' })],
       context,
     );
-    expect(output.name).toBe('photo-margin.png');
-    expect([output.width, output.height]).toEqual([24, 14]);
+    expect(output.name).toBe('photo-edited.png');
+    expect([output.width, output.height]).toEqual([10, 20]);
   });
 
   it('keeps a converted format through later steps', async () => {
-    const [output] = await processJob(
-      [await input()],
+    const output = await processFile(
+      await input(),
       [step('convert', { format: 'jpeg' }), step('adjust', { brightness: 120 })],
       context,
     );
@@ -267,8 +185,8 @@ describe('pipeline', () => {
   });
 
   it('chains any tool more than once', async () => {
-    const [output] = await processJob(
-      [await input()],
+    const output = await processFile(
+      await input(),
       [
         step('convert', { format: 'jpeg' }),
         step('scale', { percent: 50 }),
@@ -282,8 +200,8 @@ describe('pipeline', () => {
   });
 
   it('compresses to a file size', async () => {
-    const [output] = await processJob(
-      [await input('noise.png', noise())],
+    const output = await processFile(
+      await input('noise.png', noise()),
       [step('convert', { format: 'jpeg' }), step('compress', { mode: 'target', targetKb: 30 })],
       context,
     );
@@ -291,106 +209,62 @@ describe('pipeline', () => {
     expect(output.blob.size).toBeLessThanOrEqual(30 * 1024);
   });
 
-  it('outputs the file a step wrote when nothing changed after it', async () => {
-    const [converted] = await processJob(
-      [await input('noise.png', noise())],
+  it('outputs the file Convert format wrote when nothing changed after it', async () => {
+    const image = noise();
+    const written = await encodeImage(image, as('image/webp', { quality: 50 }));
+    const output = await processFile(
+      await input('noise.png', image),
       [step('convert', { format: 'webp', quality: 50 })],
       context,
     );
-    const [stripped] = await processJob(
-      [await input('noise.png', noise())],
-      [step('convert', { format: 'webp', quality: 50 }), step('strip-metadata')],
-      context,
-    );
-    expect(stripped.blob.size).toBe(converted.blob.size);
-  });
-
-  it('strips metadata without re-encoding', async () => {
-    const original = await input();
-    const [output] = await processJob([original], [step('strip-metadata')], context);
-    expect(output.name).toBe('photo-clean.png');
-    expect(output.blob.size).toBe(original.blob.size); // a canvas PNG has no metadata to drop
+    // Re-encoding the decoded WebP would give a different file.
+    expect(output.blob.size).toBe(written.blob.size);
   });
 
   it('refuses an empty chain', async () => {
-    await expect(processJob([await input()], [], context)).rejects.toThrow(/Add a step/);
-  });
-
-  it('merges all inputs into one output', async () => {
-    const outputs = await processJob(
-      [await input('a.png'), await input('b.png')],
-      [step('merge')],
-      context,
-    );
-    expect(outputs).toHaveLength(1);
-    expect(outputs[0]).toMatchObject({ name: 'a-merged.png', width: 40, height: 40 });
-  });
-
-  it('returns text and the image it was read from', async () => {
-    const [output] = await processJob([await input()], [step('ocr')], context);
-    expect(output.name).toBe('photo-text.txt');
-    expect(output.display?.type).toBe('image/webp');
-    expect(output.ocr).toBeDefined();
+    await expect(processFile(await input(), [], context)).rejects.toThrow(/Add a step/);
   });
 
   it('makes small thumbnails of the results', async () => {
-    const big = await input('big.png', twoTone(2000, 1000));
-    const [output] = await processJob([big], [step('strip-metadata')], context);
+    const output = await processFile(
+      await input('big.png', twoTone(2000, 1000)),
+      [step('adjust')],
+      context,
+    );
     expect(output.thumbnail.type).toBe('image/webp');
     const { image } = await decode(output.thumbnail);
     expect([image.width, image.height]).toEqual([480, 240]);
   });
 
-  it('previews what a file step writes', async () => {
-    const files = [{ key: 'ico', blob: await pngBlob(twoTone(400, 200)) }];
-    const steps = [step('convert', { format: 'ico', icoSize: 32 })];
-    const preview = await renderPreview({ files, selected: 0, steps, maxSide: 100 }, context.asset);
-    expect([preview.width, preview.height]).toEqual([32, 32]);
-  });
-
-  it('previews on a downscaled copy and stops before slow steps', async () => {
-    const files = [{ key: 'a', blob: await pngBlob(twoTone(400, 200)) }];
-    const steps = [step('margin', { all: 40 }), step('upscale')];
-    const preview = await renderPreview({ files, selected: 0, steps, maxSide: 100 }, context.asset);
-    // 400×200 → 100×50; the 40 px margin scales to 10 px; upscale is skipped.
-    expect([preview.width, preview.height]).toEqual([120, 70]);
+  it('previews on a downscaled copy, scaling pixel settings', async () => {
+    const request = { key: 'a', blob: await pngBlob(twoTone(400, 200)) };
+    const steps = [step('scale', { mode: 'width', width: 200 })];
+    // 400×200 → 100×50 preview; 200 px wide at full size is 50 px at this scale.
+    const preview = await renderPreview({ ...request, steps, maxSide: 100 });
+    expect([preview.width, preview.height]).toEqual([50, 25]);
     // Another size comes from the same cached copy, scaled the same way.
-    const larger = await renderPreview({ files, selected: 0, steps, maxSide: 200 }, context.asset);
-    expect([larger.width, larger.height]).toEqual([240, 140]);
-  });
-
-  it('previews a merge at one common scale', async () => {
-    const files = [
-      { key: 'm1', blob: await pngBlob(twoTone(400, 200)) },
-      { key: 'm2', blob: await pngBlob(twoTone(200, 100)) },
-    ];
-    const preview = await renderPreview(
-      { files, selected: 0, steps: [step('merge')], maxSide: 200 },
-      context.asset,
-    );
-    // The larger image fits 200 px (scale ½), the other keeps its relative size.
-    expect([preview.width, preview.height]).toEqual([200, 150]);
+    const larger = await renderPreview({ ...request, steps, maxSide: 200 });
+    expect([larger.width, larger.height]).toEqual([100, 50]);
   });
 });
 
 describe('worker client', () => {
   it('runs jobs in the engine worker', async () => {
-    const outputs = await engine.run('process', {
-      inputs: [{ name: 'photo.png', blob: await pngBlob(twoTone()) }],
+    const output = await engine.run('process', {
+      input: { name: 'photo.png', blob: await pngBlob(twoTone()) },
       steps: [step('scale', { percent: 25 }), step('convert', { format: 'jpeg' })],
     });
-    expect(outputs[0]).toMatchObject({ name: 'photo-converted.jpg', width: 10, height: 5 });
+    expect(output).toMatchObject({ name: 'photo-converted.jpg', width: 10, height: 5 });
   });
 
-  it('samples a color from the preview', async () => {
-    const files = [{ key: 'sample', blob: await pngBlob(twoTone()) }];
-    const request = { files, selected: 0, steps: [], maxSide: 100 };
-    expect(await engine.preview('sample', { ...request, x: 0.1, y: 0.5 })).toEqual({
-      color: '#ff0000',
+  it('renders previews in the preview worker', async () => {
+    const bitmap = await engine.preview({
+      key: 'worker',
+      blob: await pngBlob(twoTone()),
+      steps: [],
+      maxSide: 100,
     });
-    expect(await engine.preview('sample', { ...request, x: 0.9, y: 0.5 })).toEqual({
-      color: '#0000ff',
-    });
+    expect([bitmap.width, bitmap.height]).toEqual([40, 20]);
   });
 
   it('inspects files', async () => {
@@ -403,5 +277,22 @@ describe('worker client', () => {
     await expect(engine.run('inspect', { blob: new Blob(['nope']) })).rejects.toThrow(
       /not an image/,
     );
+  });
+
+  it('keeps serving requests that wait behind a cancelled batch', async () => {
+    const blob = await pngBlob(noise());
+    const steps = [step('convert', { format: 'avif', quality: 100 })];
+    const controller = new AbortController();
+    // More jobs than workers, so some of them wait for a free one.
+    const batch = Array.from({ length: 12 }, () =>
+      engine.run('process', { input: { name: 'n.png', blob }, steps }, controller.signal),
+    );
+    const waiting = engine.run('inspect', { blob });
+    controller.abort();
+    const settled = await Promise.allSettled(batch);
+    expect(settled.every((r) => r.status === 'rejected' && r.reason instanceof Cancelled)).toBe(
+      true,
+    );
+    expect((await waiting).width).toBe(300);
   });
 });

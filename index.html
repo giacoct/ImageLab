@@ -10,15 +10,6 @@
     <link rel="icon" href="favicon.ico" sizes="64x64" />
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <script>
-      // Apply the saved theme before the first paint (see src/app/theme.svelte.ts).
-      try {
-        const theme = JSON.parse(localStorage.getItem('imagelab:theme'));
-        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
-      } catch {
-        // Storage unavailable: follow the system theme.
-      }
-    </script>
   </head>
   <body>
     <div id="app"></div>

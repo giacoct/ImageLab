@@ -1,45 +1,31 @@
 /**
- * How an image will be saved. Every image carries one through the chain:
- * it starts as the input's format, and the Convert format and Compress
- * steps change it. The file is written once at the end, unless one of those
- * steps already wrote it and nothing changed the pixels since.
+ * How an image will be saved. Every image carries one through the chain: it
+ * starts as the input's format, and the Convert format and Compress steps
+ * change it.
  */
 
-import { sameFormat, type RasterFormat } from './files';
-
-export type FileFormat = RasterFormat | 'image/x-icon';
+import { savedFormat, type ImageFormat } from './files';
 
 export interface Encoding {
-  format: FileFormat;
+  format: ImageFormat;
   /**
    * Picked by a Convert format step. Otherwise it's the input's format, and
-   * a JPEG becomes PNG once a step adds transparency.
+   * a JPEG becomes PNG when the image has transparency (e.g. a GIF's).
    */
   chosen: boolean;
   /** 1–100, for JPEG, WebP and AVIF. */
   quality: number;
   /** When set, the quality (PNG: the dimensions) is lowered until the file fits. */
   targetBytes: number | null;
-  /** Side of an ICO icon, in pixels. */
-  icoSize: number;
 }
-
-export const DEFAULT_QUALITY = 90;
 
 /** How an image decoded from a file of `sourceType` is saved unless a step says otherwise. */
 export function initialEncoding(sourceType: string): Encoding {
-  return {
-    // GIF, BMP, HEIC… are saved as JPEG (PNG once transparent).
-    format: sameFormat(sourceType, false),
-    chosen: false,
-    quality: DEFAULT_QUALITY,
-    targetBytes: null,
-    icoSize: 256,
-  };
+  return { format: savedFormat(sourceType), chosen: false, quality: 90, targetBytes: null };
 }
 
 /** The format to write now; `transparent` is only asked when it matters. */
-export function formatToWrite(encoding: Encoding, transparent: () => boolean): FileFormat {
+export function formatToWrite(encoding: Encoding, transparent: () => boolean): ImageFormat {
   if (!encoding.chosen && encoding.format === 'image/jpeg' && transparent()) return 'image/png';
   return encoding.format;
 }

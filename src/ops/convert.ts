@@ -1,37 +1,32 @@
-/** Convert format: write the image as JPEG, PNG, WebP, AVIF or an ICO icon. */
+/** Convert format: write the image as JPEG, PNG, WebP or AVIF. */
 
-import type { FileFormat } from '../core/encoding';
+import type { ImageFormat } from '../core/files';
 import { p } from '../core/params';
 import { writeNow } from '../engine/encode';
 import { fileOp } from './op';
 
-const FORMATS: Record<string, FileFormat> = {
+const FORMATS: Record<string, ImageFormat> = {
   jpeg: 'image/jpeg',
   png: 'image/png',
   webp: 'image/webp',
   avif: 'image/avif',
-  ico: 'image/x-icon',
 };
-
-const LOSSY = new Set(['jpeg', 'webp', 'avif']);
 
 export const convert = fileOp({
   kind: 'file',
   id: 'convert',
   title: 'Convert format',
-  description: 'Save as JPEG, PNG, WebP, AVIF, or an ICO icon.',
+  description: 'Save as JPEG, PNG, WebP or AVIF.',
   suffix: 'converted',
   params: {
     format: p.choice({
       label: 'Format',
       default: 'webp',
-      display: 'select',
       options: [
         { value: 'jpeg', label: 'JPEG' },
         { value: 'png', label: 'PNG (lossless)' },
         { value: 'webp', label: 'WebP' },
         { value: 'avif', label: 'AVIF' },
-        { value: 'ico', label: 'ICO icon' },
       ],
     }),
     quality: p.number({
@@ -40,20 +35,9 @@ export const convert = fileOp({
       min: 10,
       max: 100,
       unit: '%',
-      when: (v) => LOSSY.has(v.format as string),
-    }),
-    icoSize: p.number({
-      label: 'Icon size',
-      default: 256,
-      min: 16,
-      max: 256,
-      unit: 'px',
-      hint: 'The image is fitted into a transparent square.',
-      when: (v) => v.format === 'ico',
+      when: (v) => v.format !== 'png',
     }),
   },
-  // The icon size isn't scaled for the preview: an icon is small, so the
-  // preview shows it at its real size.
   run: (picture, values) =>
     writeNow(picture, {
       ...picture.encoding,
@@ -61,6 +45,5 @@ export const convert = fileOp({
       chosen: true,
       quality: values.quality,
       targetBytes: null,
-      icoSize: values.icoSize,
     }),
 });

@@ -1,21 +1,20 @@
 /**
- * The workspace state: the imported files, the chain being edited, and the
- * results of the last run. It lives outside the components so files survive
- * moving between tools (drop photos once, try several tools), and a running
- * batch keeps going while the user looks around.
+ * The app state: the loaded images, the chain of steps, and the results of
+ * the last run. One shared instance, so a running batch keeps going whatever
+ * the components do.
  */
 
 import { isImageFile } from '../core/files';
-import type { Step } from '../core/recipe';
+import { defaults } from '../core/params';
 import { Cancelled, engine } from '../engine/client';
 import type { Inspection, Output } from '../engine/pipeline';
-import { OPS, getOp } from '../ops';
-import { isTerminal, type Op } from '../ops/op';
-import { newStep } from './recipes.svelte';
+import { getOp } from '../ops';
+import type { Step } from '../ops/op';
 
 export interface Item {
   id: string;
   file: File;
+  /** Set once the file has been read. */
   info?: Inspection;
   /** Why the file can't be opened (e.g. not an image). */
   error?: string;
@@ -24,7 +23,7 @@ export interface Item {
 export interface Result {
   id: string;
   output: Output;
-  /** Size of the input file(s), to show how much the output grew or shrank. */
+  /** Size of the input file, to show how much the output grew or shrank. */
   inputSize: number;
 }
 
@@ -33,14 +32,14 @@ export interface Failure {
   message: string;
 }
 
-const CHAINABLE = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
-
 let nextId = 0;
-const uid = () => `f${++nextId}`;
+const uid = () => `id${++nextId}`;
+
+const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
 class Session {
   items = $state<Item[]>([]);
-  selected = $state(0);
+  selectedId = $state<string | null>(null);
   steps = $state<Step[]>([]);
 
   results = $state<Result[]>([]);
@@ -51,38 +50,26 @@ class Session {
   private ranWith = $state<string | null>(null);
   private controller: AbortController | null = null;
 
-  readonly selectedItem = $derived(this.items[Math.min(this.selected, this.items.length - 1)]);
-  readonly ops = $derived(this.steps.map((step) => getOp(step.op)));
-  /** The SVG or text step that ends the recipe, if any. */
-  readonly terminal = $derived(this.ops.find(isTerminal));
-  readonly merges = $derived(this.ops.some((op) => op.kind === 'combine'));
-  /** Results that can feed another tool (not SVG, ICO or text). */
-  readonly chainable = $derived(
-    this.results.filter((result) => CHAINABLE.has(result.output.blob.type)),
+  /** The image shown in the preview. */
+  readonly selected = $derived(
+    this.items.find((item) => item.id === this.selectedId) ?? this.items[0],
   );
-  readonly signature = $derived(JSON.stringify([this.items.map((item) => item.id), this.steps]));
+  readonly usable = $derived(this.items.filter((item) => !item.error));
+  private readonly signature = $derived(
+    JSON.stringify([this.items.map((item) => item.id), this.steps]),
+  );
   readonly stale = $derived(this.ranWith !== null && this.ranWith !== this.signature);
 
   /** Why the chain can't run yet, or null. */
-  readonly blocker = $derived.by(() => {
-    if (this.steps.length === 0) return 'Add a step to start.';
-    const usable = this.items.filter((item) => !item.error).length;
-    if (usable === 0) return 'Add images to start.';
-    const combine = this.ops.find((op) => op.kind === 'combine');
-    if (combine?.kind === 'combine' && usable < combine.minInputs) {
-      return `${combine.title} needs at least ${combine.minInputs} images.`;
-    }
-    return null;
-  });
+  readonly blocker = $derived(
+    this.steps.length === 0
+      ? 'Add a step to start.'
+      : this.usable.length === 0
+        ? 'Add images to start.'
+        : null,
+  );
 
-  /** Load a chain into the workspace (files stay; old results go). */
-  open(steps: Step[]): void {
-    this.cancel();
-    this.steps = steps;
-    this.clearResults();
-  }
-
-  // --- files ---------------------------------------------------------------
+  // --- images ----------------------------------------------------------------
 
   addFiles(files: Iterable<File>): void {
     for (const file of files) {
@@ -98,7 +85,7 @@ class Session {
     try {
       found = { info: await engine.run('inspect', { blob: file }) };
     } catch (error) {
-      found = { error: error instanceof Error ? error.message : String(error) };
+      found = { error: messageOf(error) };
     }
     // The file may have been removed meanwhile.
     const item = this.items.find((candidate) => candidate.id === id);
@@ -107,43 +94,18 @@ class Session {
 
   removeItem(id: string): void {
     this.items = this.items.filter((item) => item.id !== id);
-    this.selected = Math.min(this.selected, Math.max(0, this.items.length - 1));
-  }
-
-  moveItem(from: number, to: number): void {
-    if (to < 0 || to >= this.items.length || from === to) return;
-    const [item] = this.items.splice(from, 1);
-    this.items.splice(to, 0, item);
-    if (this.selected === from) this.selected = to;
   }
 
   clearFiles(): void {
     this.cancel();
     this.items = [];
-    this.selected = 0;
     this.clearResults();
-  }
-
-  /**
-   * A problem the first step reports for the file before running (e.g. too
-   * large to upscale). Later steps can't tell: their input size is only known
-   * once the steps before them have run.
-   */
-  warning(item: Item): string | null {
-    const op = this.ops[0];
-    if (!item.info || !op?.check) return null;
-    return op.check(item.info, this.steps[0].params as never);
   }
 
   // --- steps -----------------------------------------------------------------
 
   addStep(opId: string): void {
-    const op = getOp(opId);
-    const step = newStep(opId);
-    // Terminal steps go last; anything else goes before an existing terminal step.
-    const terminalAt = this.ops.findIndex(isTerminal);
-    if (isTerminal(op) || terminalAt === -1) this.steps.push(step);
-    else this.steps.splice(terminalAt, 0, step);
+    this.steps.push({ id: uid(), op: opId, params: defaults(getOp(opId).params) });
   }
 
   removeStep(index: number): void {
@@ -153,19 +115,8 @@ class Session {
   moveStep(index: number, delta: number): void {
     const to = index + delta;
     if (to < 0 || to >= this.steps.length) return;
-    if (isTerminal(this.ops[index]) || isTerminal(this.ops[to])) return; // terminal stays last
     const [step] = this.steps.splice(index, 1);
     this.steps.splice(to, 0, step);
-  }
-
-  /**
-   * Tools that can be added: any number of each, except that a chain ends
-   * with at most one SVG or text step, and merges at most once.
-   */
-  availableOps(): Op[] {
-    return OPS.filter(
-      (op) => !(isTerminal(op) && this.terminal) && !(op.kind === 'combine' && this.merges),
-    );
   }
 
   setParam(index: number, key: string, value: unknown): void {
@@ -174,49 +125,43 @@ class Session {
 
   // --- running -----------------------------------------------------------------
 
+  /** Process every usable image; the engine runs as many at once as it has workers. */
   async run(): Promise<void> {
     if (this.running || this.blocker) return;
-    const items = this.items.filter((item) => !item.error);
+    const items = this.usable;
     const steps = $state.snapshot(this.steps);
-    const jobs = this.merges ? [items] : items.map((item) => [item]);
-    const concurrency = this.ops.some((op) => op.heavy) ? 1 : engine.poolSize;
+    const controller = new AbortController();
 
     this.clearResults();
     this.ranWith = this.signature;
     this.running = true;
-    this.progress = { done: 0, total: jobs.length };
-    const controller = new AbortController();
+    this.progress = { done: 0, total: items.length };
     this.controller = controller;
-    const slots: (Result[] | undefined)[] = [];
-    const failures: Failure[] = [];
+    // Results keep the order of the images, whichever finishes first.
+    const slots: (Result | undefined)[] = [];
 
-    let next = 0;
-    const worker = async () => {
-      while (next < jobs.length && !controller.signal.aborted) {
-        const index = next++;
-        const job = jobs[index];
+    await Promise.all(
+      items.map(async (item, index) => {
+        let failure: Failure | undefined;
         try {
-          const outputs = await engine.run(
+          const output = await engine.run(
             'process',
-            { inputs: job.map((item) => ({ name: item.file.name, blob: item.file })), steps },
+            { input: { name: item.file.name, blob: item.file }, steps },
             controller.signal,
           );
-          const inputSize = job.reduce((sum, item) => sum + item.file.size, 0);
-          slots[index] = outputs.map((output) => ({ id: uid(), output, inputSize }));
+          slots[index] = { id: uid(), output, inputSize: item.file.size };
         } catch (error) {
           if (error instanceof Cancelled) return;
-          failures.push({
-            name: job.length === 1 ? job[0].file.name : `${job.length} images`,
-            message: error instanceof Error ? error.message : String(error),
-          });
-          this.failures = [...failures];
+          failure = { name: item.file.name, message: messageOf(error) };
         }
+        // After a cancel, the state belongs to whatever came next.
         if (controller.signal.aborted) return;
+        if (failure) this.failures.push(failure);
+        this.results = slots.filter((slot) => slot !== undefined);
         this.progress.done += 1;
-        this.results = slots.flatMap((slot) => slot ?? []);
-      }
-    };
-    await Promise.all(Array.from({ length: Math.min(concurrency, jobs.length) }, worker));
+      }),
+    );
+
     if (this.controller === controller) {
       this.controller = null;
       this.running = false;
@@ -233,20 +178,6 @@ class Session {
     this.results = [];
     this.failures = [];
     this.ranWith = null;
-  }
-
-  renameResult(id: string, name: string): void {
-    const result = this.results.find((candidate) => candidate.id === id);
-    if (result && name.trim()) result.output.name = name.trim();
-  }
-
-  /** Raster results become the input files, to carry on with other tools. */
-  useResultsAsInput(): void {
-    const files = this.chainable.map(
-      ({ output }) => new File([output.blob], output.name, { type: output.blob.type }),
-    );
-    this.clearFiles();
-    this.addFiles(files);
   }
 }
 

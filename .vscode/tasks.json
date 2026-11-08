@@ -11,7 +11,7 @@
         "pattern": { "regexp": "^x" },
         "background": {
           "activeOnStart": true,
-          "beginsPattern": "assets|VITE",
+          "beginsPattern": "VITE",
           "endsPattern": "Local:"
         }
       }

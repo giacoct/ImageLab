@@ -3,7 +3,6 @@ import {
   aspectFactor,
   centeredCrop,
   cropPixels,
-  isCrop,
   orientedSize,
   type AspectPreset,
   type Crop,
@@ -13,7 +12,7 @@ import { p } from '../core/params';
 import { context2d, createCanvas } from '../engine/canvas';
 import { mapOp } from './op';
 
-export const TRANSFORM_PARAMS = {
+const PARAMS = {
   rotate: p.choice({
     label: 'Rotate',
     default: '0',
@@ -39,11 +38,8 @@ export const TRANSFORM_PARAMS = {
       { value: '16:9', label: '16:9' },
     ],
   }),
-  crop: p.custom<Crop>({
-    label: 'Crop',
-    default: FULL_CROP,
-    sanitize: (raw) => (isCrop(raw) ? { ...raw } : FULL_CROP),
-  }),
+  // Edited on the image by the crop editor (ui/CropEditor.svelte).
+  crop: p.custom<Crop>({ label: 'Crop', default: FULL_CROP }),
 };
 
 /**
@@ -77,7 +73,7 @@ export const transform = mapOp({
   title: 'Rotate, flip & crop',
   description: 'Turn or mirror the image and cut it to a region or ratio.',
   suffix: 'edited',
-  params: TRANSFORM_PARAMS,
+  params: PARAMS,
   run(image, values) {
     const rotate = Number(values.rotate) as Rotation;
     const oriented = orientedSize(image, rotate);

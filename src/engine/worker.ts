@@ -1,19 +1,13 @@
 /// <reference lib="webworker" />
-/**
- * The engine worker: decodes, runs the steps and encodes, off the main
- * thread. Workers are long-lived, so loaded models (upscaler, OCR) stay warm
- * between files.
- */
+/** The engine worker: decodes, runs the steps and encodes, off the main thread. */
 
-import { context2d } from './canvas';
-import { inspect, processJob, renderPreview } from './pipeline';
+import { inspect, processFile, renderPreview } from './pipeline';
 import type { RequestMessage, ResponseMessage } from './protocol';
 
 declare const self: DedicatedWorkerGlobalScope;
 
 self.onmessage = async (event: MessageEvent<RequestMessage>) => {
   const message = event.data;
-  const asset = (path: string) => new URL(path, message.appUrl).href;
   try {
     let result: unknown;
     const transfer: Transferable[] = [];
@@ -22,21 +16,12 @@ self.onmessage = async (event: MessageEvent<RequestMessage>) => {
         result = await inspect(message.args.blob);
         break;
       case 'process':
-        result = await processJob(message.args.inputs, message.args.steps, { scale: 1, asset });
+        result = await processFile(message.args.input, message.args.steps, { scale: 1 });
         break;
       case 'preview': {
-        const bitmap = (await renderPreview(message.args, asset)).transferToImageBitmap();
+        const bitmap = (await renderPreview(message.args)).transferToImageBitmap();
         transfer.push(bitmap);
-        result = { bitmap };
-        break;
-      }
-      case 'sample': {
-        const { x, y, ...request } = message.args;
-        const image = await renderPreview(request, asset);
-        const px = Math.min(image.width - 1, Math.max(0, Math.floor(x * image.width)));
-        const py = Math.min(image.height - 1, Math.max(0, Math.floor(y * image.height)));
-        const [r, g, b] = context2d(image).getImageData(px, py, 1, 1).data;
-        result = { color: `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}` };
+        result = bitmap;
         break;
       }
     }

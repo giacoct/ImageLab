@@ -8,8 +8,8 @@ describe('encoding', () => {
     expect(initialEncoding('image/heic').format).toBe('image/jpeg');
   });
 
-  it('turns a kept JPEG into PNG once it has transparency', () => {
-    const kept = initialEncoding('image/jpeg');
+  it('turns a kept JPEG into PNG when it has transparency', () => {
+    const kept = initialEncoding('image/gif');
     expect(formatToWrite(kept, () => false)).toBe('image/jpeg');
     expect(formatToWrite(kept, () => true)).toBe('image/png');
     expect(formatToWrite({ ...kept, chosen: true }, () => true)).toBe('image/jpeg');

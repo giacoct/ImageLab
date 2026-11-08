@@ -1,7 +1,6 @@
 /**
- * Pure image geometry: sizes, orientation, crop boxes, merge layouts and
- * margins. Shared by the operations (full-size export and downscaled preview)
- * and the crop editor.
+ * Pure image geometry: sizes, orientation and crop boxes. Shared by the
+ * operations (full-size processing and downscaled preview) and the crop editor.
  */
 
 export interface Size {
@@ -53,22 +52,6 @@ export type DragMode = 'move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw
 
 /** Smallest crop side, as a fraction of the image. */
 const MIN_CROP = 0.05;
-
-export function isCrop(value: unknown): value is Crop {
-  if (typeof value !== 'object' || value === null) return false;
-  const { x, y, width, height } = value as Record<string, unknown>;
-  const fraction = (n: unknown): n is number => typeof n === 'number' && n >= 0 && n <= 1;
-  return (
-    fraction(x) &&
-    fraction(y) &&
-    fraction(width) &&
-    fraction(height) &&
-    width > 0 &&
-    height > 0 &&
-    x + width <= 1 + 1e-9 &&
-    y + height <= 1 + 1e-9
-  );
-}
 
 /**
  * Fraction-space height/width factor `k` that gives the preset's pixel aspect
@@ -153,96 +136,6 @@ export function cropPixels(crop: Crop, size: Size): Rect {
     y,
     width: clamp(Math.round(crop.width * size.width), 1, size.width - x),
     height: clamp(Math.round(crop.height * size.height), 1, size.height - y),
-  };
-}
-
-// --- merge -----------------------------------------------------------------
-
-export type MergeDirection = 'horizontal' | 'vertical';
-/** Placement along the cross axis: left/center/right (vertical) or top/middle/bottom. */
-export type MergeAlignment = 'start' | 'center' | 'end';
-/** `fill` scales each image so its cross-axis side matches the largest one. */
-export type MergeResize = 'none' | 'fill';
-
-export interface MergeLayoutOptions {
-  direction: MergeDirection;
-  alignment: MergeAlignment;
-  resize: MergeResize;
-  /** Space between images, in pixels. */
-  gap: number;
-}
-
-export interface MergeLayout extends Size {
-  placements: Rect[];
-}
-
-/** The combined canvas size and each image's draw rectangle (whole pixels). */
-export function mergeLayout(sizes: readonly Size[], options: MergeLayoutOptions): MergeLayout {
-  if (sizes.length === 0) return { width: 0, height: 0, placements: [] };
-
-  const horizontal = options.direction === 'horizontal';
-  const crossOf = (s: Size) => (horizontal ? s.height : s.width);
-  const mainOf = (s: Size) => (horizontal ? s.width : s.height);
-  const targetCross = Math.max(...sizes.map(crossOf));
-  const gap = Math.max(0, Math.round(options.gap));
-
-  const drawn = sizes.map((s) => {
-    const scale = options.resize === 'fill' && crossOf(s) > 0 ? targetCross / crossOf(s) : 1;
-    return roundSize({ width: s.width * scale, height: s.height * scale });
-  });
-
-  const canvasCross = Math.max(...drawn.map(crossOf));
-  const canvasMain = drawn.reduce((sum, s) => sum + mainOf(s), 0) + gap * (drawn.length - 1);
-
-  let cursor = 0;
-  const placements = drawn.map((size) => {
-    const free = canvasCross - crossOf(size);
-    const offset =
-      options.alignment === 'start'
-        ? 0
-        : options.alignment === 'center'
-          ? Math.round(free / 2)
-          : free;
-    const place = {
-      x: horizontal ? cursor : offset,
-      y: horizontal ? offset : cursor,
-      width: size.width,
-      height: size.height,
-    };
-    cursor += mainOf(size) + gap;
-    return place;
-  });
-
-  return {
-    width: horizontal ? canvasMain : canvasCross,
-    height: horizontal ? canvasCross : canvasMain,
-    placements,
-  };
-}
-
-// --- margins ---------------------------------------------------------------
-
-export interface Sides {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-}
-
-/**
- * Each side's thickness in whole pixels. In `percent` mode the value is a
- * percentage of the image's shorter side, so margins stay proportional across
- * differently sized images in a batch.
- */
-export function marginPixels(sides: Sides, unit: 'px' | 'percent', size: Size): Sides {
-  const base = Math.min(size.width, size.height);
-  const toPx = (value: number) =>
-    Math.max(0, Math.round(unit === 'percent' ? (base * value) / 100 : value));
-  return {
-    top: toPx(sides.top),
-    right: toPx(sides.right),
-    bottom: toPx(sides.bottom),
-    left: toPx(sides.left),
   };
 }
 

@@ -76,11 +76,11 @@ export function editPixels(
   return canvas;
 }
 
-/** The image flattened onto a solid color (for formats without transparency). */
-export function flattened(canvas: OffscreenCanvas, color = '#ffffff'): OffscreenCanvas {
+/** The image flattened onto white (for formats without transparency). */
+export function flattened(canvas: OffscreenCanvas): OffscreenCanvas {
   const out = createCanvas(canvas.width, canvas.height);
   const context = context2d(out);
-  context.fillStyle = color;
+  context.fillStyle = '#ffffff';
   context.fillRect(0, 0, out.width, out.height);
   context.drawImage(canvas, 0, 0);
   return out;

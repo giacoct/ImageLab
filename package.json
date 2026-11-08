@@ -1,22 +1,16 @@
 {
   "name": "imagelab",
   "private": true,
-  "description": "Personal image tools that run entirely in the browser. Static site, deployed to GitHub Pages.",
+  "description": "Image tools that run entirely in the browser. Static site, deployed to GitHub Pages.",
   "type": "module",
   "engines": {
     "node": ">=26"
   },
   "scripts": {
-    "assets": "node scripts/assets.mjs",
-    "predev": "npm run assets",
     "dev": "vite",
-    "prebuild": "npm run assets",
     "build": "svelte-check --fail-on-warnings && vite build",
     "preview": "vite preview",
-    "pretest": "npm run assets",
     "test": "vitest run",
-    "test:unit": "vitest run --project unit",
-    "precheck": "npm run assets",
     "check": "prettier --check . && svelte-check --fail-on-warnings && vitest run",
     "format": "prettier --write ."
   },
@@ -38,11 +32,6 @@
     "@jsquash/avif": "2.1.1",
     "@jsquash/jpeg": "1.6.0",
     "@jsquash/webp": "1.5.0",
-    "@tesseract.js-data/eng": "1.0.0",
-    "@tesseract.js-data/ita": "1.0.0",
-    "libheif-js": "1.23.5",
-    "onnxruntime-web": "1.31.1",
-    "tesseract.js": "7.0.0",
-    "vtracer-wasm": "0.1.0"
+    "libheif-js": "1.23.5"
   }
 }

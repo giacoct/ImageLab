@@ -6,9 +6,6 @@ import {
   centeredCrop,
   cropPixels,
   fitInside,
-  isCrop,
-  marginPixels,
-  mergeLayout,
   orientedSize,
 } from './geometry';
 
@@ -73,62 +70,8 @@ describe('crop', () => {
     ).toEqual({ x: 100, y: 0, width: 200, height: 300 });
   });
 
-  it('validates stored crops', () => {
-    expect(isCrop({ x: 0, y: 0, width: 1, height: 1 })).toBe(true);
-    expect(isCrop({ x: 0.5, y: 0, width: 0.6, height: 1 })).toBe(false);
-    expect(isCrop({ x: 0, y: 0, width: 0, height: 1 })).toBe(false);
-    expect(isCrop('nope')).toBe(false);
-  });
-
   it('swaps the axes for quarter turns', () => {
     expect(orientedSize({ width: 400, height: 300 }, 90)).toEqual({ width: 300, height: 400 });
     expect(orientedSize({ width: 400, height: 300 }, 180)).toEqual({ width: 400, height: 300 });
-  });
-});
-
-describe('mergeLayout', () => {
-  const sizes = [
-    { width: 100, height: 50 },
-    { width: 200, height: 100 },
-  ];
-
-  it('stacks vertically, centered, at natural size', () => {
-    const layout = mergeLayout(sizes, {
-      direction: 'vertical',
-      alignment: 'center',
-      resize: 'none',
-      gap: 0,
-    });
-    expect(layout).toMatchObject({ width: 200, height: 150 });
-    expect(layout.placements[0]).toEqual({ x: 50, y: 0, width: 100, height: 50 });
-    expect(layout.placements[1]).toEqual({ x: 0, y: 50, width: 200, height: 100 });
-  });
-
-  it('fills the cross axis and adds gaps side by side', () => {
-    const layout = mergeLayout(sizes, {
-      direction: 'horizontal',
-      alignment: 'start',
-      resize: 'fill',
-      gap: 10,
-    });
-    expect(layout).toMatchObject({ width: 200 + 10 + 200, height: 100 });
-    expect(layout.placements[1].x).toBe(210);
-  });
-
-  it('handles no images', () => {
-    expect(
-      mergeLayout([], { direction: 'vertical', alignment: 'start', resize: 'none', gap: 0 }),
-    ).toEqual({ width: 0, height: 0, placements: [] });
-  });
-});
-
-describe('marginPixels', () => {
-  it('measures percentages against the shorter side', () => {
-    expect(
-      marginPixels({ top: 10, right: 0, bottom: 5, left: 1 }, 'percent', {
-        width: 400,
-        height: 200,
-      }),
-    ).toEqual({ top: 20, right: 0, bottom: 10, left: 2 });
   });
 });

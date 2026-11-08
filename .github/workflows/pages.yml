@@ -36,8 +36,6 @@ jobs:
           node-version: 26
           cache: npm
       - run: npm ci
-      # `prebuild` copies the WASM/OCR files and downloads the upscaler model
-      # (sha256-checked) from the models-v1 release.
       - run: npm run build
       - uses: actions/upload-pages-artifact@v5
         with:

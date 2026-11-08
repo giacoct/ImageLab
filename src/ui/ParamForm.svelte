@@ -1,10 +1,10 @@
 <!--
   The form generated from a settings schema: one field per visible setting
-  (sliders, number boxes, segmented choices or drop-downs, checkboxes, color
-  pickers). Custom settings (e.g. the crop box) have their own editors.
+  (sliders, number boxes, segmented choices or drop-downs, checkboxes).
+  Custom settings (the crop box) have their own editors.
 -->
 <script lang="ts">
-  import { resolveLabel, type AnyValues, type Param, type Schema } from '../core/params';
+  import type { AnyValues, NumberParam, Schema } from '../core/params';
 
   let {
     schema,
@@ -25,28 +25,23 @@
     ),
   );
 
-  function unitOf(param: Param): string {
-    if (param.kind !== 'number' || !param.unit) return '';
-    return typeof param.unit === 'function' ? param.unit(values) : param.unit;
-  }
-
-  function setNumber(key: string, param: Param, raw: string): void {
+  /** Ignore an empty or half-typed box; clamp anything else into range. */
+  function setNumber(key: string, param: NumberParam, raw: string): void {
     const value = Number(raw);
-    if (raw === '' || Number.isNaN(value)) return;
-    onchange(key, param.sanitize(value));
+    if (raw === '' || !Number.isFinite(value)) return;
+    onchange(key, Math.min(param.max, Math.max(param.min, value)));
   }
 </script>
 
 <div class="fields">
   {#each visible as [key, param] (key)}
     {@const id = `${idPrefix}-${key}`}
-    {@const label = resolveLabel(param.label, values)}
     {#if param.kind === 'number'}
       <div class="field">
         {#if param.slider}
           <label class="field-label" for={id}>
-            {label}
-            <span class="field-value">{values[key]}{unitOf(param)}</span>
+            {param.label}
+            <span class="field-value">{values[key]}{param.unit ?? ''}</span>
           </label>
           <input
             {id}
@@ -58,7 +53,7 @@
             oninput={(event) => setNumber(key, param, event.currentTarget.value)}
           />
         {:else}
-          <label class="field-label" for={id}>{label}</label>
+          <label class="field-label" for={id}>{param.label}</label>
           <div class="row">
             <input
               {id}
@@ -68,9 +63,13 @@
               max={param.max}
               step={param.step}
               value={values[key]}
-              onchange={(event) => setNumber(key, param, event.currentTarget.value)}
+              onchange={(event) => {
+                setNumber(key, param, event.currentTarget.value);
+                // Show the value actually kept (clamped, or unchanged when invalid).
+                event.currentTarget.value = String(values[key]);
+              }}
             />
-            <span class="muted">{unitOf(param)}</span>
+            <span class="muted">{param.unit ?? ''}</span>
           </div>
         {/if}
         {#if param.hint}<span class="hint">{param.hint}</span>{/if}
@@ -78,18 +77,18 @@
     {:else if param.kind === 'choice'}
       <div class="field">
         {#if param.display === 'select'}
-          <label class="field-label" for={id}>{label}</label>
+          <label class="field-label" for={id}>{param.label}</label>
           <select
             {id}
             value={values[key]}
-            onchange={(event) => onchange(key, param.sanitize(event.currentTarget.value))}
+            onchange={(event) => onchange(key, event.currentTarget.value)}
           >
             {#each param.options as option (option.value)}
-              <option value={option.value}>{resolveLabel(option.label, values)}</option>
+              <option value={option.value}>{option.label}</option>
             {/each}
           </select>
         {:else}
-          <span class="field-label" {id}>{label}</span>
+          <span class="field-label" {id}>{param.label}</span>
           <div class="segmented" role="group" aria-labelledby={id}>
             {#each param.options as option (option.value)}
               <button
@@ -97,7 +96,7 @@
                 aria-pressed={values[key] === option.value}
                 onclick={() => onchange(key, option.value)}
               >
-                {resolveLabel(option.label, values)}
+                {option.label}
               </button>
             {/each}
           </div>
@@ -111,34 +110,8 @@
           checked={Boolean(values[key])}
           onchange={(event) => onchange(key, event.currentTarget.checked)}
         />
-        {label}
+        {param.label}
       </label>
-    {:else if param.kind === 'color'}
-      <div class="field">
-        <label class="field-label" for={id}>{label}</label>
-        <div class="row">
-          <input
-            {id}
-            type="color"
-            value={values[key]}
-            oninput={(event) => onchange(key, param.sanitize(event.currentTarget.value))}
-          />
-          <input
-            class="mono"
-            aria-label="{label} (hex)"
-            value={values[key]}
-            onchange={(event) => onchange(key, param.sanitize(event.currentTarget.value))}
-          />
-        </div>
-        {#if param.hint}<span class="hint">{param.hint}</span>{/if}
-      </div>
     {/if}
   {/each}
 </div>
-
-<style>
-  .mono {
-    font-family: ui-monospace, monospace;
-    max-width: 8rem;
-  }
-</style>

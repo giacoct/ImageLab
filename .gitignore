@@ -1,9 +1,6 @@
 node_modules/
 dist/
 npm-debug.log
-# Copied from node_modules / downloaded by `npm run assets`, never committed.
-public/vendor/
-public/models/
 # Vitest browser mode screenshots on failure.
 __screenshots__/
 .vitest/

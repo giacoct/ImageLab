@@ -1,7 +1,15 @@
 <!--
-  The home page: what ImageLab is, a place to bring images in first (or see
-  the ones waiting), the user's saved recipes, and every tool.
+  The home page: what ImageLab is, the "light table" where images are brought
+  in first (or shown while they wait), and the tools laid out as a
+  color-calibration chart, one patch per tool, with the user's saved recipes
+  as the chart's grey row.
 -->
+<script lang="ts" module>
+  // The chart "develops" from grey into color once per visit, not every
+  // time the home page is opened again.
+  let developed = false;
+</script>
+
 <script lang="ts">
   import { recipes } from '../app/recipes.svelte';
   import { session } from '../app/session.svelte';
@@ -9,382 +17,390 @@
   import { findOp } from '../ops';
   import BlobImage from './BlobImage.svelte';
   import FilePicker from './FilePicker.svelte';
-  import { BRAND_HUE, hueOf } from './hues';
   import Icon from './Icon.svelte';
-  import Tile from './Tile.svelte';
+  import { NEUTRAL, patchOf } from './patches';
 
   let picker: FilePicker;
 
-  const FEATURES = [
-    { icon: 'shield', text: 'Private: nothing is uploaded' },
-    { icon: 'offline', text: 'Works offline' },
-    { icon: 'layers', text: 'Chain steps into recipes' },
-  ];
+  const develop = !developed;
+  developed = true;
 
-  const waiting = $derived(session.items.slice(0, 4));
+  const SHOWN = 6;
+  const waiting = $derived(session.items.slice(0, SHOWN));
+  const more = $derived(Math.max(0, session.items.length - SHOWN));
 </script>
 
 <div class="home page">
-  <section class="hero">
-    <h1>
-      Image tools that
-      <span class="mark">
-        never upload
-        <svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M2 8.5C40 3 70 3 100 6.5s70 4 98-2" />
-        </svg>
-      </span>
-      your photos
-    </h1>
+  <div class="intro">
+    <h1>Image tools that run on this device</h1>
     <p class="lead">
-      Everything runs right here in the browser, even OCR, SVG tracing and AI upscaling. Pick a
-      tool, tweak it with a live preview, and add steps to chain more.
+      Resize, convert, compress, clean metadata, trace to SVG, read text and upscale, all in the
+      browser. Nothing is uploaded, and it works offline.
     </p>
-    <ul class="features">
-      {#each FEATURES as feature (feature.text)}
-        <li><Icon name={feature.icon} size={15} />{feature.text}</li>
-      {/each}
-    </ul>
-  </section>
 
-  <section class="start" class:filled={session.items.length > 0} aria-label="Images">
-    {#if session.items.length}
-      <div class="stack" aria-hidden="true">
-        {#each waiting as item, index (item.id)}
-          <span class="photo checker" style:--i={index}>
-            {#if item.info}<BlobImage blob={item.info.thumbnail} alt="" />{/if}
-          </span>
-        {/each}
-      </div>
-      <p>
-        <strong>
-          {session.items.length}
-          {session.items.length === 1 ? 'image' : 'images'} ready.
-        </strong>
-        <span class="muted">Pick a tool below to continue.</span>
-      </p>
-      <div class="start-actions">
-        <button class="button small" type="button" onclick={() => picker.open()}>
-          <Icon name="plus" size={16} />Add more
-        </button>
-        <button class="button small ghost" type="button" onclick={() => session.clearFiles()}>
-          Clear
-        </button>
-      </div>
-    {:else}
-      <span class="drop-icon"><Icon name="upload" size={22} /></span>
-      <p>
-        <strong>Start with your images</strong>
-        <span class="muted">Drop them anywhere, paste them, or choose them; then pick a tool.</span>
-      </p>
-      <button class="button primary" type="button" onclick={() => picker.open()}>
-        Choose images
-      </button>
-    {/if}
-    <FilePicker bind:this={picker} />
-  </section>
-
-  {#if recipes.list.length}
-    <section aria-labelledby="recipes-title">
-      <h2 id="recipes-title">Your recipes</h2>
-      <ul class="grid">
-        {#each recipes.list as recipe, index (recipe.id)}
-          <li style:--i={index}>
-            <a class="card" href="#/recipe/{recipe.id}" style:--hue={BRAND_HUE}>
-              <Tile icon="sparkles" hue={BRAND_HUE} />
-              <span class="text">
-                <strong>{recipe.title}</strong>
-                <span class="hint">
-                  {recipe.steps.length === 0
-                    ? 'Export only'
-                    : recipe.steps.map((step) => findOp(step.op)?.title ?? step.op).join(' → ')}
-                </span>
-              </span>
-              <span class="go"><Icon name="next" size={16} /></span>
-            </a>
-          </li>
-        {/each}
-      </ul>
+    <section class="table crop-marks" class:filled={session.items.length > 0} aria-label="Images">
+      {#if session.items.length}
+        <ul class="sheet" aria-hidden="true">
+          {#each waiting as item, index (item.id)}
+            <li class="print checker" style:--i={index}>
+              {#if item.info}<BlobImage blob={item.info.thumbnail} alt="" />{/if}
+            </li>
+          {/each}
+          {#if more}<li class="print more">+{more}</li>{/if}
+        </ul>
+        <p class="table-text">
+          <strong>
+            {session.items.length}
+            {session.items.length === 1 ? 'image is' : 'images are'} ready
+          </strong>
+          <span class="muted">Pick a tool to work on them.</span>
+        </p>
+        <div class="table-actions">
+          <button class="button small" type="button" onclick={() => picker.open()}>
+            <Icon name="plus" size={16} />Add more
+          </button>
+          <button class="button small ghost" type="button" onclick={() => session.clearFiles()}>
+            Clear
+          </button>
+        </div>
+      {:else}
+        <p class="table-text">
+          <strong>Drop images here</strong>
+          <span class="muted">Or anywhere on the page, or paste them. Then pick a tool.</span>
+        </p>
+        <div class="table-actions">
+          <button class="button primary" type="button" onclick={() => picker.open()}>
+            <Icon name="upload" size={16} />Choose images
+          </button>
+          <span class="hint">JPEG, PNG, WebP, AVIF, GIF, HEIC</span>
+        </div>
+      {/if}
+      <FilePicker bind:this={picker} />
     </section>
-  {/if}
+  </div>
 
-  <section aria-labelledby="tools-title">
-    <h2 id="tools-title">Tools</h2>
-    <ul class="grid">
+  <section class="chart" class:develop aria-labelledby="tools-title">
+    <h2 class="visually-hidden" id="tools-title">Tools</h2>
+    <ul class="patches">
       {#each TOOLS as tool, index (tool.id)}
+        {@const patch = patchOf(tool.icon)}
         <li style:--i={index}>
-          <a class="card" href="#/tool/{tool.id}" style:--hue={hueOf(tool.icon)}>
-            <Tile icon={tool.icon} />
-            <span class="text">
-              <strong>{tool.title}</strong>
-              <span class="hint">{tool.description}</span>
-            </span>
-            <span class="go"><Icon name="next" size={16} /></span>
+          <a
+            class="patch ink-{patch.ink}"
+            href="#/tool/{tool.id}"
+            style:--patch={patch.color}
+            aria-describedby="tool-{tool.id}"
+          >
+            <Icon name={tool.icon} size={22} />
+            <span class="name">{tool.title}</span>
+            <span class="description" id="tool-{tool.id}">{tool.description}</span>
           </a>
         </li>
       {/each}
     </ul>
+
+    {#if recipes.list.length}
+      <h2 class="recipes-title" id="recipes-title">Your recipes</h2>
+      <ul class="patches recipes" aria-labelledby="recipes-title">
+        {#each recipes.list as recipe (recipe.id)}
+          <li>
+            <a
+              class="patch ink-{NEUTRAL.recipe.ink}"
+              href="#/recipe/{recipe.id}"
+              style:--patch={NEUTRAL.recipe.color}
+            >
+              <Icon name="sparkles" size={20} />
+              <span class="name">{recipe.title}</span>
+              <span class="description">
+                {recipe.steps.length === 0
+                  ? 'Export only'
+                  : recipe.steps.map((step) => findOp(step.op)?.title ?? step.op).join(' → ')}
+              </span>
+            </a>
+          </li>
+        {/each}
+      </ul>
+    {/if}
   </section>
 </div>
 
 <style>
   .home {
+    align-items: start;
     display: grid;
-    gap: 2rem;
+    gap: 2.5rem;
   }
 
-  /* --- hero --- */
+  @media (min-width: 1080px) {
+    .home {
+      gap: clamp(2.5rem, 5vw, 5rem);
+      grid-template-columns: minmax(22rem, 5fr) 7fr;
+    }
 
-  .hero {
+    .intro {
+      position: sticky;
+      top: 1.75rem;
+    }
+  }
+
+  /* --- introduction --- */
+
+  .intro {
     display: grid;
-    gap: 1rem;
-    padding-top: 0.5rem;
+    gap: 1.4rem;
   }
 
   h1 {
-    font-size: clamp(2rem, 4.6vw, 3.6rem);
-    font-weight: 750;
-    letter-spacing: -0.03em;
-    line-height: 1.05;
+    font-size: clamp(2.3rem, 5.2vw, 4.4rem);
+    font-stretch: 125%;
+    font-weight: 720;
+    letter-spacing: -0.035em;
+    line-height: 0.98;
+    max-width: 11ch;
     text-wrap: balance;
-  }
-
-  .mark {
-    color: var(--accent);
-    display: inline-block;
-    position: relative;
-    white-space: nowrap;
-  }
-
-  /* A hand-drawn underline that draws itself in. */
-  .mark svg {
-    bottom: -0.12em;
-    height: 0.3em;
-    left: 0;
-    overflow: visible;
-    position: absolute;
-    width: 100%;
-  }
-
-  .mark path {
-    animation: draw 900ms 300ms var(--ease) both;
-    fill: none;
-    stroke: var(--spark);
-    stroke-dasharray: 220;
-    stroke-linecap: round;
-    stroke-width: 4;
-    vector-effect: non-scaling-stroke;
-  }
-
-  @keyframes draw {
-    from {
-      stroke-dashoffset: 220;
-    }
-    to {
-      stroke-dashoffset: 0;
-    }
   }
 
   .lead {
     color: var(--muted);
-    font-size: clamp(1rem, 1.6vw, 1.2rem);
+    font-size: clamp(1rem, 1.3vw, 1.12rem);
+    line-height: 1.55;
+    max-width: 36ch;
     text-wrap: pretty;
   }
 
-  .features {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    list-style: none;
-    margin: 0.2rem 0 0;
-    padding: 0;
-  }
-
-  .features li {
-    align-items: center;
-    background: color-mix(in srgb, var(--panel) 70%, transparent);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    color: var(--muted);
-    display: flex;
-    font-size: 0.8rem;
-    font-weight: 600;
-    gap: 0.4rem;
-    padding: 0.3rem 0.75rem 0.3rem 0.6rem;
-  }
-
-  .features :global(svg) {
-    color: var(--accent);
-  }
-
-  /* --- images to start with --- */
-
-  .start {
-    align-items: center;
-    background: color-mix(in srgb, var(--panel) 75%, transparent);
-    border: 1.5px dashed var(--border-strong);
-    border-radius: var(--radius);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.9rem 1.1rem;
-    padding: 1rem 1.2rem;
-    transition:
-      border-color 200ms var(--ease),
-      background 200ms var(--ease);
-  }
-
-  .start.filled {
-    background: var(--panel);
-    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-    border-style: solid;
+  /*
+   * The light table: a lit sheet framed by crop marks where images land.
+   * Once there are images it shows them as a contact sheet.
+   */
+  .table {
+    align-content: center;
     box-shadow: var(--shadow);
-  }
-
-  .start p {
     display: grid;
-    flex: 1;
-    min-width: 14rem;
+    gap: 1.1rem;
+    margin-top: 0.6rem;
+    min-height: 13rem;
+    padding: 1.8rem;
   }
 
-  .drop-icon {
-    align-items: center;
-    background: var(--accent-soft);
-    border-radius: 50%;
-    color: var(--accent);
-    display: flex;
-    height: 2.8rem;
-    justify-content: center;
-    width: 2.8rem;
-  }
-
-  .start-actions {
-    display: flex;
-    gap: 0.4rem;
-  }
-
-  /* The waiting images, fanned out like a little stack of prints. */
-  .stack {
-    display: flex;
-    padding-left: 0.6rem;
-  }
-
-  .photo {
-    animation: deal 500ms var(--spring) both;
-    animation-delay: calc(var(--i) * 70ms);
-    border: 3px solid var(--panel);
-    border-radius: 0.55rem;
-    box-shadow: var(--shadow);
-    height: 3.2rem;
-    margin-left: -0.9rem;
-    overflow: hidden;
-    rotate: calc((var(--i) - 1.5) * 6deg);
-    width: 3.2rem;
-  }
-
-  .photo :global(img) {
-    height: 100%;
-    object-fit: cover;
-    width: 100%;
-  }
-
-  @keyframes deal {
-    from {
-      opacity: 0;
-      transform: translateY(12px) scale(0.8);
+  @media (max-width: 639px) {
+    .table {
+      --mark-size: 8px;
+      --mark-gap: 4px;
+      padding: 1.4rem;
     }
   }
 
-  /* --- recipes and tools --- */
-
-  h2 {
-    color: var(--soft);
-    font-family: var(--font-body);
-    font-size: 0.75rem;
-    letter-spacing: 0.09em;
-    margin-bottom: 0.75rem;
-    text-transform: uppercase;
+  .table-text {
+    display: grid;
+    gap: 0.25rem;
   }
 
-  .grid {
-    display: grid;
-    gap: 0.8rem;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17.5rem), 1fr));
+  .table-text strong {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-stretch: 112%;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+
+  .table-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 0.9rem;
+  }
+
+  .sheet {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
     list-style: none;
     margin: 0;
     padding: 0;
   }
 
-  .grid li {
-    animation: rise 480ms var(--ease) both;
-    animation-delay: calc(var(--i) * 30ms + 80ms);
+  .print {
+    animation: lay 420ms var(--ease) both;
+    animation-delay: calc(var(--i, 0) * 50ms);
+    border: 3px solid var(--panel);
+    box-shadow:
+      0 0 0 1px var(--border-strong),
+      var(--shadow-sm);
+    height: 4rem;
+    overflow: hidden;
+    width: 4rem;
   }
 
-  .card {
-    align-items: flex-start;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-sm);
-    color: inherit;
-    display: flex;
-    gap: 0.9rem;
+  .print :global(img) {
     height: 100%;
-    padding: 1rem;
+    object-fit: cover;
+    width: 100%;
+  }
+
+  .more {
+    align-items: center;
+    background: var(--panel-subtle);
+    color: var(--muted);
+    display: flex;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    justify-content: center;
+  }
+
+  @keyframes lay {
+    from {
+      opacity: 0;
+      transform: translateY(-6px) scale(1.04);
+    }
+  }
+
+  /* --- the chart --- */
+
+  .chart {
+    background: var(--frame);
+    border-radius: 10px;
+    box-shadow:
+      0 0 0 1px light-dark(transparent, #2c2c2c),
+      var(--shadow-lg);
+    display: grid;
+    gap: clamp(0.4rem, 0.8vw, 0.6rem);
+    padding: clamp(0.5rem, 1.2vw, 0.9rem);
+  }
+
+  .patches {
+    display: grid;
+    gap: inherit;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  @media (min-width: 640px) {
+    .patches {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1500px) {
+    .patches:not(.recipes) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .patch {
+    align-content: start;
+    background: var(--patch);
+    border-radius: var(--radius-patch);
+    display: grid;
+    gap: 0.3rem;
+    grid-template-rows: auto 1fr auto auto;
+    height: 100%;
+    min-height: 6.4rem;
+    padding: 0.8rem 0.85rem 0.85rem;
     position: relative;
     text-decoration: none;
     transition:
-      border-color 200ms var(--ease),
-      transform 260ms var(--ease),
-      box-shadow 260ms var(--ease);
+      box-shadow 220ms var(--ease),
+      filter 220ms var(--ease);
   }
 
-  .card:hover,
-  .card:focus-visible {
-    border-color: light-dark(oklch(0.82 0.08 var(--hue)), oklch(0.5 0.08 var(--hue)));
-    box-shadow:
-      var(--shadow-sm),
-      0 14px 30px -12px light-dark(oklch(0.6 0.12 var(--hue) / 0.35), oklch(0 0 0 / 0.6));
-    transform: translateY(-3px);
+  @media (min-width: 640px) {
+    .patch {
+      min-height: 10.25rem;
+      padding: 1rem 1.05rem 1.1rem;
+    }
   }
 
-  .card :global(.tile) {
-    transition: transform 420ms var(--spring);
+  .patch :global(svg) {
+    grid-row: 1;
+    transition: transform 360ms var(--spring);
   }
 
-  .card:hover :global(.tile) {
-    transform: rotate(-8deg) scale(1.08);
-  }
-
-  .card:active {
-    transform: translateY(-1px) scale(0.99);
-  }
-
-  .text {
-    display: grid;
-    flex: 1;
-    gap: 0.2rem;
-    min-width: 0;
-  }
-
-  strong {
+  .name {
     font-family: var(--font-display);
     font-size: 1.02rem;
+    font-stretch: 112%;
     font-weight: 650;
+    grid-row: 3;
+    letter-spacing: -0.005em;
+    line-height: 1.15;
   }
 
-  .go {
-    align-self: center;
-    color: light-dark(oklch(0.5 0.13 var(--hue)), oklch(0.85 0.1 var(--hue)));
-    opacity: 0;
-    transform: translateX(-6px);
-    transition:
-      opacity 200ms var(--ease),
-      transform 260ms var(--ease);
+  .description {
+    font-size: 0.8rem;
+    grid-row: 4;
+    line-height: 1.35;
+    text-wrap: pretty;
   }
 
-  .card:hover .go,
-  .card:focus-visible .go {
-    opacity: 1;
-    transform: none;
+  /* Narrow patches keep only the tool's name; the workspace says the rest. */
+  @media (max-width: 639px) {
+    .description {
+      display: none;
+    }
+
+    .name {
+      font-size: 0.95rem;
+    }
+  }
+
+  /* Hover and focus ring the patch, as if picked on the chart. */
+  .patch:hover {
+    box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.6);
+    filter: brightness(1.05);
+  }
+
+  .patch:hover :global(svg) {
+    transform: scale(1.12) rotate(-6deg);
+  }
+
+  .patch:focus-visible {
+    box-shadow:
+      inset 0 0 0 3px #ffffff,
+      inset 0 0 0 5px #1e1e1e;
+    outline: none;
+  }
+
+  .patch:active {
+    filter: brightness(0.96);
+  }
+
+  /*
+   * The one orchestrated moment: on the first visit the patches develop,
+   * like a print in the tray, from a pale grey into their colors, one
+   * after another across the chart.
+   */
+  .develop .patches li {
+    animation: develop 900ms var(--ease) both;
+    animation-delay: calc(var(--i) * 55ms + 120ms);
+  }
+
+  @keyframes develop {
+    0% {
+      filter: grayscale(1) brightness(1.6) contrast(0.5);
+      opacity: 0;
+    }
+    30% {
+      opacity: 1;
+    }
+  }
+
+  .recipes-title {
+    color: #c8c8c8;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-stretch: 100%;
+    font-weight: 600;
+    letter-spacing: 0;
+    padding: 0.5rem 0.2rem 0;
+  }
+
+  .recipes .patch {
+    min-height: 6.5rem;
+  }
+
+  .recipes .description {
+    display: block;
   }
 </style>

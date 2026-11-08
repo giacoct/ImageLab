@@ -25,10 +25,15 @@
 />
 
 <details class="add" bind:this={menu}>
-  <summary class="button"><span class="plus"><Icon name="plus" /></span>Add a step</summary>
+  <summary>
+    <span class="slot" aria-hidden="true"
+      ><span class="plus"><Icon name="plus" size={16} /></span></span
+    >
+    Add a step
+  </summary>
   <ul>
-    {#each session.availableOps() as op, index (op.id)}
-      <li style:--i={index}>
+    {#each session.availableOps() as op (op.id)}
+      <li>
         <button type="button" onclick={() => add(op.id)}>
           <Tile icon={op.icon} small />
           <span>
@@ -42,27 +47,62 @@
 </details>
 
 <style>
+  /* Sits on the process sheet's rail like a section: an open slot for a step. */
   .add {
+    padding: 0.35rem 0 0.35rem 2.85rem;
     position: relative;
   }
 
   summary {
-    background: color-mix(in srgb, var(--panel) 60%, transparent);
-    border-style: dashed;
-    box-shadow: none;
+    align-items: center;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
     color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    font-size: 0.9rem;
+    font-weight: 600;
     list-style: none;
-    min-height: 2.75rem;
-    width: 100%;
+    min-height: 2.6rem;
+    padding: 0.3rem 0.9rem;
+    transition:
+      border-color 160ms var(--ease),
+      color 160ms var(--ease),
+      background 160ms var(--ease);
   }
 
   summary:hover,
   .add[open] summary {
-    color: var(--accent-strong);
+    background: var(--panel-subtle);
+    border-color: var(--ink);
+    color: var(--ink);
   }
 
   summary::-webkit-details-marker {
     display: none;
+  }
+
+  .slot {
+    align-items: center;
+    background: var(--panel);
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius-patch);
+    color: var(--muted);
+    display: flex;
+    height: 2rem;
+    justify-content: center;
+    left: 0;
+    position: absolute;
+    transition:
+      border-color 160ms var(--ease),
+      color 160ms var(--ease);
+    width: 2rem;
+  }
+
+  summary:hover .slot,
+  .add[open] .slot {
+    border-color: var(--ink);
+    color: var(--ink);
   }
 
   .plus {
@@ -105,16 +145,11 @@
     }
   }
 
-  li {
-    animation: rise 260ms var(--ease) both;
-    animation-delay: calc(var(--i) * 20ms);
-  }
-
   li button {
     align-items: center;
     background: none;
     border: 0;
-    border-radius: 0.65rem;
+    border-radius: var(--radius-sm);
     display: flex;
     gap: 0.75rem;
     padding: 0.5rem 0.6rem;
@@ -124,7 +159,7 @@
   }
 
   li button:hover {
-    background: var(--panel-subtle);
+    background: var(--hover);
   }
 
   li button :global(.tile) {
@@ -132,7 +167,7 @@
   }
 
   li button:hover :global(.tile) {
-    transform: scale(1.1) rotate(-6deg);
+    transform: scale(1.08) rotate(-5deg);
   }
 
   li span {

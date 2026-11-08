@@ -136,9 +136,15 @@ Rules for `run`:
 
 - One page per tool (`ui/Workspace.svelte`): images, steps, export and the run
   button on the left; preview / results on the right (stacked on phones). No
-  step-by-step routes. The left column reads as a pipeline (Input → Step n →
-  Output, `ui/CardHead.svelte`) joined by a dashed connector that flows while
-  a batch runs; the run button sticks to the bottom of the screen.
+  step-by-step routes. The left column is one "process sheet": images, each
+  step and the export are sections of it (the `.section` class), each with its
+  patch in a gutter on the left (`ui/CardHead.svelte`), joined by a rail that
+  flows in the tool's color while a batch runs. Each section draws its own
+  piece of the rail, so it starts and ends on a patch. The run button sticks
+  to the bottom of the screen.
+- The home page is the tools laid out as a color-calibration chart (one patch
+  per tool, saved recipes as its grey row) beside a "light table" framed by
+  trim marks (the `.crop-marks` class), where images are dropped first.
 - Images can be dropped anywhere (`ui/DropOverlay.svelte`, which ignores the
   file list's own drag-to-reorder) or pasted, on any page, including home.
 - `app/session.svelte.ts` holds the files, the recipe being edited, and the
@@ -156,26 +162,38 @@ Rules for `run`:
 
 ### Look and feel
 
+The idea: an imaging bench. The interface is neutral grey on purpose (a
+tinted surround changes how a photo's colors look), so color comes only from
+the images and from the tools' chart patches.
+
 - **Design tokens** live in `src/styles.css`, each color defined once with
   `light-dark()`. The page follows the system theme; the header's switch
-  (`ui/ThemeSwitch.svelte`, state in `app/theme.svelte.ts`) can force light or
-  dark by setting `data-theme` on `<html>`, which forces the `color-scheme`.
-  An inline script in `index.html` applies the saved choice before the first
-  paint (keep its storage key in sync with `theme.svelte.ts`). Switching
-  reveals the new theme in a circle from the button (View Transitions). The
-  light theme uses soft teal-tinted neutrals; the dark one plain charcoal
-  greys, so the accent and the tool hues are the only color. Fade colors with
+  (`ui/ThemeSwitch.svelte`, three patches of the chart's grey row; state in
+  `app/theme.svelte.ts`) can force light or dark by setting `data-theme` on
+  `<html>`, which forces the `color-scheme`. An inline script in `index.html`
+  applies the saved choice before the first paint (keep its storage key in
+  sync with `theme.svelte.ts`). Switching reveals the new theme in a circle
+  from the button (View Transitions). Both themes are true neutral greys; the
+  accent is the ink (primary buttons, sliders, switches, focus). Previews and
+  results sit on `--stage`, a mid grey, and only the image itself shows the
+  transparency checkerboard. Fade colors with
   `color-mix(in srgb, …, transparent)`: in OKLCH the mix drifts toward red.
-- **Every tool and operation has a hue** (`ui/hues.ts`, keyed by icon), shown
-  on its icon tile (`ui/Tile.svelte`, the `.tile` class) on the home page, in
-  the workspace and in the "Add a step" menu. A new icon needs a hue there.
-  The brand teal is for input, output and saved recipes.
-- **Fonts:** Bricolage Grotesque (bundled from `@fontsource-variable`, so it
-  works offline) for headings, the system font for everything else.
+- **Every tool and operation is a chart patch** (`ui/patches.ts`, keyed by
+  icon): a color of the standard 24-patch calibration chart, the same in both
+  themes, with white or ink text, whichever reaches 4.5:1. It shows on the
+  home chart, as the tile of a step (`ui/Tile.svelte`, the `.tile` class) in
+  the workspace and the "Add a step" menu, and on the workspace's progress
+  bar. A new icon needs a patch there. The grey patches (`NEUTRAL`) are for
+  the input, the output and saved recipes. The logo (header and
+  `public/icon.svg`) is a 3×2 mini chart.
+- **Fonts:** Archivo (variable, with its width axis; bundled from
+  `@fontsource-variable/archivo`, so it works offline), set expanded for
+  headings and patch names, and the system font for everything else.
 - **Motion** is short and eased, and honors `prefers-reduced-motion`: CSS
   animations and transitions through the reduced-motion rule in
   `styles.css`, Svelte transitions by taking their durations from
-  `ui/motion.ts` (`ms(...)`).
+  `ui/motion.ts` (`ms(...)`). Motion answers actions; the one unprompted
+  moment is the home chart "developing" from grey into color, once per visit.
 
 ## Cross-file invariants (easy to break)
 

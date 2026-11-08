@@ -1,5 +1,5 @@
 <!--
-  The imported files (the "Input" of the pipeline): a button to choose more
+  The imported files (the first section of the process sheet): a button to choose more
   (dropping anywhere on the page and pasting also work, see DropOverlay), and
   the list with thumbnails, sizes, problems, drag-to-reorder (the order
   carries into merges and outputs) and selection for the preview.
@@ -15,6 +15,7 @@
   import FilePicker from './FilePicker.svelte';
   import Icon from './Icon.svelte';
   import { ms } from './motion';
+  import { NEUTRAL } from './patches';
 
   let picker: FilePicker;
   let dragFrom = $state<number | null>(null);
@@ -33,8 +34,8 @@
 
 <svelte:window onpaste={onPaste} />
 
-<section class="panel tray" aria-labelledby="files-title">
-  <CardHead icon="image" eyebrow="Input" title="Images" id="files-title">
+<section class="section tray" aria-labelledby="files-title">
+  <CardHead icon="image" patch={NEUTRAL.input} title="Images" id="files-title">
     {#if session.items.length}
       <span class="badge">{session.items.length}</span>
       <button class="button small ghost" type="button" onclick={() => session.clearFiles()}>
@@ -56,7 +57,7 @@
       <span class="hint">
         {session.items.length
           ? 'or drop them anywhere'
-          : 'or drop them anywhere, or paste. JPEG, PNG, WebP, AVIF, GIF, HEIC.'}
+          : 'Or drop them anywhere, or paste them. JPEG, PNG, WebP, AVIF, GIF, HEIC.'}
       </span>
     </span>
   </button>
@@ -104,9 +105,11 @@
                 {#if item.error}
                   <span class="error-text">{item.error}</span>
                 {:else if item.info}
-                  {item.info.width} × {item.info.height} · {formatBytes(item.file.size)} · {label(
-                    item.info.type,
-                  )}
+                  <span class="facts">
+                    <span>{item.info.width} × {item.info.height}</span>
+                    <span>{formatBytes(item.file.size)}</span>
+                    <span>{label(item.info.type)}</span>
+                  </span>
                 {:else}
                   Reading…
                 {/if}
@@ -147,24 +150,18 @@
 </section>
 
 <style>
-  .tray {
-    display: grid;
-    gap: 0.85rem;
-  }
-
   .drop {
     align-items: center;
     background: var(--panel-subtle);
-    border: 1.5px dashed var(--border-strong);
-    border-radius: 0.8rem;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
     color: var(--muted);
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-    padding: 1.5rem 1rem;
+    padding: 1.6rem 1rem;
     text-align: center;
     transition:
-      border-color 180ms var(--ease),
       background 180ms var(--ease),
       color 180ms var(--ease);
   }
@@ -172,22 +169,25 @@
   .drop.compact {
     flex-direction: row;
     gap: 0.7rem;
-    padding: 0.55rem 0.75rem;
+    padding: 0.5rem 0.7rem;
     text-align: left;
   }
 
   .drop:hover {
-    background: var(--accent-soft);
-    border-color: var(--accent);
-    color: var(--accent-strong);
+    background-color: var(--hover);
+    color: var(--ink);
+  }
+
+  .drop:hover {
+    border-color: var(--ink);
   }
 
   .drop-icon {
     align-items: center;
     background: var(--panel);
+    border: 1px solid var(--border);
     border-radius: 50%;
-    box-shadow: var(--shadow-sm);
-    color: var(--accent);
+    color: var(--ink);
     display: flex;
     flex: none;
     height: 2.6rem;
@@ -197,12 +197,12 @@
   }
 
   .compact .drop-icon {
-    height: 2rem;
-    width: 2rem;
+    height: 1.9rem;
+    width: 1.9rem;
   }
 
   .drop:hover .drop-icon {
-    transform: translateY(-3px) scale(1.06);
+    transform: translateY(-3px);
   }
 
   .compact:hover .drop-icon {
@@ -220,9 +220,9 @@
 
   .list {
     display: grid;
-    gap: 0.3rem;
+    gap: 0.2rem;
     list-style: none;
-    margin: 0;
+    margin: 0 -0.35rem;
     max-height: 22rem;
     overflow-y: auto;
     padding: 0;
@@ -231,7 +231,7 @@
   li {
     align-items: center;
     border: 1px solid transparent;
-    border-radius: 0.7rem;
+    border-radius: var(--radius-sm);
     display: flex;
     gap: 0.25rem;
     padding: 0.3rem;
@@ -246,7 +246,7 @@
 
   li.selected {
     background: var(--accent-soft);
-    border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+    border-color: var(--border-strong);
   }
 
   li.dragged {
@@ -254,7 +254,7 @@
   }
 
   li.over:hover {
-    border-color: var(--accent);
+    border-color: var(--ink);
     border-style: dashed;
   }
 
@@ -270,22 +270,28 @@
     text-align: left;
   }
 
+  /* Thumbnails are little prints: a white border, and the selected one is raised. */
   .thumb {
     align-items: center;
-    border-radius: 0.5rem;
-    box-shadow: 0 0 0 1px var(--border);
-    color: var(--accent);
+    border: 2px solid var(--panel);
+    box-shadow: 0 0 0 1px var(--border-strong);
+    color: var(--muted);
     display: flex;
     flex: none;
     height: 2.75rem;
     justify-content: center;
     overflow: hidden;
-    transition: transform 300ms var(--spring);
+    transition:
+      transform 300ms var(--spring),
+      box-shadow 300ms var(--ease);
     width: 2.75rem;
   }
 
   .selected .thumb {
-    transform: scale(1.05) rotate(-3deg);
+    box-shadow:
+      0 0 0 1px var(--ink),
+      var(--shadow);
+    transform: translateY(-1px) scale(1.04);
   }
 
   .thumb :global(img) {

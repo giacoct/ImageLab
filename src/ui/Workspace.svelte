@@ -1,7 +1,8 @@
 <!--
-  The workspace for a tool or saved recipe. On the left, the recipe reads as
-  a pipeline (images → steps → export) joined by a connector that flows while
-  a batch runs, with the run button kept in reach at the bottom; on the right,
+  The workspace for a tool or saved recipe. On the left, the recipe is one
+  process sheet (images, steps, export) whose sections hang on a rail that
+  flows while a batch runs, with the run button kept in reach at the bottom;
+  on the right,
   the live preview and the results. Settings are remembered per tool (or saved
   into the recipe) as they change.
 -->
@@ -24,9 +25,9 @@
   import AddStep from './AddStep.svelte';
   import ExportCard from './ExportCard.svelte';
   import FileTray from './FileTray.svelte';
-  import { BRAND_HUE } from './hues';
   import Icon from './Icon.svelte';
   import { ms } from './motion';
+  import { NEUTRAL, patchOf } from './patches';
   import Preview from './Preview.svelte';
   import Results from './Results.svelte';
   import StepCard from './StepCard.svelte';
@@ -35,6 +36,8 @@
   let { tool, recipe }: { tool?: Tool; recipe?: SavedRecipe } = $props();
 
   const title = $derived(tool?.title ?? recipe?.title ?? '');
+  /** The tool's chart patch; its color marks the run's progress. */
+  const patch = $derived(tool ? patchOf(tool.icon) : NEUTRAL.recipe);
   let view = $state<'preview' | 'results'>('preview');
   let saveDialog: HTMLDialogElement;
   let recipeName = $state('');
@@ -109,10 +112,10 @@
   });
 </script>
 
-<div class="workspace page">
+<div class="workspace page" style:--tool={patch.color}>
   <header class="title">
     <a class="icon-button back" href="#/" aria-label="All tools"><Icon name="back" /></a>
-    {#if tool}<Tile icon={tool.icon} />{:else}<Tile icon="sparkles" hue={BRAND_HUE} />{/if}
+    <span class="title-patch"><Tile icon={tool?.icon ?? 'sparkles'} {patch} /></span>
     <div class="heading">
       <h1>{title}</h1>
       <p class="muted">{tool?.description ?? 'Your saved recipe.'}</p>
@@ -135,7 +138,7 @@
 
   <div class="columns">
     <div class="controls">
-      <div class="flow" class:running={session.running}>
+      <div class="flow" class:running={session.running} aria-label="Recipe" role="group">
         <FileTray />
         {#each session.steps as step, index (step.id)}
           <div
@@ -212,7 +215,7 @@
 <dialog bind:this={saveDialog} class="panel dialog">
   <form onsubmit={saveRecipe} class="fields">
     <div class="dialog-head">
-      <Tile icon="sparkles" hue={BRAND_HUE} />
+      <Tile icon="sparkles" patch={NEUTRAL.recipe} />
       <h2>Save as recipe</h2>
     </div>
     <p class="hint">
@@ -232,32 +235,40 @@
 <style>
   .workspace {
     display: grid;
-    gap: 1.5rem;
+    gap: 1.75rem;
   }
 
   .title {
     align-items: center;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.8rem;
+    gap: 0.9rem;
+  }
+
+  .title-patch :global(.tile) {
+    height: 3.1rem;
+    width: 3.1rem;
   }
 
   .heading {
+    display: grid;
     flex: 1;
+    gap: 0.2rem;
     min-width: 12rem;
   }
 
   h1 {
-    font-size: clamp(1.4rem, 3vw, 1.75rem);
+    font-size: clamp(1.5rem, 2.8vw, 2.15rem);
+    font-stretch: 125%;
     font-weight: 700;
-    letter-spacing: -0.02em;
-    line-height: 1.15;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
   }
 
   .back {
-    background: var(--panel);
-    border-color: var(--border);
-    box-shadow: var(--shadow-sm);
+    border-color: var(--border-strong);
+    height: 2.4rem;
+    width: 2.4rem;
   }
 
   .back:hover :global(svg) {
@@ -284,6 +295,7 @@
 
   @media (min-width: 960px) {
     .columns {
+      gap: 2rem;
       grid-template-columns: minmax(22rem, 27rem) minmax(0, 1fr);
     }
 
@@ -301,58 +313,85 @@
   }
 
   /*
-   * The pipeline: each card is joined to the one above by a dashed connector
-   * under its icon tile. While a batch runs, the dashes flow downwards.
+   * The process sheet: one sheet for the whole recipe, its sections ruled
+   * off, and a rail down the left joining the sections' patches. While a
+   * batch runs, the rail turns the tool's color and its dashes flow down.
    */
   .flow {
-    --gap: 1rem;
-    --rail: calc(1.1rem + 1rem - 1px); /* panel padding + half a small tile */
+    --pad: 1.15rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     display: grid;
-    gap: var(--gap);
+    padding: 0 var(--pad) 0.6rem;
+    position: relative;
+  }
+
+  /*
+   * Each section draws its own piece of the rail, so it starts at the first
+   * patch and ends at the last one, however tall the sections are.
+   */
+  .flow > :global(*)::before {
+    background: var(--border-strong);
+    bottom: 0;
+    content: '';
+    left: calc(1rem - 1px);
+    position: absolute;
+    top: 0;
+    width: 2px;
+  }
+
+  .flow > :global(:first-child)::before {
+    top: 2.15rem;
+  }
+
+  .flow > :global(:last-child)::before {
+    bottom: auto;
+    height: 2.15rem;
+  }
+
+  .flow.running > :global(*)::before {
+    animation: flow 500ms linear infinite;
+    background: repeating-linear-gradient(to bottom, var(--tool) 0 5px, transparent 5px 9px);
+  }
+
+  @keyframes flow {
+    to {
+      background-position: 0 9px;
+    }
   }
 
   .flow > :global(*) {
     position: relative;
   }
 
-  .flow > :global(* + *)::before {
-    background: repeating-linear-gradient(
-      to bottom,
-      color-mix(in oklch, var(--accent) 35%, var(--border-strong)) 0 4px,
-      transparent 4px 8px
-    );
+  /* Sections are ruled off from the content column, so the rule never crosses the rail. */
+  .flow > :global(* + *:not(.add))::after {
+    border-top: 1px solid var(--border);
     content: '';
-    height: var(--gap);
-    left: var(--rail);
+    left: 2.85rem;
     position: absolute;
-    top: calc(-1 * var(--gap) - 1px);
-    width: 2px;
+    right: 0;
+    top: 0;
   }
 
-  .flow.running > :global(* + *)::before {
-    animation: flow 500ms linear infinite;
-    background: repeating-linear-gradient(to bottom, var(--accent) 0 4px, transparent 4px 8px);
-  }
-
-  @keyframes flow {
-    to {
-      background-position: 0 8px;
-    }
+  .flow > :global(.add + *)::after {
+    display: none;
   }
 
   /* The run button stays in reach at the bottom of the screen. */
   .run {
     align-items: center;
     backdrop-filter: blur(14px);
-    background: color-mix(in srgb, var(--panel) 78%, transparent);
+    background: color-mix(in srgb, var(--panel) 82%, transparent);
     border: 1px solid var(--border);
-    border-radius: calc(var(--radius) + 0.25rem);
+    border-radius: calc(var(--radius) + 2px);
     bottom: 0.75rem;
     box-shadow: var(--shadow-lg);
     display: flex;
     flex-wrap: wrap;
     gap: 0.6rem;
-    padding: 0.5rem;
+    padding: 0.45rem;
     position: sticky;
     z-index: 5;
   }
@@ -379,53 +418,40 @@
   .progress {
     display: grid;
     flex: 1;
-    gap: 0.4rem;
-    padding: 0 0.4rem;
+    gap: 0.45rem;
+    padding: 0 0.5rem;
   }
 
   .progress-label {
     align-items: center;
-    color: var(--accent-strong);
     display: flex;
     font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
     font-weight: 600;
     gap: 0.5rem;
   }
 
   .track {
-    background: var(--panel-subtle);
+    background: var(--accent-soft);
     border-radius: 999px;
-    height: 6px;
+    height: 5px;
     overflow: hidden;
   }
 
   .fill {
-    background: linear-gradient(
-      90deg,
-      var(--accent),
-      color-mix(in oklch, var(--accent) 60%, var(--spark)),
-      var(--accent)
-    );
-    background-size: 200% 100%;
+    background: var(--tool);
     border-radius: inherit;
     display: block;
     height: 100%;
     min-width: 6px;
-    animation: shimmer 1.4s linear infinite;
     transition: width 400ms var(--ease);
-  }
-
-  @keyframes shimmer {
-    to {
-      background-position: -200% 0;
-    }
   }
 
   /* Preview / Results: a two-way switch with a sliding thumb. */
   .tabs {
     background: var(--panel-subtle);
     border: 1px solid var(--border);
-    border-radius: 0.8rem;
+    border-radius: 10px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     justify-self: start;
@@ -435,10 +461,10 @@
 
   .tabs .thumb {
     background: var(--panel);
-    border-radius: 0.6rem;
+    border-radius: 7px;
     box-shadow:
       var(--shadow-sm),
-      0 0 0 1px var(--border);
+      0 0 0 1px var(--border-strong);
     inset: 0.2rem auto 0.2rem 0.2rem;
     position: absolute;
     transform: translateX(calc(var(--index) * 100%));

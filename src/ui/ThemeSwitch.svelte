@@ -1,4 +1,7 @@
-<!-- Light / system / dark theme switch, with a thumb that slides to the choice. -->
+<!--
+  Light / system / dark theme switch, drawn as three patches of the chart's
+  grey row: white, half and half, black. The chosen one is ringed.
+-->
 <script lang="ts">
   import { theme, type ThemePreference } from '../app/theme.svelte';
   import Icon from './Icon.svelte';
@@ -8,12 +11,9 @@
     { value: 'system', icon: 'monitor', label: 'Same theme as the device' },
     { value: 'dark', icon: 'moon', label: 'Dark theme' },
   ];
-
-  const index = $derived(OPTIONS.findIndex((option) => option.value === theme.preference));
 </script>
 
-<div class="switcher" role="group" aria-label="Theme" style:--index={index}>
-  <span class="thumb" aria-hidden="true"></span>
+<div class="switcher" role="group" aria-label="Theme">
   {#each OPTIONS as option (option.value)}
     <button
       type="button"
@@ -23,53 +23,56 @@
       title={option.label}
       onclick={(event) => theme.set(option.value, event.currentTarget)}
     >
-      <Icon name={option.icon} size={16} />
+      <Icon name={option.icon} size={14} />
     </button>
   {/each}
 </div>
 
 <style>
   .switcher {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    box-shadow: var(--shadow-sm);
-    display: grid;
-    grid-template-columns: repeat(3, 2rem);
-    padding: 0.2rem;
-    position: relative;
-  }
-
-  .thumb {
-    background: var(--accent-soft);
-    border-radius: 999px;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
-    height: 2rem;
-    left: 0.2rem;
-    position: absolute;
-    top: 0.2rem;
-    transform: translateX(calc(var(--index) * 100%));
-    transition: transform 380ms var(--spring);
-    width: 2rem;
+    display: flex;
+    gap: 0.4rem;
   }
 
   button {
     align-items: center;
-    background: none;
-    border: 0;
-    border-radius: 999px;
-    color: var(--muted);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-patch);
     display: flex;
-    height: 2rem;
+    height: 1.9rem;
     justify-content: center;
     padding: 0;
     position: relative;
-    transition: color 200ms var(--ease);
+    transition:
+      transform 200ms var(--ease),
+      box-shadow 200ms var(--ease);
+    width: 1.9rem;
   }
 
-  button:hover,
+  .light {
+    background: #f3f3f2;
+    color: #343434;
+  }
+
+  .system {
+    background: linear-gradient(135deg, #f3f3f2 50%, #343434 50%);
+    color: #7a7a79;
+  }
+
+  .dark {
+    background: #343434;
+    border-color: #343434;
+    color: #f3f3f2;
+  }
+
+  button:hover {
+    transform: translateY(-1px);
+  }
+
   button[aria-pressed='true'] {
-    color: var(--accent-strong);
+    box-shadow:
+      0 0 0 2px var(--surface),
+      0 0 0 3.5px var(--ink);
   }
 
   /* The chosen icon does a little turn: the sun spins, the moon rocks. */

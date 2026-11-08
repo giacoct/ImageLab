@@ -1,24 +1,25 @@
 <!--
-  The header of a workspace card: hued icon tile, a small label saying where
-  the card sits in the flow ("Input", "Step 2", "Output"), the title, and
-  optional actions on the right.
+  The head of a section of the workspace's process sheet: the step's patch
+  (the node on the sheet's rail), where the section sits in the flow when it
+  is a numbered step ("Step 2"), the title, and optional actions on the right.
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
+  import type { Patch } from './patches';
   import Tile from './Tile.svelte';
 
   let {
     icon,
-    hue,
+    patch,
     eyebrow,
     title,
     id,
     children,
   }: {
     icon: string;
-    hue?: number;
-    eyebrow: string;
+    patch?: Patch;
+    eyebrow?: string;
     title: string;
     /** Id of the title, for `aria-labelledby`. */
     id?: string;
@@ -27,9 +28,9 @@
 </script>
 
 <header class="head">
-  <Tile {icon} {hue} small />
+  <span class="node"><Tile {icon} {patch} small /></span>
   <div class="titles">
-    <span class="eyebrow">{eyebrow}</span>
+    {#if eyebrow}<span class="eyebrow">{eyebrow}</span>{/if}
     <h2 {id}>{title}</h2>
   </div>
   {#if children}<div class="actions">{@render children()}</div>{/if}
@@ -40,21 +41,29 @@
     align-items: center;
     display: flex;
     gap: 0.7rem;
+    min-height: 2rem;
+  }
+
+  /* The patch sits on the sheet's rail, in the gutter left of the content. */
+  .node {
+    display: flex;
+    left: 0;
+    position: absolute;
   }
 
   .titles {
-    display: grid;
+    align-items: baseline;
+    display: flex;
     flex: 1;
-    line-height: 1.2;
+    flex-wrap: wrap;
+    gap: 0 0.55rem;
     min-width: 0;
   }
 
   h2 {
-    align-items: center;
-    display: flex;
-    font-size: 1rem;
+    font-size: 1.02rem;
     font-weight: 650;
-    gap: 0.45rem;
+    line-height: 1.2;
   }
 
   .actions {

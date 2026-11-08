@@ -1,13 +1,14 @@
-<!-- The export step (the "Output" of the pipeline): format and compression, shared by every recipe. -->
+<!-- The export step (the last section of the process sheet): format and compression, shared by every recipe. -->
 <script lang="ts">
   import { session } from '../app/session.svelte';
   import { EXPORT_PARAMS, exportContext } from '../core/recipe';
   import CardHead from './CardHead.svelte';
   import ParamForm from './ParamForm.svelte';
+  import { NEUTRAL } from './patches';
 </script>
 
-<section class="panel export" aria-labelledby="export-title">
-  <CardHead icon="download" eyebrow="Output" title="Save as" id="export-title" />
+<section class="section export" aria-labelledby="export-title">
+  <CardHead icon="download" patch={NEUTRAL.output} title="Save as" id="export-title" />
   {#if session.terminal}
     <p class="hint">
       {session.terminal.kind === 'svg'
@@ -30,10 +31,3 @@
     {/if}
   {/if}
 </section>
-
-<style>
-  .export {
-    display: grid;
-    gap: 1rem;
-  }
-</style>

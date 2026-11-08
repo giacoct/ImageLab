@@ -18,7 +18,7 @@
   const terminal = $derived(isTerminal(op));
 </script>
 
-<section class="panel step" aria-label="Step {index + 1}: {op.title}">
+<section class="section step" aria-label="Step {index + 1}: {op.title}">
   <CardHead icon={op.icon} eyebrow="Step {index + 1}" title={op.title}>
     <button
       class="icon-button"
@@ -58,10 +58,3 @@
     <p class="hint">{op.description}</p>
   {/if}
 </section>
-
-<style>
-  .step {
-    display: grid;
-    gap: 1rem;
-  }
-</style>

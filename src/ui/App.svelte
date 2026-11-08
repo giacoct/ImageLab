@@ -1,7 +1,6 @@
 <!--
-  Root shell: a softly drifting color wash behind everything, the header
-  (brand and theme switch), the current page (home, a tool, or a saved
-  recipe), and the drop-anywhere overlay.
+  Root shell: the header (brand and theme switch), the current page (home, a
+  tool, or a saved recipe), and the drop-anywhere overlay.
 -->
 <script lang="ts">
   import { recipes } from '../app/recipes.svelte';
@@ -17,16 +16,19 @@
   const recipe = $derived(route.page === 'recipe' ? recipes.find(route.id) : undefined);
 </script>
 
-<div class="wash" aria-hidden="true"><span></span><span></span><span></span></div>
-
 <header class="bar">
-  <a class="brand" href="#/">
-    <svg class="mark" width="34" height="34" viewBox="0 0 32 32" aria-hidden="true">
-      <rect width="32" height="32" rx="9" />
-      <circle class="sun" cx="11" cy="11.5" r="3" />
-      <path class="hills" d="M6 24.5 12.5 16l3.6 5 5.2-7.5 5.2 8.2v2.8z" />
+  <a class="brand" href="#/" aria-label="ImageLab, all tools">
+    <!-- The mark: a tiny color-calibration chart, the home page's tool chart in miniature. -->
+    <svg class="mark" width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
+      <rect class="card" width="32" height="32" rx="7" />
+      <rect x="3.5" y="8" width="7" height="7" rx="1" fill="#c29682" />
+      <rect x="12.5" y="8" width="7" height="7" rx="1" fill="#d67e2c" />
+      <rect x="21.5" y="8" width="7" height="7" rx="1" fill="#67bdaa" />
+      <rect x="3.5" y="17" width="7" height="7" rx="1" fill="#505ba6" />
+      <rect x="12.5" y="17" width="7" height="7" rx="1" fill="#e0a32e" />
+      <rect x="21.5" y="17" width="7" height="7" rx="1" fill="#af363c" />
     </svg>
-    <span>Image<b>Lab</b></span>
+    <span>ImageLab</span>
   </a>
   <ThemeSwitch />
 </header>
@@ -48,78 +50,13 @@
 <DropOverlay />
 
 <style>
-  /*
-   * Three large, soft blobs of color behind the page (in the dark theme only
-   * cool ones: a warm color turns muddy brown on dark grey). Plain radial gradients
-   * (no blur filter) moved with transforms, so they cost nothing to animate.
-   */
-  .wash {
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
-    position: fixed;
-    z-index: -1;
-  }
-
-  .wash span {
-    border-radius: 50%;
-    height: 60vmax;
-    position: absolute;
-    width: 60vmax;
-  }
-
-  .wash span:nth-child(1) {
-    animation: drift-a 38s ease-in-out infinite alternate;
-    background: radial-gradient(
-      closest-side,
-      light-dark(oklch(0.86 0.09 185 / 0.55), oklch(0.55 0.1 185 / 0.16)),
-      transparent
-    );
-    left: -22vmax;
-    top: -30vmax;
-  }
-
-  .wash span:nth-child(2) {
-    animation: drift-b 46s ease-in-out infinite alternate;
-    background: radial-gradient(
-      closest-side,
-      light-dark(oklch(0.88 0.08 45 / 0.42), oklch(0.5 0.12 275 / 0.12)),
-      transparent
-    );
-    right: -26vmax;
-    top: -24vmax;
-  }
-
-  .wash span:nth-child(3) {
-    animation: drift-a 52s ease-in-out infinite alternate-reverse;
-    background: radial-gradient(
-      closest-side,
-      light-dark(oklch(0.87 0.07 290 / 0.35), oklch(0.5 0.1 230 / 0.1)),
-      transparent
-    );
-    bottom: -40vmax;
-    left: 20vw;
-  }
-
-  @keyframes drift-a {
-    to {
-      transform: translate(8vmax, 6vmax) scale(1.08);
-    }
-  }
-
-  @keyframes drift-b {
-    to {
-      transform: translate(-10vmax, 8vmax) scale(0.92);
-    }
-  }
-
   .bar {
     align-items: center;
     display: flex;
     justify-content: space-between;
     margin: 0 auto;
     max-width: 92rem;
-    padding: 1rem 1rem 0;
+    padding: 1.1rem 1.25rem 0;
   }
 
   .brand {
@@ -127,45 +64,37 @@
     color: var(--ink);
     display: flex;
     font-family: var(--font-display);
-    font-size: 1.25rem;
-    font-weight: 600;
-    gap: 0.5rem;
+    font-size: 1.15rem;
+    font-stretch: 125%;
+    font-weight: 700;
+    gap: 0.6rem;
     letter-spacing: -0.02em;
     text-decoration: none;
   }
 
-  .brand b {
-    color: var(--accent);
-    font-weight: 800;
+  .mark .card {
+    fill: var(--frame);
+    stroke: light-dark(transparent, #3a3a3a);
   }
 
-  .mark {
-    filter: drop-shadow(0 4px 8px color-mix(in srgb, var(--accent) 35%, transparent));
-    transition: transform 400ms var(--spring);
+  .mark rect:not(.card) {
+    transition: transform 420ms var(--spring);
+    transform-box: fill-box;
+    transform-origin: center;
   }
 
-  .mark rect {
-    fill: var(--accent);
+  /* On hover the patches shuffle a little, like a chart caught in the light. */
+  .brand:hover .mark rect:nth-child(odd):not(.card) {
+    transform: translateY(-1.5px);
   }
 
-  .mark .sun,
-  .mark .hills {
-    fill: var(--on-accent);
-    transition: transform 500ms var(--spring);
-  }
-
-  /* On hover the logo tilts and its sun rises. */
-  .brand:hover .mark {
-    transform: rotate(-8deg) scale(1.06);
-  }
-
-  .brand:hover .sun {
-    transform: translate(1px, -2.5px);
+  .brand:hover .mark rect:nth-child(even) {
+    transform: translateY(1.5px);
   }
 
   main {
     margin: 0 auto;
     max-width: 92rem;
-    padding: 1.5rem 1rem 3rem;
+    padding: 1.75rem 1.25rem 3rem;
   }
 </style>

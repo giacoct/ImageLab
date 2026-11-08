@@ -40,13 +40,14 @@
       {:else if session.results.length}
         <span class="done" class:stale={session.stale}><Icon name="check" size={14} /></span>
         <strong>{session.results.length}</strong>
-        {session.results.length === 1 ? 'result' : 'results'} · {formatBytes(totalOut)}
+        {session.results.length === 1 ? 'result,' : 'results,'}
+        {formatBytes(totalOut)} in all
       {/if}
     </p>
     <div class="actions">
       {#if session.results.length > 1}
         <button
-          class="button small"
+          class="button small primary"
           type="button"
           onclick={() =>
             downloadZip(
@@ -67,9 +68,9 @@
 
   {#if !session.running && !session.results.length && !session.failures.length}
     <div class="empty">
-      <span class="tile" aria-hidden="true"><Icon name="sparkles" size={22} /></span>
-      <strong>Nothing here yet</strong>
-      <span class="muted">Results appear here after you process the images.</span>
+      <span class="frame crop-marks" aria-hidden="true"><Icon name="download" size={24} /></span>
+      <strong>No results yet</strong>
+      <span class="muted">Process the images, and the files to download appear here.</span>
     </div>
   {/if}
 
@@ -103,7 +104,7 @@
       {#each images as result, index (result.id)}
         {@const delta = change(result)}
         <li class="panel card" style:--i={Math.min(index, 12)}>
-          <div class="thumb checker">
+          <div class="thumb">
             <BlobImage blob={result.output.thumbnail} alt={result.output.name} />
           </div>
           <input
@@ -113,13 +114,16 @@
             onchange={(event) => session.renameResult(result.id, event.currentTarget.value)}
           />
           <p class="hint">
-            {result.output.width} × {result.output.height} · {formatBytes(result.output.blob.size)}
+            <span class="facts">
+              <span>{result.output.width} × {result.output.height}</span>
+              <span>{formatBytes(result.output.blob.size)}</span>
+            </span>
             {#if delta.text}
               <span class="change" class:smaller={delta.smaller}>{delta.text}</span>
             {/if}
           </p>
           <button
-            class="button small primary"
+            class="button small"
             type="button"
             onclick={() => downloadBlob(result.output.blob, result.output.name)}
           >
@@ -149,6 +153,7 @@
   .summary p {
     align-items: center;
     display: flex;
+    font-variant-numeric: tabular-nums;
     gap: 0.4rem;
   }
 
@@ -176,25 +181,32 @@
 
   .empty {
     align-content: center;
-    background: color-mix(in srgb, var(--panel) 70%, transparent);
-    border: 1.5px dashed var(--border-strong);
-    border-radius: calc(var(--radius) + 0.25rem);
+    background: var(--stage);
+    border-radius: var(--radius);
     display: grid;
-    gap: 0.3rem;
+    gap: 0.35rem;
     justify-items: center;
-    min-height: 16rem;
+    min-height: 22rem;
     padding: 1.5rem;
     text-align: center;
   }
 
-  .empty .tile {
-    --hue: 185;
-    margin-bottom: 0.4rem;
+  .frame {
+    --mark-size: 14px;
+    align-items: center;
+    color: var(--soft);
+    display: flex;
+    height: 5rem;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+    width: 6.5rem;
   }
 
   .empty strong {
     font-family: var(--font-display);
-    font-size: 1.1rem;
+    font-size: 1.15rem;
+    font-stretch: 112%;
+    font-weight: 650;
   }
 
   .notice ul {
@@ -205,52 +217,60 @@
   .grid {
     display: grid;
     gap: 0.85rem;
-    grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
     list-style: none;
     margin: 0;
     padding: 0;
   }
 
   .card {
-    animation: deal 420ms var(--spring) both;
+    animation: deal 420ms var(--ease) both;
     animation-delay: calc(var(--i) * 45ms);
     display: grid;
     gap: 0.55rem;
-    padding: 0.6rem;
-    transition:
-      box-shadow 220ms var(--ease),
-      transform 220ms var(--ease);
-  }
-
-  .card:hover {
-    box-shadow: var(--shadow);
-    transform: translateY(-2px);
+    padding: 0.55rem 0.55rem 0.7rem;
   }
 
   @keyframes deal {
     from {
       opacity: 0;
-      transform: translateY(10px) scale(0.95);
+      transform: translateY(8px);
     }
   }
 
+  /* Each result is a print on the grey mat; transparency shows only on the image. */
   .thumb {
     align-items: center;
     aspect-ratio: 4 / 3;
-    border-radius: 0.6rem;
+    background: var(--stage);
+    border-radius: 8px;
     display: flex;
     justify-content: center;
     overflow: hidden;
+    padding: 0.7rem;
   }
 
   .thumb :global(img) {
+    background-color: var(--checker-base);
+    background-image:
+      linear-gradient(45deg, var(--checker) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--checker) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--checker) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--checker) 75%);
+    background-position:
+      0 0,
+      0 6px,
+      6px -6px,
+      -6px 0;
+    background-size: 12px 12px;
+    box-shadow: 0 8px 18px -8px rgb(0 0 0 / 0.45);
     max-height: 100%;
     object-fit: contain;
     transition: transform 400ms var(--ease);
   }
 
   .card:hover .thumb :global(img) {
-    transform: scale(1.04);
+    transform: scale(1.03);
   }
 
   .name {
@@ -262,7 +282,7 @@
     align-items: center;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.35rem;
+    gap: 0.35rem 0.75rem;
   }
 
   .change {

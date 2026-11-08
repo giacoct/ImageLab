@@ -44,7 +44,7 @@
 
 {#if visible}
   <div class="overlay" transition:fade={{ duration: ms(160) }}>
-    <div class="target" transition:scale={{ start: 0.96, duration: ms(220) }}>
+    <div class="target crop-marks" transition:scale={{ start: 0.96, duration: ms(220) }}>
       <span class="icon"><Icon name="upload" size={34} /></span>
       <strong>Drop to add images</strong>
       <span class="muted">They stay on this device.</span>
@@ -55,20 +55,23 @@
 <style>
   .overlay {
     backdrop-filter: blur(6px);
-    background: color-mix(in srgb, var(--surface) 70%, transparent);
+    background: color-mix(in srgb, var(--surface) 72%, transparent);
     display: grid;
     inset: 0;
-    padding: 1rem;
+    padding: clamp(2.5rem, 6vw, 4.5rem);
     pointer-events: none;
     position: fixed;
     z-index: 100;
   }
 
+  /* The whole window becomes the light table. */
   .target {
+    --mark: var(--ink);
+    --mark-size: clamp(16px, 3vw, 28px);
+    --mark-gap: 8px;
     align-content: center;
-    background: color-mix(in srgb, var(--accent-soft) 70%, transparent);
-    border: 2px dashed var(--accent);
-    border-radius: 1.5rem;
+    background-color: color-mix(in srgb, var(--panel) 80%, transparent);
+    box-shadow: var(--shadow-lg);
     display: grid;
     gap: 0.35rem;
     justify-items: center;
@@ -77,13 +80,15 @@
 
   .icon {
     animation: bob 1.2s var(--ease) infinite alternate;
-    color: var(--accent);
     margin-bottom: 0.4rem;
   }
 
   strong {
     font-family: var(--font-display);
-    font-size: 1.5rem;
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    font-stretch: 125%;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
   @keyframes bob {

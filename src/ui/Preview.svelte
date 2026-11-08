@@ -87,11 +87,12 @@
 </script>
 
 <div class="preview">
-  <div class="stage checker" bind:this={stage} class:empty={!ready}>
+  <div class="stage" bind:this={stage} class:empty={!ready}>
     <!-- Color picking is a mouse/touch convenience; the color field is the accessible way. -->
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <canvas
       bind:this={canvas}
+      class="checker"
       class:picking={pickStep !== -1}
       class:hidden={!ready || files.length === 0}
       onclick={pick}
@@ -99,10 +100,8 @@
     ></canvas>
     {#if files.length === 0}
       <div class="placeholder">
-        <span class="frames" aria-hidden="true">
-          <span></span><span></span><span><Icon name="image" size={28} /></span>
-        </span>
-        <strong>Your live preview shows up here</strong>
+        <span class="frame crop-marks" aria-hidden="true"><Icon name="image" size={26} /></span>
+        <strong>The live preview shows up here</strong>
         <span class="muted">Add images on the left, or drop them anywhere on the page.</span>
       </div>
     {/if}
@@ -150,28 +149,23 @@
     gap: 0.7rem;
   }
 
+  /* A neutral grey surround, as in a darkroom viewer, so it doesn't tint the image. */
   .stage {
     align-items: center;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--radius) + 0.25rem);
-    box-shadow:
-      var(--shadow),
-      inset 0 0 0 4px var(--panel);
+    background: var(--stage);
+    border-radius: var(--radius);
     display: flex;
     justify-content: center;
-    min-height: 20rem;
+    min-height: 22rem;
     overflow: hidden;
-    padding: 1rem;
+    padding: clamp(1rem, 3vw, 2.25rem);
     position: relative;
   }
 
   canvas {
     animation: appear 300ms var(--ease);
-    border-radius: 2px;
-    box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--ink) 10%, transparent),
-      0 12px 32px -12px var(--shadow-color);
-    max-height: 70vh;
+    box-shadow: 0 18px 40px -16px rgb(0 0 0 / 0.45);
+    max-height: 72vh;
     max-width: 100%;
     object-fit: contain;
   }
@@ -192,10 +186,8 @@
   }
 
   .placeholder {
-    background: color-mix(in srgb, var(--panel) 85%, transparent);
-    border-radius: var(--radius);
     display: grid;
-    gap: 0.3rem;
+    gap: 0.35rem;
     justify-items: center;
     max-width: 22rem;
     padding: 1.5rem;
@@ -204,57 +196,26 @@
 
   .placeholder strong {
     font-family: var(--font-display);
-    font-size: 1.1rem;
+    font-size: 1.15rem;
+    font-stretch: 112%;
+    font-weight: 650;
   }
 
-  /* Three little frames, fanned out; they straighten up on hover. */
-  .frames {
-    display: grid;
-    height: 4.5rem;
-    margin-bottom: 0.6rem;
-    place-items: center;
-    width: 5.5rem;
-  }
-
-  .frames span {
+  /* An empty frame waiting for a picture. */
+  .frame {
+    --mark-size: 14px;
     align-items: center;
-    background: var(--panel);
-    border: 1px solid var(--border-strong);
-    border-radius: 0.7rem;
-    box-shadow: var(--shadow-sm);
+    color: var(--soft);
     display: flex;
-    grid-area: 1 / 1;
-    height: 3.8rem;
+    height: 5rem;
     justify-content: center;
+    margin-bottom: 0.75rem;
     transition: transform 500ms var(--spring);
-    width: 4.6rem;
+    width: 6.5rem;
   }
 
-  .frames span:nth-child(1) {
-    background: light-dark(oklch(0.94 0.04 40), oklch(0.32 0.05 40));
-    transform: rotate(-12deg) translateX(-8px);
-  }
-
-  .frames span:nth-child(2) {
-    background: light-dark(oklch(0.94 0.04 290), oklch(0.32 0.05 290));
-    transform: rotate(9deg) translateX(8px);
-  }
-
-  .frames span:nth-child(3) {
-    background: var(--accent-soft);
-    color: var(--accent);
-  }
-
-  .placeholder:hover .frames span:nth-child(1) {
-    transform: rotate(-18deg) translate(-14px, -2px);
-  }
-
-  .placeholder:hover .frames span:nth-child(2) {
-    transform: rotate(15deg) translate(14px, -2px);
-  }
-
-  .placeholder:hover .frames span:nth-child(3) {
-    transform: translateY(-4px);
+  .placeholder:hover .frame {
+    transform: translateY(-3px) rotate(-2deg);
   }
 
   .busy {
@@ -262,10 +223,8 @@
     animation: rise 200ms var(--ease);
     backdrop-filter: blur(8px);
     background: color-mix(in srgb, var(--panel) 85%, transparent);
-    border: 1px solid var(--border);
     border-radius: 999px;
     box-shadow: var(--shadow);
-    color: var(--accent-strong);
     display: flex;
     font-size: 0.75rem;
     font-weight: 600;
@@ -283,17 +242,12 @@
     gap: 0.35rem;
   }
 
-  .pick :global(svg) {
-    color: var(--accent);
-  }
-
   .metadata {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow: var(--shadow-sm);
     font-size: 0.85rem;
-    padding: 0.7rem 1rem;
+    padding: 0.75rem 1rem;
   }
 
   summary {
@@ -302,7 +256,7 @@
   }
 
   summary::marker {
-    color: var(--accent);
+    color: var(--soft);
   }
 
   .metadata[open] dl {
@@ -311,9 +265,9 @@
 
   dl {
     display: grid;
-    gap: 0.3rem 1rem;
+    gap: 0.35rem 1.25rem;
     grid-template-columns: max-content 1fr;
-    margin: 0.7rem 0 0.2rem;
+    margin: 0.75rem 0 0.2rem;
   }
 
   dt {

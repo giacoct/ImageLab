@@ -64,6 +64,7 @@ Then open <http://localhost:4200/>.
 | Command           | What it does                                                        |
 | ----------------- | ------------------------------------------------------------------- |
 | `npm run dev`     | Development server on :4200 (prepares the runtime assets first).    |
+| `npm run check`   | Everything to pass before a commit: formatting, types, all tests.   |
 | `npm test`        | Unit tests (Node) and engine tests in headless Chromium.            |
 | `npm run build`   | Type-check, then build the static site into `dist/`.                |
 | `npm run preview` | Serve `dist/` locally, as GitHub Pages would.                       |

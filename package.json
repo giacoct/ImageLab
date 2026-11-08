@@ -16,6 +16,8 @@
     "pretest": "npm run assets",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
+    "precheck": "npm run assets",
+    "check": "prettier --check . && svelte-check --fail-on-warnings && vitest run",
     "format": "prettier --write ."
   },
   "devDependencies": {

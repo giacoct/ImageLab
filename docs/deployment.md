@@ -34,8 +34,11 @@ later. A newer push waits for a running deployment rather than cancelling it,
 and cancelling one by hand is best avoided: a deployment stopped half-way can
 leave Pages stuck for that commit.
 
-The service worker serves the app from its cache when offline and picks up a
-new deploy on the next visit: reload once to see a fresh deploy right away.
+Online, the page always comes from the network, so a new deploy shows up on
+the next load. The service worker caches the app on the first visit, so it
+also starts offline; it downloads a file again only when a deploy changed it,
+and drops the files of older deploys once every tab of the old version is
+closed.
 
 ## Trying a build locally
 
@@ -52,9 +55,9 @@ available (Chrome/Edge, Safari 26+) and falls back to the CPU, which is much
 slower for large images. GitHub Pages can't enable cross-origin isolation, so
 the CPU fallback runs single-threaded.
 
-The first use of OCR, upscaling, AVIF or HEIC downloads its engine (OCR about
-5 MB, upscaling about 12 MB compressed). After that it's cached for offline
-use.
+Each engine is downloaded the first time it's used (JPEG/WebP encoders a few
+hundred KB; OCR about 5 MB; upscaling about 12 MB compressed). After that it's
+cached for offline use.
 
 ## Retiring the old LAN server
 

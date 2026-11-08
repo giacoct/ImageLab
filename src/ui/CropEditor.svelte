@@ -42,8 +42,9 @@
   // changes that image is read, so dragging the crop box doesn't re-render it.
   $effect(() => {
     const item = session.selectedItem;
-    if (!item?.info) return;
-    const { id, op, params } = session.steps[index];
+    const step = session.steps[index]; // gone while a removed step fades out
+    if (!item?.info || !step) return;
+    const { id, op, params } = step;
     const self: Step = {
       id,
       op,

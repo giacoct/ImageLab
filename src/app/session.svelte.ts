@@ -1,13 +1,12 @@
 /**
- * The workspace state: the imported files, the recipe being edited, and the
+ * The workspace state: the imported files, the chain being edited, and the
  * results of the last run. It lives outside the components so files survive
  * moving between tools (drop photos once, try several tools), and a running
  * batch keeps going while the user looks around.
  */
 
 import { isImageFile } from '../core/files';
-import { applyContext, sanitize, type AnyValues } from '../core/params';
-import { EXPORT_PARAMS, exportContext, type ExportSettings, type Step } from '../core/recipe';
+import type { Step } from '../core/recipe';
 import { Cancelled, engine } from '../engine/client';
 import type { Inspection, Output } from '../engine/pipeline';
 import { OPS, getOp } from '../ops';
@@ -43,9 +42,6 @@ class Session {
   items = $state<Item[]>([]);
   selected = $state(0);
   steps = $state<Step[]>([]);
-  exportSettings = $state<ExportSettings>(sanitize(EXPORT_PARAMS, {}, exportContext([])));
-  /** Output file name suffix of the current tool. */
-  suffix = $state<string | undefined>(undefined);
 
   results = $state<Result[]>([]);
   failures = $state<Failure[]>([]);
@@ -64,13 +60,12 @@ class Session {
   readonly chainable = $derived(
     this.results.filter((result) => CHAINABLE.has(result.output.blob.type)),
   );
-  readonly signature = $derived(
-    JSON.stringify([this.items.map((item) => item.id), this.steps, this.exportSettings]),
-  );
+  readonly signature = $derived(JSON.stringify([this.items.map((item) => item.id), this.steps]));
   readonly stale = $derived(this.ranWith !== null && this.ranWith !== this.signature);
 
-  /** Why the recipe can't run yet, or null. */
+  /** Why the chain can't run yet, or null. */
   readonly blocker = $derived.by(() => {
+    if (this.steps.length === 0) return 'Add a step to start.';
     const usable = this.items.filter((item) => !item.error).length;
     if (usable === 0) return 'Add images to start.';
     const combine = this.ops.find((op) => op.kind === 'combine');
@@ -80,12 +75,10 @@ class Session {
     return null;
   });
 
-  /** Load a recipe into the workspace (files stay; old results go). */
-  open(steps: Step[], settings: ExportSettings, suffix?: string): void {
+  /** Load a chain into the workspace (files stay; old results go). */
+  open(steps: Step[]): void {
     this.cancel();
     this.steps = steps;
-    this.exportSettings = settings;
-    this.suffix = suffix;
     this.clearResults();
   }
 
@@ -151,12 +144,10 @@ class Session {
     const terminalAt = this.ops.findIndex(isTerminal);
     if (isTerminal(op) || terminalAt === -1) this.steps.push(step);
     else this.steps.splice(terminalAt, 0, step);
-    this.syncExport();
   }
 
   removeStep(index: number): void {
     this.steps.splice(index, 1);
-    this.syncExport();
   }
 
   moveStep(index: number, delta: number): void {
@@ -167,7 +158,10 @@ class Session {
     this.steps.splice(to, 0, step);
   }
 
-  /** Operations that can be added: terminal ones only while there's none yet, one merge at most. */
+  /**
+   * Tools that can be added: any number of each, except that a chain ends
+   * with at most one SVG or text step, and merges at most once.
+   */
   availableOps(): Op[] {
     return OPS.filter(
       (op) => !(isTerminal(op) && this.terminal) && !(op.kind === 'combine' && this.merges),
@@ -178,29 +172,12 @@ class Session {
     this.steps[index].params[key] = value;
   }
 
-  setExport(key: string, value: unknown): void {
-    (this.exportSettings as AnyValues as Record<string, unknown>)[key] = value;
-  }
-
-  /** "Original file" export only makes sense without steps. */
-  private syncExport(): void {
-    this.exportSettings = applyContext(
-      EXPORT_PARAMS,
-      this.exportSettings,
-      exportContext(this.steps),
-    );
-  }
-
   // --- running -----------------------------------------------------------------
 
   async run(): Promise<void> {
     if (this.running || this.blocker) return;
     const items = this.items.filter((item) => !item.error);
-    const recipe = {
-      steps: $state.snapshot(this.steps),
-      export: $state.snapshot(this.exportSettings),
-      suffix: this.suffix,
-    };
+    const steps = $state.snapshot(this.steps);
     const jobs = this.merges ? [items] : items.map((item) => [item]);
     const concurrency = this.ops.some((op) => op.heavy) ? 1 : engine.poolSize;
 
@@ -221,7 +198,7 @@ class Session {
         try {
           const outputs = await engine.run(
             'process',
-            { inputs: job.map((item) => ({ name: item.file.name, blob: item.file })), recipe },
+            { inputs: job.map((item) => ({ name: item.file.name, blob: item.file })), steps },
             controller.signal,
           );
           const inputSize = job.reduce((sum, item) => sum + item.file.size, 0);
@@ -263,7 +240,7 @@ class Session {
     if (result && name.trim()) result.output.name = name.trim();
   }
 
-  /** Raster results become the input files for the next tool. */
+  /** Raster results become the input files, to carry on with other tools. */
   useResultsAsInput(): void {
     const files = this.chainable.map(
       ({ output }) => new File([output.blob], output.name, { type: output.blob.type }),

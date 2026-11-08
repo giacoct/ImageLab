@@ -1,4 +1,4 @@
-<!-- "Add a step": a drop-down of every operation that can still be added to the recipe. -->
+<!-- "Add a step": a drop-down of every tool that can be chained next. -->
 <script lang="ts">
   import { session } from '../app/session.svelte';
 </script>

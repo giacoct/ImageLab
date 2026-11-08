@@ -1,28 +1,28 @@
 <!--
   The home page: the images loaded so far (they carry into whichever tool is
-  opened), every tool, and the saved recipes.
+  opened), every tool, and the saved recipes (chains of tools).
 -->
 <script lang="ts">
   import { recipes } from '../app/recipes.svelte';
   import { session } from '../app/session.svelte';
-  import { TOOLS } from '../app/tools';
-  import { findOp } from '../ops';
+  import { findOp, OPS } from '../ops';
   import FilePicker from './FilePicker.svelte';
 
   let picker: FilePicker;
 
   const count = $derived(session.items.length);
+  const status = $derived(
+    count === 0 ? 'No images loaded.' : `${count} ${count === 1 ? 'image' : 'images'} loaded.`,
+  );
 </script>
 
 <div class="home">
-  <p class="muted">Image tools that run entirely in your browser. Nothing is uploaded.</p>
+  <p class="muted">
+    Image tools that run entirely in your browser. Open one, then chain any others after it.
+  </p>
 
   <section class="row">
-    <span
-      >{count === 0
-        ? 'No images loaded.'
-        : `${count} ${count === 1 ? 'image' : 'images'} loaded.`}</span
-    >
+    <span>{status}</span>
     <button type="button" onclick={() => picker.open()}>
       {count ? 'Add images' : 'Choose images'}
     </button>
@@ -36,7 +36,7 @@
   <section>
     <h2>Tools</h2>
     <ul>
-      {#each TOOLS as tool (tool.id)}
+      {#each OPS as tool (tool.id)}
         <li>
           <a href="#/tool/{tool.id}">{tool.title}</a>
           <span class="muted">— {tool.description}</span>

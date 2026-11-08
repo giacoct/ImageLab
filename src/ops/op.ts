@@ -1,19 +1,21 @@
 /**
- * The operation contract. An operation declares its settings schema once and
- * a pure `run` over OffscreenCanvas images; the UI generates its form from the
- * schema, and the engine runs it on full-size images (export) and on
- * downscaled copies (live preview) — the same code for both.
+ * The operation contract: every tool is one operation. It declares its
+ * settings schema once and a `run` over OffscreenCanvas images; the UI
+ * generates its form from the schema, and the engine runs it on full-size
+ * images (processing) and on downscaled copies (live preview), the same code
+ * for both.
  */
 
 import type { Size } from '../core/geometry';
 import type { OcrPage } from '../core/ocr';
 import type { Schema, Values } from '../core/params';
 import type { Img } from '../engine/canvas';
+import type { Picture } from '../engine/encode';
 
 export interface RunContext {
   /**
    * Size of the image being processed relative to the full-size original:
-   * 1 for exports, below 1 for previews. Operations multiply settings given
+   * 1 when processing, below 1 for previews. Operations multiply settings given
    * in pixels (margins, blur radius, target sizes) by it.
    */
   scale: number;
@@ -24,7 +26,7 @@ export interface RunContext {
 interface Base<S extends Schema> {
   id: string;
   title: string;
-  /** One line for the step picker. */
+  /** One line for the tool list and the step picker. */
   description: string;
   /** Added to output file names, e.g. `photo-scaled.jpg`. */
   suffix: string;
@@ -56,6 +58,15 @@ export interface CombineOp<S extends Schema = Schema> extends Base<S> {
   run(images: Img[], values: Values<S>, context: RunContext): Img | Promise<Img>;
 }
 
+/**
+ * Works on the file rather than the pixels (Convert format, Compress, Strip
+ * metadata): sets how the image is saved, and may write the file right away.
+ */
+export interface FileOp<S extends Schema = Schema> extends Base<S> {
+  kind: 'file';
+  run(picture: Picture, values: Values<S>, context: RunContext): Promise<Picture>;
+}
+
 /** Terminal: image in, SVG markup out. */
 export interface SvgOp<S extends Schema = Schema> extends Base<S> {
   kind: 'svg';
@@ -68,7 +79,7 @@ export interface TextOp<S extends Schema = Schema> extends Base<S> {
   run(image: Img, values: Values<S>, context: RunContext): Promise<OcrPage>;
 }
 
-export type Op = MapOp | CombineOp | SvgOp | TextOp;
+export type Op = MapOp | CombineOp | FileOp | SvgOp | TextOp;
 
 /** Terminal operations produce something other than an image, so nothing can follow them. */
 export function isTerminal(op: Op): op is SvgOp | TextOp {
@@ -85,6 +96,9 @@ export function mapOp<S extends Schema>(op: MapOp<S>): Op {
   return op as unknown as Op;
 }
 export function combineOp<S extends Schema>(op: CombineOp<S>): Op {
+  return op as unknown as Op;
+}
+export function fileOp<S extends Schema>(op: FileOp<S>): Op {
   return op as unknown as Op;
 }
 export function svgOp<S extends Schema>(op: SvgOp<S>): Op {

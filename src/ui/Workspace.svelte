@@ -1,7 +1,8 @@
 <!--
-  The workspace for a tool or saved recipe: images, steps, export and the run
-  button on the left; the live preview and the results on the right. Settings
-  are remembered per tool (or saved into the recipe) as they change.
+  The workspace for a tool or saved recipe: the images, the chain of steps
+  and the run button on the left; the live preview and the results on the
+  right. The chain is remembered per tool (or saved into the recipe) as it
+  changes.
 -->
 <script lang="ts">
   import { untrack } from 'svelte';
@@ -16,15 +17,14 @@
   } from '../app/recipes.svelte';
   import { router } from '../app/router.svelte';
   import { session } from '../app/session.svelte';
-  import type { Tool } from '../app/tools';
+  import type { Op } from '../ops/op';
   import AddStep from './AddStep.svelte';
-  import ExportCard from './ExportCard.svelte';
   import FileTray from './FileTray.svelte';
   import Preview from './Preview.svelte';
   import Results from './Results.svelte';
   import StepCard from './StepCard.svelte';
 
-  let { tool, recipe }: { tool?: Tool; recipe?: SavedRecipe } = $props();
+  let { tool, recipe }: { tool?: Op; recipe?: SavedRecipe } = $props();
 
   const title = $derived(tool?.title ?? recipe?.title ?? '');
   let view = $state<'preview' | 'results'>('preview');
@@ -34,24 +34,19 @@
   $effect.pre(() => {
     const [openTool, openRecipe] = [tool, recipe];
     untrack(() => {
-      if (openTool) {
-        const loaded = toolRecipe(openTool);
-        session.open(loaded.steps, loaded.export, openTool.suffix);
-      } else if (openRecipe) {
-        session.open(structuredClone($state.snapshot(openRecipe.steps)), { ...openRecipe.export });
-      }
+      if (openTool) session.open(toolRecipe(openTool));
+      else if (openRecipe) session.open(structuredClone($state.snapshot(openRecipe.steps)));
       view = 'preview';
     });
   });
 
-  // Remember the settings as they change. Saving reads the stored recipes, so
+  // Remember the chain as it changes. Saving reads the stored recipes, so
   // it's untracked: otherwise writing the recipe would re-run this effect forever.
   $effect(() => {
     const steps = $state.snapshot(session.steps);
-    const settings = $state.snapshot(session.exportSettings);
     untrack(() => {
-      if (tool) saveToolRecipe(tool.id, { steps, export: settings });
-      else if (recipe) recipes.update(recipe.id, steps, settings);
+      if (tool) saveToolRecipe(tool.id, steps);
+      else if (recipe) recipes.update(recipe.id, steps);
     });
   });
 
@@ -63,18 +58,13 @@
   function reset(): void {
     if (!tool) return;
     forgetToolRecipe(tool.id);
-    const preset = toolDefaults(tool);
-    session.open(preset.steps, preset.export, tool.suffix);
+    session.open(toolDefaults(tool));
   }
 
   function saveRecipe(): void {
-    const name = prompt('Save these steps and export settings as a recipe named:', title)?.trim();
+    const name = prompt('Save this chain of steps as a recipe named:', title)?.trim();
     if (!name) return;
-    const saved = recipes.add(
-      name.slice(0, 60),
-      $state.snapshot(session.steps),
-      $state.snapshot(session.exportSettings),
-    );
+    const saved = recipes.add(name.slice(0, 60), $state.snapshot(session.steps));
     router.go({ page: 'recipe', id: saved.id });
   }
 
@@ -99,7 +89,7 @@
       <p class="muted">{tool?.description ?? 'Saved recipe.'}</p>
     </div>
     {#if tool}
-      <button type="button" onclick={reset}>Reset to defaults</button>
+      <button type="button" onclick={reset}>Start over</button>
     {:else}
       <button class="danger" type="button" onclick={deleteRecipe}>Delete recipe</button>
     {/if}
@@ -113,7 +103,6 @@
         <StepCard {index} />
       {/each}
       <AddStep />
-      <ExportCard />
 
       <div class="run">
         {#if session.running}

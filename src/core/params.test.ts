@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { defaults, p, sanitize } from './params';
-import { EXPORT_PARAMS, sanitizeExport } from './recipe';
 
 const schema = {
   size: p.number({ label: 'Size', default: 50, min: 1, max: 100 }),
@@ -27,15 +26,5 @@ describe('params', () => {
       sanitize(schema, { size: 500, mode: 'zzz', flag: 'yes', color: '#ABCDEF', extra: 1 }),
     ).toEqual({ size: 100, mode: 'a', flag: false, color: '#abcdef' });
     expect(sanitize(schema, null)).toEqual(defaults(schema));
-  });
-
-  it('drops export options unavailable once there are steps', () => {
-    const step = { id: 's1', op: 'scale', params: {} };
-    expect(sanitizeExport({ format: 'keep' }, []).format).toBe('keep');
-    expect(sanitizeExport({ format: 'keep' }, [step]).format).toBe('same');
-    expect(sanitizeExport({ format: 'webp', quality: 5 }, [step])).toMatchObject({
-      format: 'webp',
-      quality: EXPORT_PARAMS.quality.min,
-    });
   });
 });

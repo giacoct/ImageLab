@@ -1,18 +1,20 @@
 /**
- * Runs recipes inside the engine worker: full-size exports (`processJob`) and
- * downscaled live previews (`renderPreview`), with the same operations.
+ * Runs chains of steps inside the engine worker: full-size processing
+ * (`processJob`) and downscaled live previews (`renderPreview`), with the
+ * same operations. Each image moves through the steps as a `Picture`.
  */
 
+import { initialEncoding } from '../core/encoding';
 import { extensionFor, outputName, type OutputType } from '../core/files';
 import { downscaleFactor } from '../core/geometry';
-import { inspectMetadata, stripMetadata, type MetadataSummary } from '../core/metadata';
+import { inspectMetadata, type MetadataSummary } from '../core/metadata';
 import type { OcrPage } from '../core/ocr';
-import type { ExportSettings, Step } from '../core/recipe';
+import type { Step } from '../core/recipe';
 import { getOp } from '../ops';
 import { stopsPreview, type Op, type RunContext } from '../ops/op';
 import { downscaled, type Img } from './canvas';
 import { decode } from './decode';
-import { encodeImage } from './encode';
+import { encodeImage, type Picture } from './encode';
 
 export interface Input {
   name: string;
@@ -32,15 +34,17 @@ export interface Output {
   ocr?: OcrPage;
 }
 
-export interface JobRecipe {
-  steps: Step[];
-  export: ExportSettings;
-  /** Output name suffix; defaults to the last step's. */
-  suffix?: string;
-}
-
 /** Longest side of the thumbnails: small in the file list, larger in the results. */
 const THUMBNAIL_SIDE = { file: 160, result: 480 };
+
+/** Image files that can be output as they are (an untouched GIF, say, gets re-encoded). */
+const SAVABLE = new Set<string>([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/avif',
+  'image/x-icon',
+]);
 
 interface Resolved {
   op: Op;
@@ -48,7 +52,7 @@ interface Resolved {
 }
 
 type StageResult =
-  | { kind: 'image'; image: Img }
+  | { kind: 'image'; picture: Picture }
   | { kind: 'svg'; image: Img; svg: string }
   | { kind: 'text'; image: Img; page: OcrPage };
 
@@ -56,51 +60,52 @@ function resolve(steps: readonly Step[]): Resolved[] {
   return steps.map((step) => ({ op: getOp(step.op), values: step.params }));
 }
 
+/** A picture fresh from its input file, which is still its file. */
+async function load(blob: Blob): Promise<Picture> {
+  const { image, type } = await decode(blob);
+  return {
+    image,
+    encoding: initialEncoding(type),
+    // Labelled with the sniffed type: the declared one may be missing or wrong.
+    file: { blob: new Blob([blob], { type }), original: true },
+  };
+}
+
 /**
- * Process one job: a single file, or — when the recipe merges — all files
+ * Process one job: a single file, or — when the chain merges — all files
  * into one output. Steps before a merge apply to each file separately.
  */
 export async function processJob(
   inputs: Input[],
-  recipe: JobRecipe,
+  steps: Step[],
   context: RunContext,
 ): Promise<Output[]> {
-  const ops = resolve(recipe.steps);
-  const suffix = recipe.suffix ?? ops.at(-1)?.op.suffix ?? 'converted';
-  const outputs: Output[] = [];
-
-  if (ops.length === 0 && recipe.export.format === 'keep') {
-    for (const input of inputs) outputs.push(await keepFile(input, recipe.export, suffix));
-    return outputs;
-  }
+  const ops = resolve(steps);
+  if (ops.length === 0) throw new Error('Add a step first.');
+  const suffix = ops[ops.length - 1].op.suffix;
 
   const combineAt = ops.findIndex(({ op }) => op.kind === 'combine');
   if (combineAt === -1) {
+    const outputs: Output[] = [];
     for (const input of inputs) {
-      const { image, type } = await decode(input.blob);
-      const result = await runStage(image, ops, context);
-      outputs.push(await finish(result, input.name, type, recipe.export, suffix));
+      const result = await runStage(await load(input.blob), ops, context);
+      outputs.push(await finish(result, input.name, suffix));
     }
     return outputs;
   }
 
-  let firstType = '';
-  const loaders = inputs.map((input) => async () => {
-    const { image, type } = await decode(input.blob);
-    firstType ||= type;
-    return image;
-  });
+  const loaders = inputs.map((input) => () => load(input.blob));
   const result = await runMerge(loaders, ops, combineAt, context);
-  return [await finish(result, inputs[0].name, firstType, recipe.export, suffix)];
+  return [await finish(result, inputs[0].name, suffix)];
 }
 
 /**
  * Load the images one by one, running the steps before the merge on each
  * right away (so the full-size originals don't all wait in memory), combine
- * them, and run the remaining steps on the result.
+ * them, and run the remaining steps on the result, saved like the first image.
  */
 async function runMerge(
-  loaders: (() => Promise<Img>)[],
+  loaders: (() => Promise<Picture>)[],
   ops: Resolved[],
   combineAt: number,
   context: RunContext,
@@ -111,46 +116,59 @@ async function runMerge(
     throw new Error(`${op.title} needs at least ${op.minInputs} images.`);
   }
   const before = ops.slice(0, combineAt);
-  const images: Img[] = [];
-  for (const load of loaders) images.push(asImage(await runStage(await load(), before, context)));
-  const combined = await op.run(images, values, context);
-  return runStage(combined, ops.slice(combineAt + 1), context);
+  const pictures: Picture[] = [];
+  for (const loader of loaders) {
+    pictures.push(asPicture(await runStage(await loader(), before, context)));
+  }
+  const combined = await op.run(
+    pictures.map((picture) => picture.image),
+    values,
+    context,
+  );
+  const merged = { image: combined, encoding: pictures[0].encoding, file: null };
+  return runStage(merged, ops.slice(combineAt + 1), context);
 }
 
-/** Run map steps, ending at a terminal (SVG/text) step if there is one. */
-async function runStage(image: Img, ops: Resolved[], context: RunContext): Promise<StageResult> {
-  let current = image;
+/** Run the steps in order, ending at a terminal (SVG/text) step if there is one. */
+async function runStage(
+  picture: Picture,
+  ops: Resolved[],
+  context: RunContext,
+): Promise<StageResult> {
+  let current = picture;
   for (const [index, { op, values }] of ops.entries()) {
     switch (op.kind) {
       case 'map':
+        // New pixels: no file holds them yet.
+        current = { ...current, image: await op.run(current.image, values, context), file: null };
+        break;
+      case 'file':
         current = await op.run(current, values, context);
         break;
       case 'svg':
       case 'text':
         if (index !== ops.length - 1) throw new Error(`${op.title} must be the last step.`);
         return op.kind === 'svg'
-          ? { kind: 'svg', image: current, svg: await op.run(current, values, context) }
-          : { kind: 'text', image: current, page: await op.run(current, values, context) };
+          ? { kind: 'svg', image: current.image, svg: await op.run(current.image, values, context) }
+          : {
+              kind: 'text',
+              image: current.image,
+              page: await op.run(current.image, values, context),
+            };
       case 'combine':
         throw new Error(`${op.title} can only appear once.`);
     }
   }
-  return { kind: 'image', image: current };
+  return { kind: 'image', picture: current };
 }
 
-function asImage(result: StageResult): Img {
+function asPicture(result: StageResult): Picture {
   if (result.kind !== 'image') throw new Error('Text and SVG steps must come last.');
-  return result.image;
+  return result.picture;
 }
 
-async function finish(
-  result: StageResult,
-  inputName: string,
-  sourceType: string,
-  settings: ExportSettings,
-  suffix: string,
-): Promise<Output> {
-  const { image } = result;
+async function finish(result: StageResult, inputName: string, suffix: string): Promise<Output> {
+  const image = result.kind === 'image' ? result.picture.image : result.image;
   const thumbnail = await thumbnailOf(image, THUMBNAIL_SIDE.result);
   switch (result.kind) {
     case 'svg':
@@ -173,31 +191,21 @@ async function finish(
         ocr: result.page,
       };
     case 'image': {
-      const encoded = await encodeImage(image, settings, sourceType);
+      const { file, encoding } = result.picture;
+      // The file a step already wrote, unless the pixels changed since.
+      const saved =
+        file && SAVABLE.has(file.blob.type)
+          ? { blob: file.blob, width: image.width, height: image.height }
+          : await encodeImage(image, encoding);
       return {
-        name: outputName(inputName, suffix, extensionFor(encoded.blob.type as OutputType)),
-        ...encoded,
+        name: outputName(inputName, suffix, extensionFor(saved.blob.type as OutputType)),
+        blob: saved.blob,
+        width: saved.width,
+        height: saved.height,
         thumbnail,
       };
     }
   }
-}
-
-/**
- * "Original file, metadata removed": drop the metadata without touching the
- * image data when the format allows, otherwise re-encode near-losslessly.
- */
-async function keepFile(input: Input, settings: ExportSettings, suffix: string): Promise<Output> {
-  const { image, type, bytes } = await decode(input.blob);
-  const stripped = stripMetadata(bytes, type);
-  if (!stripped) return finish({ kind: 'image', image }, input.name, type, settings, suffix);
-  return {
-    name: outputName(input.name, suffix, extensionFor(type as OutputType)),
-    blob: new Blob([stripped], { type }),
-    width: image.width,
-    height: image.height,
-    thumbnail: await thumbnailOf(image, THUMBNAIL_SIDE.result),
-  };
 }
 
 /** A small WebP of the image, its longest side at most `maxSide`. */
@@ -248,6 +256,8 @@ export interface PreviewRequest {
 
 interface Proxy {
   image: Img;
+  /** The file's type, which decides how the image is saved. */
+  type: string;
   /** Proxy size / original size. */
   scale: number;
 }
@@ -266,10 +276,11 @@ function proxyFor(file: PreviewFile): Promise<Proxy> {
   if (proxy) {
     proxies.delete(file.key); // re-inserted below: most recently used last
   } else {
-    proxy = decode(file.blob).then(({ image }) => {
+    proxy = decode(file.blob).then(({ image, type }) => {
       const scale = downscaleFactor(image, PROXY_SIDE);
       return {
         image: scale < 1 ? downscaled(image, image.width * scale, image.height * scale) : image,
+        type,
         scale,
       };
     });
@@ -301,7 +312,11 @@ export async function renderPreview(
     const proxy = await proxyFor(files[selected]);
     const factor = downscaleFactor(proxy.image, maxSide);
     const copy = downscaled(proxy.image, proxy.image.width * factor, proxy.image.height * factor);
-    return asImage(await runStage(copy, ops, { scale: proxy.scale * factor, asset }));
+    const result = await runStage(previewPicture(copy, proxy), ops, {
+      scale: proxy.scale * factor,
+      asset,
+    });
+    return asPicture(result).image;
   }
 
   // Merging: bring every image to one common scale so their relative sizes
@@ -312,7 +327,13 @@ export async function renderPreview(
     Math.max(1, files.length / 2);
   const loaders = loaded.map((proxy) => async () => {
     const factor = scale / proxy.scale;
-    return downscaled(proxy.image, proxy.image.width * factor, proxy.image.height * factor);
+    const copy = downscaled(proxy.image, proxy.image.width * factor, proxy.image.height * factor);
+    return previewPicture(copy, proxy);
   });
-  return asImage(await runMerge(loaders, ops, combineAt, { scale, asset }));
+  return asPicture(await runMerge(loaders, ops, combineAt, { scale, asset })).image;
+}
+
+/** A preview copy has no file of its own: only Convert format and Compress write one. */
+function previewPicture(image: Img, proxy: Proxy): Picture {
+  return { image, encoding: initialEncoding(proxy.type), file: null };
 }

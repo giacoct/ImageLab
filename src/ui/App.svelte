@@ -6,13 +6,13 @@
   import { recipes } from '../app/recipes.svelte';
   import { router } from '../app/router.svelte';
   import { theme, type ThemePreference } from '../app/theme.svelte';
-  import { findTool } from '../app/tools';
+  import { findOp } from '../ops';
   import DropOverlay from './DropOverlay.svelte';
   import Home from './Home.svelte';
   import Workspace from './Workspace.svelte';
 
   const route = $derived(router.route);
-  const tool = $derived(route.page === 'tool' ? findTool(route.id) : undefined);
+  const tool = $derived(route.page === 'tool' ? findOp(route.id) : undefined);
   const recipe = $derived(route.page === 'recipe' ? recipes.find(route.id) : undefined);
 </script>
 

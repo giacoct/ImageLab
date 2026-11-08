@@ -1,5 +1,5 @@
 <!--
-  One step of the recipe: its operation's generated settings form (plus the
+  One step of the chain: its tool's generated settings form (plus the
   crop editor for "Rotate, flip & crop"), with controls to reorder or remove it.
 -->
 <script lang="ts">

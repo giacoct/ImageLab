@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 /**
- * The engine worker: decodes, runs operations and encodes, off the main
+ * The engine worker: decodes, runs the steps and encodes, off the main
  * thread. Workers are long-lived, so loaded models (upscaler, OCR) stay warm
  * between files.
  */
@@ -22,7 +22,7 @@ self.onmessage = async (event: MessageEvent<RequestMessage>) => {
         result = await inspect(message.args.blob);
         break;
       case 'process':
-        result = await processJob(message.args.inputs, message.args.recipe, { scale: 1, asset });
+        result = await processJob(message.args.inputs, message.args.steps, { scale: 1, asset });
         break;
       case 'preview': {
         const bitmap = (await renderPreview(message.args, asset)).transferToImageBitmap();

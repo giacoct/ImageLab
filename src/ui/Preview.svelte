@@ -116,7 +116,7 @@
 
   {#if session.selectedItem?.info && !session.merges}
     {@const { metadata } = session.selectedItem.info}
-    <details open={session.exportSettings.format === 'keep'}>
+    <details open={session.steps.some((step) => step.op === 'strip-metadata')}>
       <summary>Metadata in {session.selectedItem.file.name}</summary>
       {#if metadata.entries.length}
         <dl>

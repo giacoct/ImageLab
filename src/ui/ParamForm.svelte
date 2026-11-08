@@ -4,24 +4,16 @@
   pickers). Custom settings (e.g. the crop box) have their own editors.
 -->
 <script lang="ts">
-  import {
-    resolveLabel,
-    type AnyValues,
-    type Param,
-    type ParamContext,
-    type Schema,
-  } from '../core/params';
+  import { resolveLabel, type AnyValues, type Param, type Schema } from '../core/params';
 
   let {
     schema,
     values,
-    context = { hasSteps: true },
     onchange,
     idPrefix,
   }: {
     schema: Schema;
     values: AnyValues;
-    context?: ParamContext;
     onchange: (key: string, value: unknown) => void;
     /** Makes input ids unique when several forms are on the page. */
     idPrefix: string;
@@ -29,7 +21,7 @@
 
   const visible = $derived(
     Object.entries(schema).filter(
-      ([, param]) => param.kind !== 'custom' && (!param.when || param.when(values, context)),
+      ([, param]) => param.kind !== 'custom' && (!param.when || param.when(values)),
     ),
   );
 
@@ -84,7 +76,6 @@
         {#if param.hint}<span class="hint">{param.hint}</span>{/if}
       </div>
     {:else if param.kind === 'choice'}
-      {@const options = param.options.filter((option) => !option.when || option.when(context))}
       <div class="field">
         {#if param.display === 'select'}
           <label class="field-label" for={id}>{label}</label>
@@ -93,14 +84,14 @@
             value={values[key]}
             onchange={(event) => onchange(key, param.sanitize(event.currentTarget.value))}
           >
-            {#each options as option (option.value)}
+            {#each param.options as option (option.value)}
               <option value={option.value}>{resolveLabel(option.label, values)}</option>
             {/each}
           </select>
         {:else}
           <span class="field-label" {id}>{label}</span>
           <div class="segmented" role="group" aria-labelledby={id}>
-            {#each options as option (option.value)}
+            {#each param.options as option (option.value)}
               <button
                 type="button"
                 aria-pressed={values[key] === option.value}

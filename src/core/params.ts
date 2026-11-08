@@ -1,5 +1,5 @@
 /**
- * Declarative settings schemas. An operation (and the export step) declares
+ * Declarative settings schemas. An operation declares
  * its settings once with these builders; the same schema then produces the
  * defaults, validates values restored from storage, and drives the generated
  * form in the UI (`ParamForm`).
@@ -8,12 +8,6 @@
 /** Read-only view of a whole settings object, for `when` / dynamic labels. */
 export type AnyValues = Readonly<Record<string, unknown>>;
 
-/** Extra facts a schema can depend on that aren't settings themselves. */
-export interface ParamContext {
-  /** Whether the pipeline has steps before the export (pixels change). */
-  hasSteps: boolean;
-}
-
 type Label = string | ((values: AnyValues) => string);
 
 interface BaseParam<T> {
@@ -21,7 +15,7 @@ interface BaseParam<T> {
   default: T;
   hint?: string;
   /** Show the field only when this returns true (the value is kept either way). */
-  when?: (values: AnyValues, context: ParamContext) => boolean;
+  when?: (values: AnyValues) => boolean;
   /** Coerce an untrusted value (e.g. from localStorage) into a valid one. */
   sanitize(raw: unknown): T;
 }
@@ -39,8 +33,6 @@ export interface NumberParam extends BaseParam<number> {
 export interface ChoiceOption<V extends string> {
   value: V;
   label: string | ((values: AnyValues) => string);
-  /** Offer the option only in this context (otherwise it is hidden and invalid). */
-  when?: (context: ParamContext) => boolean;
 }
 
 export interface ChoiceParam<V extends string = string> extends BaseParam<V> {
@@ -145,39 +137,14 @@ export function defaults<S extends Schema>(schema: S): Values<S> {
 
 /**
  * A complete, valid settings object from untrusted input: unknown keys are
- * dropped, missing or invalid ones fall back to their defaults, numbers are
- * clamped, and choice options unavailable in `context` are replaced.
+ * dropped, missing or invalid ones fall back to their defaults, and numbers
+ * are clamped.
  */
-export function sanitize<S extends Schema>(
-  schema: S,
-  raw: unknown,
-  context?: ParamContext,
-): Values<S> {
+export function sanitize<S extends Schema>(schema: S, raw: unknown): Values<S> {
   const source = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
-  const values = Object.fromEntries(
+  return Object.fromEntries(
     Object.entries(schema).map(([key, param]) => [key, param.sanitize(source[key])]),
   ) as Values<S>;
-  return context ? applyContext(schema, values, context) : values;
-}
-
-/** Replace choices whose selected option isn't offered in `context`. */
-export function applyContext<S extends Schema>(
-  schema: S,
-  values: Values<S>,
-  context: ParamContext,
-): Values<S> {
-  let next = values;
-  for (const [key, param] of Object.entries(schema)) {
-    if (param.kind !== 'choice') continue;
-    const current = param.options.find((option) => option.value === values[key]);
-    if (current?.when && !current.when(context)) {
-      const fallback =
-        param.options.find((option) => !option.when || option.when(context))?.value ??
-        param.default;
-      next = { ...next, [key]: fallback };
-    }
-  }
-  return next;
 }
 
 /** Resolve a static or settings-dependent label. */

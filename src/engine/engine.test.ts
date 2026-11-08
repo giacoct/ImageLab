@@ -1,13 +1,14 @@
 /**
  * Engine tests in a real browser (Vitest browser mode, Chromium): decoding,
- * encoding, every operation, and the worker round trip. Images are drawn
+ * encoding, every operation, chains of steps, and the worker round trip. Images are drawn
  * synthetically so the expected pixels are known.
  */
 
 import { describe, expect, it } from 'vitest';
 
+import { initialEncoding, type Encoding, type FileFormat } from '../core/encoding';
 import { defaults } from '../core/params';
-import { EXPORT_PARAMS, type ExportSettings, type Step } from '../core/recipe';
+import type { Step } from '../core/recipe';
 import { getOp } from '../ops';
 import type { RunContext } from '../ops/op';
 import { cropForImage } from '../ops/transform';
@@ -46,10 +47,23 @@ function step(op: string, params: Record<string, unknown> = {}): Step {
   return { id: op, op, params: { ...defaults(getOp(op).params), ...params } };
 }
 
-const exportAs = (settings: Partial<ExportSettings>): ExportSettings => ({
-  ...defaults(EXPORT_PARAMS),
+/** Save as `format`, as a Convert format step would. */
+const as = (format: FileFormat, settings: Partial<Encoding> = {}): Encoding => ({
+  ...initialEncoding('image/png'),
+  format,
+  chosen: true,
   ...settings,
 });
+
+/** A 300×300 image of noise, which compresses badly. */
+function noise(): Img {
+  const canvas = createCanvas(300, 300);
+  const data = readPixels(canvas);
+  for (let i = 0; i < data.data.length; i++)
+    data.data[i] = i % 4 === 3 ? 255 : (i * 2654435761) % 256;
+  context2d(canvas).putImageData(data.image, 0, 0);
+  return canvas;
+}
 
 async function run(op: string, image: Img, params: Record<string, unknown> = {}) {
   const definition = getOp(op);
@@ -80,45 +94,28 @@ describe('decode', () => {
 
 describe('encode', () => {
   it.each(['jpeg', 'png', 'webp', 'avif'] as const)('writes %s', async (format) => {
-    const { blob, width } = await encodeImage(twoTone(), exportAs({ format }), 'image/png');
+    const { blob, width } = await encodeImage(twoTone(), as(`image/${format}`));
     expect(blob.type).toBe(`image/${format}`);
     expect(width).toBe(40);
     const { image } = await decode(blob);
     expect(image.width).toBe(40);
   });
 
-  it('keeps the source format, switching JPEG to PNG for transparency', async () => {
-    const transparent = createCanvas(10, 10);
-    expect(
-      (await encodeImage(twoTone(), exportAs({ format: 'same' }), 'image/jpeg')).blob.type,
-    ).toBe('image/jpeg');
-    expect(
-      (await encodeImage(transparent, exportAs({ format: 'same' }), 'image/jpeg')).blob.type,
-    ).toBe('image/png');
+  it('keeps the input format, switching JPEG to PNG for transparency', async () => {
+    const kept = initialEncoding('image/jpeg');
+    expect((await encodeImage(twoTone(), kept)).blob.type).toBe('image/jpeg');
+    expect((await encodeImage(createCanvas(10, 10), kept)).blob.type).toBe('image/png');
   });
 
   it('meets a target size by lowering the quality', async () => {
-    const noisy = createCanvas(300, 300);
-    const data = readPixels(noisy);
-    for (let i = 0; i < data.data.length; i++)
-      data.data[i] = i % 4 === 3 ? 255 : (i * 2654435761) % 256;
-    context2d(noisy).putImageData(data.image, 0, 0);
-    const best = await encodeImage(noisy, exportAs({ format: 'jpeg', quality: 100 }), 'image/png');
-    const { blob } = await encodeImage(
-      noisy,
-      exportAs({ format: 'jpeg', sizing: 'target', targetKb: 30 }),
-      'image/png',
-    );
+    const best = await encodeImage(noise(), as('image/jpeg', { quality: 100 }));
+    const { blob } = await encodeImage(noise(), as('image/jpeg', { targetBytes: 30 * 1024 }));
     expect(blob.size).toBeLessThanOrEqual(30 * 1024);
     expect(best.blob.size).toBeGreaterThan(30 * 1024);
   });
 
   it('writes a letterboxed ICO', async () => {
-    const { blob, width } = await encodeImage(
-      twoTone(),
-      exportAs({ format: 'ico', icoSize: 32 }),
-      'image/png',
-    );
+    const { blob, width } = await encodeImage(twoTone(), as('image/x-icon', { icoSize: 32 }));
     expect(blob.type).toBe('image/x-icon');
     expect(width).toBe(32);
   });
@@ -244,63 +241,111 @@ describe('operations', () => {
 });
 
 describe('pipeline', () => {
-  const input = async (name = 'photo.png') => ({ name, blob: await pngBlob(twoTone()) });
+  const input = async (name = 'photo.png', image = twoTone()) => ({
+    name,
+    blob: await pngBlob(image),
+  });
 
-  it('chains steps and names the output after the last one', async () => {
+  it('chains steps, keeps the input format, and names the output after the last step', async () => {
     const [output] = await processJob(
       [await input()],
-      {
-        steps: [step('scale', { percent: 50 }), step('margin', { all: 2 })],
-        export: exportAs({ format: 'webp' }),
-      },
+      [step('scale', { percent: 50 }), step('margin', { all: 2 })],
       context,
     );
-    expect(output.name).toBe('photo-margin.webp');
+    expect(output.name).toBe('photo-margin.png');
     expect([output.width, output.height]).toEqual([24, 14]);
+  });
+
+  it('keeps a converted format through later steps', async () => {
+    const [output] = await processJob(
+      [await input()],
+      [step('convert', { format: 'jpeg' }), step('adjust', { brightness: 120 })],
+      context,
+    );
+    expect(output.name).toBe('photo-adjusted.jpg');
+    expect(output.blob.type).toBe('image/jpeg');
+  });
+
+  it('chains any tool more than once', async () => {
+    const [output] = await processJob(
+      [await input()],
+      [
+        step('convert', { format: 'jpeg' }),
+        step('scale', { percent: 50 }),
+        step('convert', { format: 'webp' }),
+        step('scale', { percent: 50 }),
+      ],
+      context,
+    );
+    expect(output.blob.type).toBe('image/webp');
+    expect([output.width, output.height]).toEqual([10, 5]);
+  });
+
+  it('compresses to a file size', async () => {
+    const [output] = await processJob(
+      [await input('noise.png', noise())],
+      [step('convert', { format: 'jpeg' }), step('compress', { mode: 'target', targetKb: 30 })],
+      context,
+    );
+    expect(output.blob.type).toBe('image/jpeg');
+    expect(output.blob.size).toBeLessThanOrEqual(30 * 1024);
+  });
+
+  it('outputs the file a step wrote when nothing changed after it', async () => {
+    const [converted] = await processJob(
+      [await input('noise.png', noise())],
+      [step('convert', { format: 'webp', quality: 50 })],
+      context,
+    );
+    const [stripped] = await processJob(
+      [await input('noise.png', noise())],
+      [step('convert', { format: 'webp', quality: 50 }), step('strip-metadata')],
+      context,
+    );
+    expect(stripped.blob.size).toBe(converted.blob.size);
+  });
+
+  it('strips metadata without re-encoding', async () => {
+    const original = await input();
+    const [output] = await processJob([original], [step('strip-metadata')], context);
+    expect(output.name).toBe('photo-clean.png');
+    expect(output.blob.size).toBe(original.blob.size); // a canvas PNG has no metadata to drop
+  });
+
+  it('refuses an empty chain', async () => {
+    await expect(processJob([await input()], [], context)).rejects.toThrow(/Add a step/);
   });
 
   it('merges all inputs into one output', async () => {
     const outputs = await processJob(
       [await input('a.png'), await input('b.png')],
-      { steps: [step('merge')], export: exportAs({ format: 'png' }) },
+      [step('merge')],
       context,
     );
     expect(outputs).toHaveLength(1);
     expect(outputs[0]).toMatchObject({ name: 'a-merged.png', width: 40, height: 40 });
   });
 
-  it('strips metadata without re-encoding', async () => {
-    const original = await input();
-    const [output] = await processJob(
-      [original],
-      { steps: [], export: exportAs({ format: 'keep' }), suffix: 'clean' },
-      context,
-    );
-    expect(output.name).toBe('photo-clean.png');
-    expect(output.blob.size).toBe(original.blob.size); // a canvas PNG has no metadata to drop
-  });
-
   it('returns text and the image it was read from', async () => {
-    const [output] = await processJob(
-      [await input()],
-      { steps: [step('ocr')], export: exportAs({}) },
-      context,
-    );
+    const [output] = await processJob([await input()], [step('ocr')], context);
     expect(output.name).toBe('photo-text.txt');
     expect(output.display?.type).toBe('image/webp');
     expect(output.ocr).toBeDefined();
   });
 
   it('makes small thumbnails of the results', async () => {
-    const big = { name: 'big.png', blob: await pngBlob(twoTone(2000, 1000)) };
-    const [output] = await processJob(
-      [big],
-      { steps: [], export: exportAs({ format: 'png' }) },
-      context,
-    );
+    const big = await input('big.png', twoTone(2000, 1000));
+    const [output] = await processJob([big], [step('strip-metadata')], context);
     expect(output.thumbnail.type).toBe('image/webp');
     const { image } = await decode(output.thumbnail);
     expect([image.width, image.height]).toEqual([480, 240]);
+  });
+
+  it('previews what a file step writes', async () => {
+    const files = [{ key: 'ico', blob: await pngBlob(twoTone(400, 200)) }];
+    const steps = [step('convert', { format: 'ico', icoSize: 32 })];
+    const preview = await renderPreview({ files, selected: 0, steps, maxSide: 100 }, context.asset);
+    expect([preview.width, preview.height]).toEqual([32, 32]);
   });
 
   it('previews on a downscaled copy and stops before slow steps', async () => {
@@ -332,9 +377,9 @@ describe('worker client', () => {
   it('runs jobs in the engine worker', async () => {
     const outputs = await engine.run('process', {
       inputs: [{ name: 'photo.png', blob: await pngBlob(twoTone()) }],
-      recipe: { steps: [step('scale', { percent: 25 })], export: exportAs({ format: 'jpeg' }) },
+      steps: [step('scale', { percent: 25 }), step('convert', { format: 'jpeg' })],
     });
-    expect(outputs[0]).toMatchObject({ name: 'photo-scaled.jpg', width: 10, height: 5 });
+    expect(outputs[0]).toMatchObject({ name: 'photo-converted.jpg', width: 10, height: 5 });
   });
 
   it('samples a color from the preview', async () => {

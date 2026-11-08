@@ -8,7 +8,6 @@ export const removeBackground = mapOp({
   kind: 'map',
   title: 'Remove background',
   description: 'Key out a background color to transparency.',
-  icon: 'scissors',
   suffix: 'nobg',
   pickColor: 'color',
   params: {

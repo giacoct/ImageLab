@@ -10,7 +10,6 @@ export const merge = combineOp({
   kind: 'combine',
   title: 'Merge images',
   description: 'Combine all images into one, stacked or side by side.',
-  icon: 'merge',
   suffix: 'merged',
   minInputs: 2,
   params: {

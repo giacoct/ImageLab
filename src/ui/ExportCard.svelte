@@ -1,13 +1,12 @@
-<!-- The export step (the last section of the process sheet): format and compression, shared by every recipe. -->
+<!-- The export settings: format and compression, shared by every recipe. -->
 <script lang="ts">
   import { session } from '../app/session.svelte';
   import { EXPORT_PARAMS, exportContext } from '../core/recipe';
-  import CardHead from './CardHead.svelte';
   import ParamForm from './ParamForm.svelte';
 </script>
 
-<section class="section export" aria-labelledby="export-title">
-  <CardHead icon="download" title="Save as" id="export-title" />
+<section class="section" aria-labelledby="export-title">
+  <h2 id="export-title">Export</h2>
   {#if session.terminal}
     <p class="hint">
       {session.terminal.kind === 'svg'

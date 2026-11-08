@@ -1,6 +1,6 @@
 <!--
-  Root shell: the floating navigation, the current page (home, a tool, or a
-  saved recipe), a short footer, and the drop-anywhere overlay.
+  Root shell: the header, the current page (home, a tool, or a saved recipe),
+  and the page-wide drop and paste handling.
 -->
 <script lang="ts">
   import { recipes } from '../app/recipes.svelte';
@@ -8,9 +8,6 @@
   import { findTool } from '../app/tools';
   import DropOverlay from './DropOverlay.svelte';
   import Home from './Home.svelte';
-  import Logo from './Logo.svelte';
-  import NavBar from './NavBar.svelte';
-  import ThemeSwitch from './ThemeSwitch.svelte';
   import Workspace from './Workspace.svelte';
 
   const route = $derived(router.route);
@@ -18,7 +15,9 @@
   const recipe = $derived(route.page === 'recipe' ? recipes.find(route.id) : undefined);
 </script>
 
-<NavBar />
+<header>
+  <a href="#/">ImageLab</a>
+</header>
 
 <main>
   {#if tool}
@@ -34,44 +33,23 @@
   {/if}
 </main>
 
-<footer>
-  <Logo size={20} />
-  <span class="note"
-    >ImageLab runs entirely in your browser. Your images never leave this device.</span
-  >
-  <span class="theme"><ThemeSwitch /></span>
-</footer>
-
 <DropOverlay />
 
 <style>
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 0.6rem 1rem;
+  }
+
+  header a {
+    color: inherit;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
   main {
     margin: 0 auto;
-    max-width: 86.5rem;
-    padding: 1.75rem 1.25rem 2.5rem;
-  }
-
-  footer {
-    align-items: center;
-    border-top: 1px solid var(--border);
-    color: var(--muted);
-    display: flex;
-    font-size: 0.82rem;
-    gap: 0.6rem;
-    margin: 0 auto;
-    max-width: 84rem;
-    padding: 1.4rem 0.25rem 2rem;
-    width: calc(100% - 2.5rem);
-  }
-
-  .note {
-    flex: 1;
-  }
-
-  /* On phones the theme switch lives here rather than in the navigation. */
-  @media (min-width: 560px) {
-    .theme {
-      display: none;
-    }
+    max-width: 90rem;
+    padding: 1rem 1rem 3rem;
   }
 </style>

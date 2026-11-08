@@ -5,20 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Personal image tools that run entirely in your browser." />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#141416" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#161616" media="(prefers-color-scheme: dark)" />
     <title>ImageLab</title>
     <link rel="icon" href="favicon.ico" sizes="64x64" />
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <script>
-      // Apply the saved theme before the first paint (see src/app/theme.svelte.ts).
-      try {
-        const theme = JSON.parse(localStorage.getItem('imagelab:theme'));
-        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
-      } catch {
-        // Storage unavailable: follow the system theme.
-      }
-    </script>
   </head>
   <body>
     <div id="app"></div>

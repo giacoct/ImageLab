@@ -11,7 +11,6 @@ export const adjust = mapOp({
   kind: 'map',
   title: 'Adjust & filters',
   description: 'Brightness, contrast, color, blur, sharpen, and tints.',
-  icon: 'adjust',
   suffix: 'adjusted',
   params: {
     brightness: percent('Brightness', 100, 200),

@@ -26,8 +26,6 @@ interface Base<S extends Schema> {
   title: string;
   /** One line for the step picker. */
   description: string;
-  /** Icon name (see `ui/Icon.svelte`). */
-  icon: string;
   /** Added to output file names, e.g. `photo-scaled.jpg`. */
   suffix: string;
   params: S;

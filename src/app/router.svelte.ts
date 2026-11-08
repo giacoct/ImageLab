@@ -1,14 +1,7 @@
 /**
  * Hash-based routing (`#/tool/resize`): works on any static host, including
- * GitHub Pages, without server-side rewrites. Pages change inside a View
- * Transition where there is one, so a tool's patch on the home page grows
- * into the banner of its workspace (they share a `view-transition-name`)
- * and shrinks back on the way home.
+ * GitHub Pages, without server-side rewrites.
  */
-
-import { tick } from 'svelte';
-
-const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 export type Route =
   { page: 'home' } | { page: 'tool'; id: string } | { page: 'recipe'; id: string };
@@ -24,13 +17,8 @@ class Router {
 
   constructor() {
     addEventListener('hashchange', () => {
-      const update = async () => {
-        this.route = parse(location.hash);
-        scrollTo({ top: 0 });
-        await tick();
-      };
-      if (!document.startViewTransition || reducedMotion.matches) void update();
-      else document.startViewTransition(update);
+      this.route = parse(location.hash);
+      scrollTo({ top: 0 });
     });
   }
 

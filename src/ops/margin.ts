@@ -21,7 +21,6 @@ export const margin = mapOp({
   kind: 'map',
   title: 'Add margin',
   description: 'Surround the image with a colored or transparent border.',
-  icon: 'margin',
   suffix: 'margin',
   params: {
     unit: p.choice({

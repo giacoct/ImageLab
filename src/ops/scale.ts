@@ -77,7 +77,6 @@ export const scale = mapOp({
   kind: 'map',
   title: 'Scale',
   description: 'Resize by a percentage, to fit a box, or to an exact width/height.',
-  icon: 'scale',
   suffix: 'scaled',
   params: SCALE_PARAMS,
   run(image, values, context) {

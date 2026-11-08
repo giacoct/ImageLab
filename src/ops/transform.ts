@@ -76,7 +76,6 @@ export const transform = mapOp({
   kind: 'map',
   title: 'Rotate, flip & crop',
   description: 'Turn or mirror the image and cut it to a region or ratio.',
-  icon: 'crop',
   suffix: 'edited',
   params: TRANSFORM_PARAMS,
   run(image, values) {

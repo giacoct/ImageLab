@@ -13,7 +13,6 @@
   import { engine } from '../engine/client';
   import type { PreviewRequest } from '../engine/pipeline';
   import { stopsPreview } from '../ops/op';
-  import Icon from './Icon.svelte';
 
   let canvas: HTMLCanvasElement;
   let stage: HTMLDivElement;
@@ -87,47 +86,37 @@
 </script>
 
 <div class="preview">
-  <div class="stage canvas" bind:this={stage} class:empty={!ready}>
+  <div class="stage checker" bind:this={stage}>
     <!-- Color picking is a mouse/touch convenience; the color field is the accessible way. -->
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <canvas
       bind:this={canvas}
-      class="checker"
       class:picking={pickStep !== -1}
       class:hidden={!ready || files.length === 0}
       onclick={pick}
       aria-label="Preview of the result"
     ></canvas>
     {#if files.length === 0}
-      <div class="placeholder">
-        <span class="frame" aria-hidden="true"><Icon name="image" size={26} /></span>
-        <strong>The live preview shows up here</strong>
-        <span class="muted">Add images on the left, or drop them anywhere on the page.</span>
-      </div>
+      <p class="muted">Add images to see a preview.</p>
     {/if}
-    {#if busy}
-      <span class="busy" aria-live="polite"><span class="spinner"></span>Rendering</span>
-    {/if}
+    {#if busy}<span class="busy hint" aria-live="polite">Rendering…</span>{/if}
   </div>
 
   {#if error}
     <p class="notice error">{error}</p>
   {:else if stoppedAt !== -1 && files.length}
     <p class="hint">
-      <Icon name="info" size={14} />
       The preview stops before <strong>{session.ops[stoppedAt].title}</strong>, which runs when you
       process the images.
     </p>
   {/if}
   {#if pickStep !== -1 && files.length}
-    <p class="hint pick">
-      <Icon name="pipette" size={14} /> Click the preview to pick the background color.
-    </p>
+    <p class="hint">Click the preview to pick the background color.</p>
   {/if}
 
   {#if session.selectedItem?.info && !session.merges}
     {@const { metadata } = session.selectedItem.info}
-    <details class="metadata" open={session.exportSettings.format === 'keep'}>
+    <details open={session.exportSettings.format === 'keep'}>
       <summary>Metadata in {session.selectedItem.file.name}</summary>
       {#if metadata.entries.length}
         <dl>
@@ -146,38 +135,23 @@
 <style>
   .preview {
     display: grid;
-    gap: 0.7rem;
+    gap: 0.5rem;
   }
 
-  /* The canvas: a neutral dot grid, as in design tools, so it doesn't tint the image. */
   .stage {
     align-items: center;
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
     display: flex;
     justify-content: center;
-    min-height: 22rem;
-    overflow: hidden;
-    padding: clamp(1rem, 3vw, 2.25rem);
+    min-height: 16rem;
+    padding: 0.5rem;
     position: relative;
   }
 
   canvas {
-    animation: appear 300ms var(--ease);
-    border-radius: 3px;
-    box-shadow:
-      0 0 0 1px rgb(0 0 0 / 0.06),
-      0 24px 48px -20px rgb(20 20 40 / 0.45);
-    max-height: 72vh;
+    max-height: 75vh;
     max-width: 100%;
     object-fit: contain;
-  }
-
-  @keyframes appear {
-    from {
-      opacity: 0;
-      transform: scale(0.985);
-    }
   }
 
   canvas.picking {
@@ -188,101 +162,27 @@
     display: none;
   }
 
-  .placeholder {
-    display: grid;
-    gap: 0.35rem;
-    justify-items: center;
-    max-width: 22rem;
-    padding: 1.5rem;
-    text-align: center;
-  }
-
-  .placeholder strong {
-    font-size: 1.1rem;
-    font-weight: 620;
-    letter-spacing: -0.02em;
-  }
-
-  /* An empty frame waiting for a picture. */
-  .frame {
-    align-items: center;
-    background: var(--panel);
-    border: 1.5px dashed var(--border-strong);
-    border-radius: var(--radius);
-    color: var(--soft);
-    display: flex;
-    height: 5rem;
-    justify-content: center;
-    margin-bottom: 0.75rem;
-    transition: transform 500ms var(--spring);
-    width: 6.5rem;
-  }
-
-  .placeholder:hover .frame {
-    transform: translateY(-3px) rotate(-2deg);
-  }
-
   .busy {
-    align-items: center;
-    animation: rise 200ms var(--ease);
-    backdrop-filter: blur(8px);
-    background: color-mix(in srgb, var(--panel) 85%, transparent);
-    border-radius: 999px;
-    box-shadow: var(--shadow);
-    display: flex;
-    font-size: 0.75rem;
-    font-weight: 600;
-    gap: 0.4rem;
-    padding: 0.3rem 0.7rem;
+    background: var(--bg);
+    padding: 0.1rem 0.4rem;
     position: absolute;
-    right: 0.8rem;
-    top: 0.8rem;
+    right: 0.4rem;
+    top: 0.4rem;
   }
 
-  .hint {
-    align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-  }
-
-  /* A quiet disclosure under the stage, not another box. */
-  .metadata {
-    font-size: 0.85rem;
-    padding: 0 0.25rem;
+  details {
+    font-size: 0.9rem;
   }
 
   summary {
-    color: var(--muted);
     cursor: pointer;
-    font-weight: 600;
-    width: fit-content;
-  }
-
-  summary:hover {
-    color: var(--ink);
-  }
-
-  summary::marker {
-    color: var(--soft);
-  }
-
-  .metadata[open] {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.75rem 1rem;
-  }
-
-  .metadata[open] dl {
-    animation: rise 260ms var(--ease);
   }
 
   dl {
     display: grid;
-    gap: 0.35rem 1.25rem;
+    gap: 0.2rem 1rem;
     grid-template-columns: max-content 1fr;
-    margin: 0.75rem 0 0.2rem;
+    margin: 0.5rem 0 0;
   }
 
   dt {

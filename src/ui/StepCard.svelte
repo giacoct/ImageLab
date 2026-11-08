@@ -5,9 +5,7 @@
 <script lang="ts">
   import { session } from '../app/session.svelte';
   import { isTerminal } from '../ops/op';
-  import CardHead from './CardHead.svelte';
   import CropEditor from './CropEditor.svelte';
-  import Icon from './Icon.svelte';
   import ParamForm from './ParamForm.svelte';
 
   let { index }: { index: number } = $props();
@@ -18,31 +16,32 @@
   const terminal = $derived(isTerminal(op));
 </script>
 
-<section class="section step" aria-label="Step {index + 1}: {op.title}">
-  <CardHead icon={op.icon} eyebrow="Step {index + 1}" title={op.title}>
+<section class="section" aria-label="Step {index + 1}: {op.title}">
+  <div class="section-head">
+    <h2>{index + 1}. {op.title}</h2>
     <button
-      class="icon-button"
+      class="icon"
       type="button"
       aria-label="Move {op.title} up"
       disabled={index === 0 || terminal}
-      onclick={() => session.moveStep(index, -1)}><Icon name="up" size={16} /></button
+      onclick={() => session.moveStep(index, -1)}>↑</button
     >
     <button
-      class="icon-button"
+      class="icon"
       type="button"
       aria-label="Move {op.title} down"
       disabled={index === session.steps.length - 1 ||
         terminal ||
         isTerminal(session.ops[index + 1])}
-      onclick={() => session.moveStep(index, 1)}><Icon name="down" size={16} /></button
+      onclick={() => session.moveStep(index, 1)}>↓</button
     >
     <button
-      class="icon-button danger"
+      class="icon"
       type="button"
       aria-label="Remove {op.title}"
-      onclick={() => session.removeStep(index)}><Icon name="trash" size={16} /></button
+      onclick={() => session.removeStep(index)}>×</button
     >
-  </CardHead>
+  </div>
 
   {#if op.id === 'transform'}
     <CropEditor {index} />

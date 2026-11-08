@@ -67,7 +67,6 @@ export const ocr = textOp({
   kind: 'text',
   title: 'Extract text (OCR)',
   description: 'Recognize the text in the image (Tesseract).',
-  icon: 'ocr',
   suffix: 'text',
   heavy: true,
   params: {

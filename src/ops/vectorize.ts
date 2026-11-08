@@ -140,7 +140,6 @@ export const vectorize = svgOp({
   kind: 'svg',
   title: 'Convert to SVG',
   description: 'Trace the image into scalable vector shapes (VTracer).',
-  icon: 'vector',
   suffix: 'vector',
   heavy: true,
   params: PARAMS,

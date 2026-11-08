@@ -59,7 +59,6 @@ export const upscale = mapOp({
   kind: 'map',
   title: 'Upscale 4×',
   description: 'Enlarge 4× with AI super-resolution (Real-ESRGAN) that rebuilds detail.',
-  icon: 'upscale',
   suffix: 'upscaled',
   heavy: true,
   params: {},

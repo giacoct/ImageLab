@@ -6,7 +6,6 @@
   import { downloadBlob } from '../app/download';
   import type { Output } from '../engine/pipeline';
   import BlobImage from './BlobImage.svelte';
-  import Icon from './Icon.svelte';
 
   let { output }: { output: Output } = $props();
 
@@ -23,7 +22,7 @@
   }
 </script>
 
-<article class="panel ocr">
+<article class="section">
   <h3>{output.name}</h3>
   <div class="layout">
     {#if output.display}
@@ -49,21 +48,12 @@
       {:else}
         <p class="muted">No text was found.</p>
       {/if}
-      <div class="actions">
-        <button
-          class="button small primary"
-          type="button"
-          onclick={copy}
-          disabled={!output.ocr?.text}
-        >
-          <Icon name={copied ? 'check' : 'copy'} size={16} />{copied ? 'Copied' : 'Copy'}
+      <div class="row">
+        <button type="button" onclick={copy} disabled={!output.ocr?.text}>
+          {copied ? 'Copied' : 'Copy text'}
         </button>
-        <button
-          class="button small"
-          type="button"
-          onclick={() => downloadBlob(output.blob, output.name)}
-        >
-          <Icon name="download" size={16} />.txt
+        <button type="button" onclick={() => downloadBlob(output.blob, output.name)}>
+          Download .txt
         </button>
       </div>
     </div>
@@ -71,12 +61,6 @@
 </article>
 
 <style>
-  .ocr {
-    animation: rise 360ms var(--ease);
-    display: grid;
-    gap: 0.75rem;
-  }
-
   h3 {
     font-size: 0.9rem;
     overflow-wrap: anywhere;
@@ -84,7 +68,7 @@
 
   .layout {
     display: grid;
-    gap: 1rem;
+    gap: 0.75rem;
     grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
   }
 
@@ -94,7 +78,6 @@
   }
 
   .image :global(img) {
-    border-radius: 0.4rem;
     width: 100%;
   }
 
@@ -122,18 +105,8 @@
   }
 
   textarea {
-    background: var(--panel-subtle);
-    border: 1px solid var(--border);
-    border-radius: 0.7rem;
-    line-height: 1.55;
     min-height: 10rem;
-    padding: 0.6rem;
     resize: vertical;
     width: 100%;
-  }
-
-  .actions {
-    display: flex;
-    gap: 0.5rem;
   }
 </style>

@@ -38,13 +38,6 @@
     return typeof param.unit === 'function' ? param.unit(values) : param.unit;
   }
 
-  /** How far along its range a slider is, for the filled part of the track. */
-  function fill(param: Param, value: unknown): string {
-    if (param.kind !== 'number') return '0%';
-    const ratio = (Number(value) - param.min) / (param.max - param.min || 1);
-    return `${Math.min(1, Math.max(0, ratio)) * 100}%`;
-  }
-
   function setNumber(key: string, param: Param, raw: string): void {
     const value = Number(raw);
     if (raw === '' || Number.isNaN(value)) return;
@@ -70,15 +63,13 @@
             max={param.max}
             step={param.step}
             value={values[key]}
-            style:--fill={fill(param, values[key])}
             oninput={(event) => setNumber(key, param, event.currentTarget.value)}
           />
         {:else}
           <label class="field-label" for={id}>{label}</label>
-          <div class="input-group">
+          <div class="row">
             <input
               {id}
-              class="input"
               type="number"
               inputmode="decimal"
               min={param.min}
@@ -99,7 +90,6 @@
           <label class="field-label" for={id}>{label}</label>
           <select
             {id}
-            class="select"
             value={values[key]}
             onchange={(event) => onchange(key, param.sanitize(event.currentTarget.value))}
           >
@@ -126,7 +116,6 @@
     {:else if param.kind === 'boolean'}
       <label class="check">
         <input
-          class="switch"
           type="checkbox"
           checked={Boolean(values[key])}
           onchange={(event) => onchange(key, event.currentTarget.checked)}
@@ -136,7 +125,7 @@
     {:else if param.kind === 'color'}
       <div class="field">
         <label class="field-label" for={id}>{label}</label>
-        <div class="input-group">
+        <div class="row">
           <input
             {id}
             type="color"
@@ -144,7 +133,7 @@
             oninput={(event) => onchange(key, param.sanitize(event.currentTarget.value))}
           />
           <input
-            class="input mono"
+            class="mono"
             aria-label="{label} (hex)"
             value={values[key]}
             onchange={(event) => onchange(key, param.sanitize(event.currentTarget.value))}
@@ -158,7 +147,7 @@
 
 <style>
   .mono {
-    font-family: var(--font-mono);
+    font-family: ui-monospace, monospace;
     max-width: 8rem;
   }
 </style>

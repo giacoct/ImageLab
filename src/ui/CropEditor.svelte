@@ -107,10 +107,7 @@
 </script>
 
 <div class="editor">
-  {#if !session.selectedItem?.info}
-    <p class="hint">Add an image to draw the crop on it.</p>
-  {/if}
-  <div class="frame checker" class:hidden={!size || !session.selectedItem?.info}>
+  <div class="frame checker">
     <canvas bind:this={canvas} aria-label="Image to crop"></canvas>
     {#if size}
       <div
@@ -144,11 +141,7 @@
         Crop: {Math.round(shown.width * 100)}% × {Math.round(shown.height * 100)}% of the image
       {/if}
     </span>
-    <button
-      class="button small"
-      type="button"
-      onclick={() => session.setParam(index, 'crop', centeredCrop(k))}
-    >
+    <button type="button" onclick={() => session.setParam(index, 'crop', centeredCrop(k))}>
       Reset crop
     </button>
   </div>
@@ -160,14 +153,8 @@
     gap: 0.5rem;
   }
 
-  /* Kept in the page while empty: the canvas must exist to receive the image. */
-  .frame.hidden {
-    display: none;
-  }
-
   .frame {
-    border-radius: var(--radius-sm);
-    box-shadow: 0 0 0 1px var(--border);
+    border: 1px solid var(--border);
     justify-self: center;
     line-height: 0;
     overflow: hidden; /* clips the dimming shadow around the crop box */
@@ -221,13 +208,7 @@
     box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
     height: 14px;
     position: absolute;
-    transition: transform 160ms var(--spring);
     width: 14px;
-  }
-
-  .handle:hover,
-  .handle:active {
-    transform: scale(1.3);
   }
 
   .nw,

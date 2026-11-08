@@ -1,8 +1,9 @@
 /*
  * Global styles: a few color tokens, plain native controls, and the handful
  * of shared classes (sections, notices, the transparency checkerboard).
- * Components keep only their own layout in their <style>. The page follows
- * the system's light/dark scheme through `color-scheme` and `light-dark()`.
+ * Components keep only their own layout in their <style>. Colors are defined
+ * once with `light-dark()`: the page follows the system scheme, and
+ * `data-theme="light|dark"` on <html> (app/theme.svelte.ts) forces one.
  */
 
 :root {
@@ -29,6 +30,14 @@
   font-size: 15px;
   line-height: 1.45;
   color: var(--ink);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 * {

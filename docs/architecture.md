@@ -17,7 +17,7 @@ CI beyond the deploy workflow.
 ## Repository map
 
 ```
-index.html              # Vite entry
+index.html              # Vite entry; applies the saved theme before first paint
 vite.config.ts          # build, service worker plugin, Vitest projects (Node + Chromium)
 scripts/assets.mjs      # copies OCR files into public/vendor, downloads the model
 public/                 # served as-is: icons, favicon, web app manifest
@@ -157,11 +157,15 @@ Prefer a native element (`<select>`, `<progress>`, `<details>`, `prompt()`,
   (`core/zip.ts` returns the archive as parts around them), reading one file
   at a time for its checksum, so a large batch is never copied into one
   buffer.
-- **Styles:** `src/styles.css` holds a few color tokens, each defined once
-  with `light-dark()` (the page follows the system's light/dark scheme), the
-  base look of the native controls, and the shared classes (`.section`,
-  `.row`, `.notice`, `.hint`, `.checker` for transparency, the form fields).
-  The system font, no animations. Components keep only their own layout.
+- **Styles:** `src/styles.css` holds a few color tokens, the base look of
+  the native controls, and the shared classes (`.section`, `.row`,
+  `.notice`, `.hint`, `.checker` for transparency, the form fields). The
+  system font, no animations. Components keep only their own layout.
+- **Theme:** each color is defined once with `light-dark()`, so the page
+  follows the system's light/dark scheme. The header's drop-down (state in
+  `app/theme.svelte.ts`) can force light or dark by setting `data-theme` on
+  `<html>`, which forces the `color-scheme`; an inline script in
+  `index.html` applies the saved choice before the first paint.
 
 ## Cross-file invariants (easy to break)
 
@@ -183,6 +187,8 @@ import.meta.url)`. Keep them in `optimizeDeps.exclude` (vite.config.ts), and
 - **No cross-origin isolation:** GitHub Pages can't send COOP/COEP headers, so
   WASM runs single-threaded (onnxruntime's CPU fallback, AVIF encoding).
   WebGPU is unaffected.
+- **The theme's storage key** (`imagelab:theme`) is read both by the inline
+  script in `index.html` and by `app/theme.svelte.ts`.
 - **The service worker** (`src/sw.js`) is emitted by a plugin in
   `vite.config.ts`, which replaces `const BUILD = __BUILD__;` with every file
   of the build (public ones included) and a hash of its content, plus the app

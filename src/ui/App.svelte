@@ -1,10 +1,11 @@
 <!--
-  Root shell: the header, the current page (home, a tool, or a saved recipe),
-  and the page-wide drop and paste handling.
+  Root shell: the header (with the theme choice), the current page (home, a
+  tool, or a saved recipe), and the page-wide drop and paste handling.
 -->
 <script lang="ts">
   import { recipes } from '../app/recipes.svelte';
   import { router } from '../app/router.svelte';
+  import { theme, type ThemePreference } from '../app/theme.svelte';
   import { findTool } from '../app/tools';
   import DropOverlay from './DropOverlay.svelte';
   import Home from './Home.svelte';
@@ -17,6 +18,15 @@
 
 <header>
   <a href="#/">ImageLab</a>
+  <select
+    aria-label="Theme"
+    value={theme.preference}
+    onchange={(event) => theme.set(event.currentTarget.value as ThemePreference)}
+  >
+    <option value="system">System theme</option>
+    <option value="light">Light</option>
+    <option value="dark">Dark</option>
+  </select>
 </header>
 
 <main>
@@ -37,7 +47,10 @@
 
 <style>
   header {
+    align-items: center;
     border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
     padding: 0.6rem 1rem;
   }
 

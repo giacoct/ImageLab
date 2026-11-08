@@ -45,8 +45,8 @@ picked, or pasted, even on the home page before choosing a tool. iPhone
 **HEIC** photos open everywhere. Results can be renamed and downloaded one by
 one or as a ZIP. If some files fail, the rest still complete and the failures
 are listed. Each tool remembers its last settings. The app works offline once
-loaded, and can be installed as an app. It follows the device's light or dark
-theme.
+loaded, and can be installed as an app. It has a light and a dark theme
+(following the device unless you pick one in the header).
 
 ## Getting started
 

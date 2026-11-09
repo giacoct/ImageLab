@@ -5,8 +5,8 @@
   image in the batch.
 -->
 <script lang="ts">
-  import { drawBitmap, Previewer } from '../app/previewer';
-  import { session } from '../app/session.svelte';
+  import { drawBitmap, Previewer } from "../app/previewer";
+  import { session } from "../app/session.svelte";
   import {
     applyDrag,
     aspectFactor,
@@ -15,9 +15,9 @@
     type AspectPreset,
     type Crop,
     type DragMode,
-  } from '../core/geometry';
-  import type { Step } from '../ops/op';
-  import { cropForImage } from '../ops/transform';
+  } from "../core/geometry";
+  import type { Step } from "../ops/op";
+  import { cropForImage } from "../ops/transform";
 
   let { index }: { index: number } = $props();
 
@@ -33,7 +33,7 @@
   );
 
   const params = $derived(session.steps[index]?.params ?? {});
-  const aspect = $derived((params.aspect ?? 'free') as AspectPreset);
+  const aspect = $derived((params.aspect ?? "free") as AspectPreset);
   const crop = $derived((params.crop ?? FULL_CROP) as Crop);
   const k = $derived(size ? aspectFactor(aspect, size) : null);
   const shown = $derived(size ? cropForImage(crop, aspect, size) : crop);
@@ -45,8 +45,12 @@
     const step = session.steps[index]; // briefly gone right after the step is removed
     if (!item?.info || !step) return;
     // After a merge, the step's input is all the images combined.
-    const merged = session.ops.slice(0, index).some((op) => op.kind === 'combine');
-    const items = merged ? session.usable.filter((other) => other.info) : [item];
+    const merged = session.ops
+      .slice(0, index)
+      .some((op) => op.kind === "combine");
+    const items = merged
+      ? session.usable.filter((other) => other.info)
+      : [item];
     const { id, op, params } = step;
     const self: Step = {
       id,
@@ -56,7 +60,7 @@
         flipH: params.flipH,
         flipV: params.flipV,
         crop: FULL_CROP,
-        aspect: 'free',
+        aspect: "free",
       },
     };
     previewer.request({
@@ -66,7 +70,13 @@
     });
   });
 
-  let drag: { mode: DragMode; x: number; y: number; start: Crop; rect: DOMRect } | null = null;
+  let drag: {
+    mode: DragMode;
+    x: number;
+    y: number;
+    start: Crop;
+    rect: DOMRect;
+  } | null = null;
 
   function start(event: PointerEvent, mode: DragMode): void {
     event.preventDefault();
@@ -85,14 +95,18 @@
     if (!drag) return;
     const dx = (event.clientX - drag.x) / drag.rect.width;
     const dy = (event.clientY - drag.y) / drag.rect.height;
-    session.setParam(index, 'crop', applyDrag(drag.start, drag.mode, dx, dy, k));
+    session.setParam(
+      index,
+      "crop",
+      applyDrag(drag.start, drag.mode, dx, dy, k),
+    );
   }
 
   function end(): void {
     drag = null;
   }
 
-  const HANDLES: DragMode[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+  const HANDLES: DragMode[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
   const percent = (n: number) => `${(n * 100).toFixed(3)}%`;
 </script>
 
@@ -107,7 +121,7 @@
         style:width={percent(shown.width)}
         style:height={percent(shown.height)}
         role="presentation"
-        onpointerdown={(event) => start(event, 'move')}
+        onpointerdown={(event) => start(event, "move")}
         onpointermove={move}
         onpointerup={end}
         onpointercancel={end}
@@ -128,10 +142,15 @@
   <div class="row">
     <span class="hint">
       {#if size}
-        Crop: {Math.round(shown.width * 100)}% × {Math.round(shown.height * 100)}% of the image
+        Crop: {Math.round(shown.width * 100)}% × {Math.round(
+          shown.height * 100,
+        )}% of the image
       {/if}
     </span>
-    <button type="button" onclick={() => session.setParam(index, 'crop', centeredCrop(k))}>
+    <button
+      type="button"
+      onclick={() => session.setParam(index, "crop", centeredCrop(k))}
+    >
       Reset crop
     </button>
   </div>

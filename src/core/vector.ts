@@ -48,7 +48,8 @@ export function restoreSize(
   original: { width: number; height: number },
   traced: { width: number; height: number },
 ): string {
-  if (original.width === traced.width && original.height === traced.height) return svg;
+  if (original.width === traced.width && original.height === traced.height)
+    return svg;
   return svg.replace(
     `width="${traced.width}" height="${traced.height}"`,
     `width="${original.width}" height="${original.height}" viewBox="0 0 ${traced.width} ${traced.height}"`,

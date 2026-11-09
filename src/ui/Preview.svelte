@@ -5,21 +5,21 @@
   isn't an image.
 -->
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { untrack } from "svelte";
 
-  import { drawBitmap, Previewer } from '../app/previewer';
-  import { session } from '../app/session.svelte';
+  import { drawBitmap, Previewer } from "../app/previewer";
+  import { session } from "../app/session.svelte";
 
   let canvas: HTMLCanvasElement;
   let stage: HTMLDivElement;
-  let error = $state('');
+  let error = $state("");
   let busy = $state(false);
   let ready = $state(false);
 
   const previewer = new Previewer(
     (bitmap) => {
       drawBitmap(canvas, bitmap);
-      error = '';
+      error = "";
       ready = true;
     },
     (message) => (error = message),
@@ -29,15 +29,21 @@
   const item = $derived(session.selected);
   /** The images shown, once they've been read without problems. */
   const shown = $derived(
-    session.merges ? session.usable.filter((other) => other.info) : item?.info ? [item] : [],
+    session.merges
+      ? session.usable.filter((other) => other.info)
+      : item?.info
+        ? [item]
+        : [],
   );
   /** Changes only when the images shown do, not when other details of the list arrive. */
-  const ids = $derived(shown.map((other) => other.id).join(' '));
-  const finalAt = $derived(session.ops.findIndex((op) => op.kind === 'final'));
+  const ids = $derived(shown.map((other) => other.id).join(" "));
+  const finalAt = $derived(session.ops.findIndex((op) => op.kind === "final"));
 
   // Re-render when the previewed steps' settings or the images shown change.
   $effect(() => {
-    const steps = $state.snapshot(session.steps.slice(0, finalAt === -1 ? undefined : finalAt));
+    const steps = $state.snapshot(
+      session.steps.slice(0, finalAt === -1 ? undefined : finalAt),
+    );
     if (!ids) {
       ready = false;
       return;
@@ -74,8 +80,8 @@
   {/if}
   {#if finalAt !== -1 && shown.length}
     <p class="hint">
-      The preview stops before <strong>{session.ops[finalAt].title}</strong>, which runs when you
-      process the images.
+      The preview stops before <strong>{session.ops[finalAt].title}</strong>,
+      which runs when you process the images.
     </p>
   {/if}
 </div>

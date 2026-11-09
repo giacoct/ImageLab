@@ -21,11 +21,20 @@ export interface Encoding {
 
 /** How an image decoded from a file of `sourceType` is saved unless a step says otherwise. */
 export function initialEncoding(sourceType: string): Encoding {
-  return { format: savedFormat(sourceType), chosen: false, quality: 90, targetBytes: null };
+  return {
+    format: savedFormat(sourceType),
+    chosen: false,
+    quality: 90,
+    targetBytes: null,
+  };
 }
 
 /** The format to write now; `transparent` is only asked when it matters. */
-export function formatToWrite(encoding: Encoding, transparent: () => boolean): ImageFormat {
-  if (!encoding.chosen && encoding.format === 'image/jpeg' && transparent()) return 'image/png';
+export function formatToWrite(
+  encoding: Encoding,
+  transparent: () => boolean,
+): ImageFormat {
+  if (!encoding.chosen && encoding.format === 'image/jpeg' && transparent())
+    return 'image/png';
   return encoding.format;
 }

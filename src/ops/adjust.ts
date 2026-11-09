@@ -29,6 +29,10 @@ export const adjust = mapOp({
     });
     if (values.sharpen === 0) return image;
     const pixels = readPixels(image);
-    return fromPixels(sharpenPixels(pixels, values.sharpen / 100), pixels.width, pixels.height);
+    return fromPixels(
+      sharpenPixels(pixels, values.sharpen / 100),
+      pixels.width,
+      pixels.height,
+    );
   },
 });

@@ -8,13 +8,21 @@ import type { Worker as Tesseract } from 'tesseract.js';
 
 import { p } from '../core/params';
 import { adjustPixels } from '../core/pixels';
-import { context2d, createCanvas, editPixels, type Img } from '../engine/canvas';
+import {
+  context2d,
+  createCanvas,
+  editPixels,
+  type Img,
+} from '../engine/canvas';
 import { finalOp } from './op';
 
 let current: { langs: string; worker: Promise<Tesseract> } | undefined;
 
 /** One Tesseract worker per engine worker, kept warm; recreated when the languages change. */
-function tesseract(langs: string, asset: (path: string) => string): Promise<Tesseract> {
+function tesseract(
+  langs: string,
+  asset: (path: string) => string,
+): Promise<Tesseract> {
   if (current?.langs !== langs) {
     void current?.worker.then((old) => old.terminate()).catch(() => {});
     const worker = import('tesseract.js').then(({ createWorker, OEM }) =>
@@ -44,11 +52,18 @@ function prepare(image: Img): OffscreenCanvas {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(image, 0, 0);
   return editPixels(canvas, ({ data }) => {
-    const gray = { brightness: 100, contrast: 100, saturation: 100, grayscale: 100, sepia: 0 };
+    const gray = {
+      brightness: 100,
+      contrast: 100,
+      saturation: 100,
+      grayscale: 100,
+      sepia: 0,
+    };
     adjustPixels(data, { ...gray, invert: false });
     let sum = 0;
     for (let i = 0; i < data.length; i += 4) sum += data[i];
-    if (sum / (data.length / 4) < 110) adjustPixels(data, { ...gray, invert: true });
+    if (sum / (data.length / 4) < 110)
+      adjustPixels(data, { ...gray, invert: true });
   });
 }
 
@@ -83,7 +98,8 @@ export const ocr = finalOp({
     const worker = await tesseract(values.language, context.asset);
     const { PSM } = await import('tesseract.js');
     await worker.setParameters({
-      tessedit_pageseg_mode: values.layout === 'sparse' ? PSM.SPARSE_TEXT : PSM.AUTO,
+      tessedit_pageseg_mode:
+        values.layout === 'sparse' ? PSM.SPARSE_TEXT : PSM.AUTO,
     });
     const png = await prepare(image).convertToBlob({ type: 'image/png' });
     const { data } = await worker.recognize(png);

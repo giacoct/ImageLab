@@ -36,11 +36,15 @@ export function rgbToHex(r: number, g: number, b: number): string {
  * within the winning bucket. White when the border is fully transparent.
  */
 export function edgeColor({ data, width, height }: Pixels): string {
-  const buckets = new Map<number, { count: number; r: number; g: number; b: number }>();
+  const buckets = new Map<
+    number,
+    { count: number; r: number; g: number; b: number }
+  >();
   const add = (x: number, y: number) => {
     const i = (y * width + x) * 4;
     if (data[i + 3] < 128) return;
-    const key = ((data[i] >> 4) << 8) | ((data[i + 1] >> 4) << 4) | (data[i + 2] >> 4);
+    const key =
+      ((data[i] >> 4) << 8) | ((data[i + 1] >> 4) << 4) | (data[i + 2] >> 4);
     const bucket = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
     bucket.count += 1;
     bucket.r += data[i];
@@ -57,8 +61,11 @@ export function edgeColor({ data, width, height }: Pixels): string {
     add(width - 1, y);
   }
   let best: { count: number; r: number; g: number; b: number } | undefined;
-  for (const bucket of buckets.values()) if (!best || bucket.count > best.count) best = bucket;
-  return best ? rgbToHex(best.r / best.count, best.g / best.count, best.b / best.count) : '#ffffff';
+  for (const bucket of buckets.values())
+    if (!best || bucket.count > best.count) best = bucket;
+  return best
+    ? rgbToHex(best.r / best.count, best.g / best.count, best.b / best.count)
+    : '#ffffff';
 }
 
 /** Make the background transparent, in place. */
@@ -74,7 +81,11 @@ export function removeBackground(
   const keep = (p: number): number => {
     const i = p * 4;
     if (data[i + 3] === 0) return 0;
-    const distance = Math.hypot(data[i] - kr, data[i + 1] - kg, data[i + 2] - kb);
+    const distance = Math.hypot(
+      data[i] - kr,
+      data[i + 1] - kg,
+      data[i + 2] - kb,
+    );
     if (distance <= limit) return 0;
     if (distance >= limit + band) return 1;
     return (distance - limit) / band;

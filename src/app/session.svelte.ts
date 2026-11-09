@@ -35,7 +35,8 @@ export interface Failure {
 let nextId = 0;
 const uid = () => `id${++nextId}`;
 
-const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
+const messageOf = (error: unknown) =>
+  error instanceof Error ? error.message : String(error);
 
 class Session {
   items = $state<Item[]>([]);
@@ -63,7 +64,9 @@ class Session {
   private readonly signature = $derived(
     JSON.stringify([this.items.map((item) => item.id), this.steps]),
   );
-  readonly stale = $derived(this.ranWith !== null && this.ranWith !== this.signature);
+  readonly stale = $derived(
+    this.ranWith !== null && this.ranWith !== this.signature,
+  );
 
   /** Why the chain can't run yet, or null. */
   readonly blocker = $derived(
@@ -119,7 +122,10 @@ class Session {
     const op = getOp(opId);
     if (!this.canAdd(op)) return;
     const step = { id: uid(), op: opId, params: defaults(op.params) };
-    const at = op.kind === 'final' || !this.final ? this.steps.length : this.steps.length - 1;
+    const at =
+      op.kind === 'final' || !this.final
+        ? this.steps.length
+        : this.steps.length - 1;
     this.steps.splice(at, 0, step);
   }
 
@@ -171,13 +177,25 @@ class Session {
       const job = jobs[index];
       let failure: Failure | undefined;
       try {
-        const inputs = job.map((item) => ({ name: item.file.name, blob: item.file }));
-        const outputs = await engine.run('process', { inputs, steps }, controller.signal);
+        const inputs = job.map((item) => ({
+          name: item.file.name,
+          blob: item.file,
+        }));
+        const outputs = await engine.run(
+          'process',
+          { inputs, steps },
+          controller.signal,
+        );
         const inputSize = job.reduce((sum, item) => sum + item.file.size, 0);
-        slots[index] = outputs.map((output) => ({ id: uid(), output, inputSize }));
+        slots[index] = outputs.map((output) => ({
+          id: uid(),
+          output,
+          inputSize,
+        }));
       } catch (error) {
         if (error instanceof Cancelled) return;
-        const name = job.length === 1 ? job[0].file.name : `${job.length} images`;
+        const name =
+          job.length === 1 ? job[0].file.name : `${job.length} images`;
         failure = { name, message: messageOf(error) };
       }
       // After a cancel, the state belongs to whatever came next.
@@ -189,7 +207,8 @@ class Session {
 
     let next = 0;
     const lane = async () => {
-      while (next < jobs.length && !controller.signal.aborted) await runJob(next++);
+      while (next < jobs.length && !controller.signal.aborted)
+        await runJob(next++);
     };
     await Promise.all(Array.from({ length: parallel }, lane));
 

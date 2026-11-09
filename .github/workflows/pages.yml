@@ -8,7 +8,7 @@ on:
   push:
     branches: [main]
     # Docs and editor settings aren't part of the site.
-    paths-ignore: ['docs/**', '**.md', '.vscode/**', '.claude/**']
+    paths-ignore: ["docs/**", "**.md", ".vscode/**", ".claude/**"]
   workflow_dispatch:
 
 permissions:

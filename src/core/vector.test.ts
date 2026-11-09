@@ -11,7 +11,11 @@ describe('vector', () => {
       corners: 'balanced',
       curves: 'spline',
     });
-    expect(config).toMatchObject({ binary: false, filterSpeckle: 16, colorPrecision: 2 });
+    expect(config).toMatchObject({
+      binary: false,
+      filterSpeckle: 16,
+      colorPrecision: 2,
+    });
     expect(config.cornerThreshold).toBeCloseTo(Math.PI / 3);
     expect(
       tracerConfig({
@@ -26,9 +30,15 @@ describe('vector', () => {
 
   it('restores the original size with a viewBox', () => {
     const svg = '<svg width="200" height="100"><path/></svg>';
-    expect(restoreSize(svg, { width: 100, height: 50 }, { width: 200, height: 100 })).toBe(
-      '<svg width="100" height="50" viewBox="0 0 200 100"><path/></svg>',
-    );
-    expect(restoreSize(svg, { width: 200, height: 100 }, { width: 200, height: 100 })).toBe(svg);
+    expect(
+      restoreSize(svg, { width: 100, height: 50 }, { width: 200, height: 100 }),
+    ).toBe('<svg width="100" height="50" viewBox="0 0 200 100"><path/></svg>');
+    expect(
+      restoreSize(
+        svg,
+        { width: 200, height: 100 },
+        { width: 200, height: 100 },
+      ),
+    ).toBe(svg);
   });
 });

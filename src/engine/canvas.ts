@@ -9,9 +9,12 @@ import type { Pixels } from '../core/pixels';
 /** The pipeline's image type. */
 export type Img = OffscreenCanvas;
 
-export function context2d(canvas: OffscreenCanvas): OffscreenCanvasRenderingContext2D {
+export function context2d(
+  canvas: OffscreenCanvas,
+): OffscreenCanvasRenderingContext2D {
   const context = canvas.getContext('2d', { willReadFrequently: false });
-  if (!context) throw new Error('Canvas rendering is not available in this browser.');
+  if (!context)
+    throw new Error('Canvas rendering is not available in this browser.');
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = 'high';
   return context;
@@ -19,7 +22,10 @@ export function context2d(canvas: OffscreenCanvas): OffscreenCanvasRenderingCont
 
 /** A blank (transparent) canvas of whole-pixel size, at least 1×1. */
 export function createCanvas(width: number, height: number): OffscreenCanvas {
-  return new OffscreenCanvas(Math.max(1, Math.round(width)), Math.max(1, Math.round(height)));
+  return new OffscreenCanvas(
+    Math.max(1, Math.round(width)),
+    Math.max(1, Math.round(height)),
+  );
 }
 
 /** A copy of `source` drawn at `width`×`height` (high-quality smoothing). */
@@ -44,13 +50,24 @@ export function downscaled(
 ): OffscreenCanvas {
   let current: OffscreenCanvas | ImageBitmap = source;
   while (current.width / 2 >= width && current.height / 2 >= height) {
-    current = resized(current, Math.round(current.width / 2), Math.round(current.height / 2));
+    current = resized(
+      current,
+      Math.round(current.width / 2),
+      Math.round(current.height / 2),
+    );
   }
   return resized(current, width, height);
 }
 
-export function readPixels(canvas: OffscreenCanvas): Pixels & { image: ImageData } {
-  const image = context2d(canvas).getImageData(0, 0, canvas.width, canvas.height);
+export function readPixels(
+  canvas: OffscreenCanvas,
+): Pixels & { image: ImageData } {
+  const image = context2d(canvas).getImageData(
+    0,
+    0,
+    canvas.width,
+    canvas.height,
+  );
   return { image, data: image.data, width: image.width, height: image.height };
 }
 

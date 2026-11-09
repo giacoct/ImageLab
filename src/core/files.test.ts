@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatBytes, isImageFile, outputName, savedFormat, sniffType, uniqueNames } from './files';
+import {
+  formatBytes,
+  isImageFile,
+  outputName,
+  savedFormat,
+  sniffType,
+  uniqueNames,
+} from './files';
 
 describe('files', () => {
   it('formats sizes', () => {
@@ -10,7 +17,9 @@ describe('files', () => {
   });
 
   it('names outputs', () => {
-    expect(outputName('photo.final.png', 'scaled', 'webp')).toBe('photo.final-scaled.webp');
+    expect(outputName('photo.final.png', 'scaled', 'webp')).toBe(
+      'photo.final-scaled.webp',
+    );
   });
 
   it('recognizes images, HEIC with or without a type', () => {
@@ -40,14 +49,18 @@ describe('files', () => {
 describe('sniffType', () => {
   const bytes = (...values: (number | string)[]) =>
     new Uint8Array(
-      values.flatMap((v) => (typeof v === 'string' ? [...v].map((c) => c.charCodeAt(0)) : [v])),
+      values.flatMap((v) =>
+        typeof v === 'string' ? [...v].map((c) => c.charCodeAt(0)) : [v],
+      ),
     );
 
   it('recognizes formats by their magic bytes', () => {
     expect(sniffType(bytes(0xff, 0xd8, 0xff, 0xe0), '')).toBe('image/jpeg');
     expect(sniffType(bytes(0x89, 'PNG'), '')).toBe('image/png');
     expect(sniffType(bytes('RIFF', 0, 0, 0, 0, 'WEBP'), '')).toBe('image/webp');
-    expect(sniffType(bytes(0, 0, 0, 0, 'ftypheic'), 'image/jpeg')).toBe('image/heic');
+    expect(sniffType(bytes(0, 0, 0, 0, 'ftypheic'), 'image/jpeg')).toBe(
+      'image/heic',
+    );
     expect(sniffType(bytes(0, 0, 0, 0, 'ftypavif'), '')).toBe('image/avif');
     expect(sniffType(bytes(1, 2, 3), 'image/x-weird')).toBe('image/x-weird');
   });

@@ -29,7 +29,12 @@ describe('background', () => {
 
   it('removes only the background connected to the edges', () => {
     const image = ring();
-    removeBackground(image, { color: '#ffffff', tolerance: 5, softness: 0, connected: true });
+    removeBackground(image, {
+      color: '#ffffff',
+      tolerance: 5,
+      softness: 0,
+      connected: true,
+    });
     expect(alpha(image, 0, 0)).toBe(0);
     expect(alpha(image, 2, 2)).toBe(255); // the ring
     expect(alpha(image, 4, 4)).toBe(255); // white inside the ring stays
@@ -37,13 +42,20 @@ describe('background', () => {
 
   it('removes the color everywhere when asked', () => {
     const image = ring();
-    removeBackground(image, { color: '#ffffff', tolerance: 5, softness: 0, connected: false });
+    removeBackground(image, {
+      color: '#ffffff',
+      tolerance: 5,
+      softness: 0,
+      connected: false,
+    });
     expect(alpha(image, 4, 4)).toBe(0);
     expect(alpha(image, 2, 2)).toBe(255);
   });
 
   it('fades colors in the soft band', () => {
-    const data = new Uint8ClampedArray([255, 255, 255, 255, 200, 200, 200, 255, 0, 0, 0, 255]);
+    const data = new Uint8ClampedArray([
+      255, 255, 255, 255, 200, 200, 200, 255, 0, 0, 0, 255,
+    ]);
     removeBackground(
       { data, width: 3, height: 1 },
       { color: '#ffffff', tolerance: 5, softness: 20, connected: false },

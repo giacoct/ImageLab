@@ -22,7 +22,7 @@
   font-family:
     system-ui,
     -apple-system,
-    'Segoe UI',
+    "Segoe UI",
     Roboto,
     sans-serif;
   font-size: 15px;
@@ -103,8 +103,8 @@ button.icon {
 }
 
 input:not([type]),
-input[type='text'],
-input[type='number'],
+input[type="text"],
+input[type="number"],
 select,
 textarea {
   background: var(--bg);
@@ -222,17 +222,17 @@ textarea {
   gap: 0.25rem;
 }
 
-.segmented button[aria-pressed='true'] {
+.segmented button[aria-pressed="true"] {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-accent);
 }
 
-input[type='range'] {
+input[type="range"] {
   accent-color: var(--accent);
   width: 100%;
 }
 
-input[type='checkbox'] {
+input[type="checkbox"] {
   accent-color: var(--accent);
 }

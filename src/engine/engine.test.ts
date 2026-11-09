@@ -48,7 +48,10 @@ function step(op: string, params: Record<string, unknown> = {}): Step {
 }
 
 /** Save as `format`, as a Convert format step would. */
-const as = (format: ImageFormat, settings: Partial<Encoding> = {}): Encoding => ({
+const as = (
+  format: ImageFormat,
+  settings: Partial<Encoding> = {},
+): Encoding => ({
   ...initialEncoding('image/png'),
   format,
   chosen: true,
@@ -65,7 +68,11 @@ function noise(): Img {
   return canvas;
 }
 
-async function run(op: string, image: Img, params: Record<string, unknown> = {}) {
+async function run(
+  op: string,
+  image: Img,
+  params: Record<string, unknown> = {},
+) {
   const definition = getOp(op);
   if (definition.kind !== 'map') throw new Error('not a map op');
   return definition.run(image, step(op, params).params, context);
@@ -86,36 +93,50 @@ describe('decode', () => {
   });
 
   it('rejects files that are not images', async () => {
-    await expect(decode(new Blob(['hello'], { type: 'text/plain' }))).rejects.toThrow(
-      /not an image/,
-    );
+    await expect(
+      decode(new Blob(['hello'], { type: 'text/plain' })),
+    ).rejects.toThrow(/not an image/);
   });
 });
 
 describe('encode', () => {
-  it.each(['jpeg', 'png', 'webp', 'avif'] as const)('writes %s', async (format) => {
-    const { blob, width } = await encodeImage(twoTone(), as(`image/${format}`));
-    expect(blob.type).toBe(`image/${format}`);
-    expect(width).toBe(40);
-    const { image } = await decode(blob);
-    expect(image.width).toBe(40);
-  });
+  it.each(['jpeg', 'png', 'webp', 'avif'] as const)(
+    'writes %s',
+    async (format) => {
+      const { blob, width } = await encodeImage(
+        twoTone(),
+        as(`image/${format}`),
+      );
+      expect(blob.type).toBe(`image/${format}`);
+      expect(width).toBe(40);
+      const { image } = await decode(blob);
+      expect(image.width).toBe(40);
+    },
+  );
 
   it('keeps the input format, switching JPEG to PNG for transparency', async () => {
     const kept = initialEncoding('image/jpeg');
     expect((await encodeImage(twoTone(), kept)).blob.type).toBe('image/jpeg');
-    expect((await encodeImage(createCanvas(10, 10), kept)).blob.type).toBe('image/png');
+    expect((await encodeImage(createCanvas(10, 10), kept)).blob.type).toBe(
+      'image/png',
+    );
   });
 
   it('meets a target size by lowering the quality', async () => {
     const best = await encodeImage(noise(), as('image/jpeg', { quality: 100 }));
-    const { blob } = await encodeImage(noise(), as('image/jpeg', { targetBytes: 30 * 1024 }));
+    const { blob } = await encodeImage(
+      noise(),
+      as('image/jpeg', { targetBytes: 30 * 1024 }),
+    );
     expect(blob.size).toBeLessThanOrEqual(30 * 1024);
     expect(best.blob.size).toBeGreaterThan(30 * 1024);
   });
 
   it('meets a target size for PNG by lowering the dimensions', async () => {
-    const { blob, width } = await encodeImage(noise(), as('image/png', { targetBytes: 50 * 1024 }));
+    const { blob, width } = await encodeImage(
+      noise(),
+      as('image/png', { targetBytes: 50 * 1024 }),
+    );
     expect(blob.size).toBeLessThanOrEqual(50 * 1024);
     expect(width).toBeLessThan(300);
   });
@@ -146,15 +167,24 @@ describe('operations', () => {
   });
 
   it('scales by percentage, box and width', async () => {
-    expect((await run('scale', twoTone(), { mode: 'percent', percent: 50 })).width).toBe(20);
-    const boxed = await run('scale', twoTone(400, 200), { mode: 'fit', width: 100, height: 100 });
+    expect(
+      (await run('scale', twoTone(), { mode: 'percent', percent: 50 })).width,
+    ).toBe(20);
+    const boxed = await run('scale', twoTone(400, 200), {
+      mode: 'fit',
+      width: 100,
+      height: 100,
+    });
     expect([boxed.width, boxed.height]).toEqual([100, 50]);
     const small = await run('scale', twoTone(), { mode: 'width', width: 400 });
     expect(small.width).toBe(40); // never enlarges unless asked
   });
 
   it('adds a margin, in pixels or percent, colored or transparent', async () => {
-    const framed = await run('margin', twoTone(), { size: 5, color: '#00ff00' });
+    const framed = await run('margin', twoTone(), {
+      size: 5,
+      color: '#00ff00',
+    });
     expect([framed.width, framed.height]).toEqual([50, 30]);
     expect(pixel(framed, 1, 1)).toEqual([0, 255, 0, 255]);
     expect(pixel(framed, 6, 6)).toEqual([255, 0, 0, 255]);
@@ -221,7 +251,10 @@ describe('pipeline', () => {
   it('keeps a converted format through later steps', async () => {
     const output = await processFile(
       await input(),
-      [step('convert', { format: 'jpeg' }), step('adjust', { brightness: 120 })],
+      [
+        step('convert', { format: 'jpeg' }),
+        step('adjust', { brightness: 120 }),
+      ],
       context,
     );
     expect(output.name).toBe('photo-adjusted.jpg');
@@ -246,7 +279,10 @@ describe('pipeline', () => {
   it('compresses to a file size', async () => {
     const output = await processFile(
       await input('noise.png', noise()),
-      [step('convert', { format: 'jpeg' }), step('compress', { mode: 'target', targetKb: 30 })],
+      [
+        step('convert', { format: 'jpeg' }),
+        step('compress', { mode: 'target', targetKb: 30 }),
+      ],
       context,
     );
     expect(output.blob.type).toBe('image/jpeg');
@@ -266,7 +302,9 @@ describe('pipeline', () => {
   });
 
   it('refuses an empty chain', async () => {
-    await expect(processFile(await input(), [], context)).rejects.toThrow(/Add a step/);
+    await expect(processFile(await input(), [], context)).rejects.toThrow(
+      /Add a step/,
+    );
   });
 
   it('makes small thumbnails of the results', async () => {
@@ -284,10 +322,16 @@ describe('pipeline', () => {
     const files = [{ key: 'a', blob: await pngBlob(twoTone(400, 200)) }];
     const steps = [step('scale', { mode: 'width', width: 200 })];
     // 400×200 → 100×50 preview; 200 px wide at full size is 50 px at this scale.
-    const preview = await renderPreview({ files, steps, maxSide: 100 }, context.asset);
+    const preview = await renderPreview(
+      { files, steps, maxSide: 100 },
+      context.asset,
+    );
     expect([preview.width, preview.height]).toEqual([50, 25]);
     // Another size comes from the same cached copy, scaled the same way.
-    const larger = await renderPreview({ files, steps, maxSide: 200 }, context.asset);
+    const larger = await renderPreview(
+      { files, steps, maxSide: 200 },
+      context.asset,
+    );
     expect([larger.width, larger.height]).toEqual([100, 50]);
   });
 
@@ -312,16 +356,29 @@ describe('pipeline', () => {
       context,
     );
     expect(outputs).toHaveLength(1);
-    expect(outputs[0]).toMatchObject({ name: 'a-merged.png', width: 20, height: 19 });
+    expect(outputs[0]).toMatchObject({
+      name: 'a-merged.png',
+      width: 20,
+      height: 19,
+    });
   });
 
   it('strips metadata without re-encoding', async () => {
     const jpeg = (await encodeImage(twoTone(), as('image/jpeg'))).blob;
     const bytes = new Uint8Array(await jpeg.arrayBuffer());
-    const comment = [0xff, 0xfe, 0, 7, ...[...'hello'].map((c) => c.charCodeAt(0))];
-    const tagged = new Blob([bytes.subarray(0, 2), new Uint8Array(comment), bytes.subarray(2)], {
-      type: 'image/jpeg',
-    });
+    const comment = [
+      0xff,
+      0xfe,
+      0,
+      7,
+      ...[...'hello'].map((c) => c.charCodeAt(0)),
+    ];
+    const tagged = new Blob(
+      [bytes.subarray(0, 2), new Uint8Array(comment), bytes.subarray(2)],
+      {
+        type: 'image/jpeg',
+      },
+    );
     const output = await processFile(
       { name: 'photo.jpg', blob: tagged },
       [step('strip-metadata')],
@@ -358,12 +415,20 @@ describe('pipeline', () => {
   });
 
   it('traces an image to SVG at its original size', async () => {
-    const output = await processFile(await input(), [step('vectorize')], context);
+    const output = await processFile(
+      await input(),
+      [step('vectorize')],
+      context,
+    );
     expect(output.name).toBe('photo-vector.svg');
     const svg = await output.blob.text();
     expect(svg).toMatch(/<svg[^>]*width="40" height="20" viewBox/);
     expect(svg).toContain('<path');
-    const bw = await processFile(await input(), [step('vectorize', { colors: 'bw' })], context);
+    const bw = await processFile(
+      await input(),
+      [step('vectorize', { colors: 'bw' })],
+      context,
+    );
     expect(await bw.blob.text()).toContain('<path');
   });
 
@@ -378,9 +443,16 @@ describe('worker client', () => {
   it('runs jobs in the engine worker', async () => {
     const [output] = await engine.run('process', {
       inputs: [{ name: 'photo.png', blob: await pngBlob(twoTone()) }],
-      steps: [step('scale', { percent: 25 }), step('convert', { format: 'jpeg' })],
+      steps: [
+        step('scale', { percent: 25 }),
+        step('convert', { format: 'jpeg' }),
+      ],
     });
-    expect(output).toMatchObject({ name: 'photo-converted.jpg', width: 10, height: 5 });
+    expect(output).toMatchObject({
+      name: 'photo-converted.jpg',
+      width: 10,
+      height: 5,
+    });
   });
 
   it('renders previews in the preview worker', async () => {
@@ -393,15 +465,22 @@ describe('worker client', () => {
   });
 
   it('inspects files', async () => {
-    const info = await engine.run('inspect', { blob: await pngBlob(twoTone()) });
-    expect(info).toMatchObject({ width: 40, height: 20, type: 'image/png', metadata: [] });
+    const info = await engine.run('inspect', {
+      blob: await pngBlob(twoTone()),
+    });
+    expect(info).toMatchObject({
+      width: 40,
+      height: 20,
+      type: 'image/png',
+      metadata: [],
+    });
     expect(info.thumbnail.size).toBeGreaterThan(0);
   });
 
   it('reports errors from the worker', async () => {
-    await expect(engine.run('inspect', { blob: new Blob(['nope']) })).rejects.toThrow(
-      /not an image/,
-    );
+    await expect(
+      engine.run('inspect', { blob: new Blob(['nope']) }),
+    ).rejects.toThrow(/not an image/);
   });
 
   it('keeps serving requests that wait behind a cancelled batch', async () => {
@@ -410,14 +489,20 @@ describe('worker client', () => {
     const controller = new AbortController();
     // More jobs than workers, so some of them wait for a free one.
     const batch = Array.from({ length: 12 }, () =>
-      engine.run('process', { inputs: [{ name: 'n.png', blob }], steps }, controller.signal),
+      engine.run(
+        'process',
+        { inputs: [{ name: 'n.png', blob }], steps },
+        controller.signal,
+      ),
     );
     const waiting = engine.run('inspect', { blob });
     controller.abort();
     const settled = await Promise.allSettled(batch);
-    expect(settled.every((r) => r.status === 'rejected' && r.reason instanceof Cancelled)).toBe(
-      true,
-    );
+    expect(
+      settled.every(
+        (r) => r.status === 'rejected' && r.reason instanceof Cancelled,
+      ),
+    ).toBe(true);
     expect((await waiting).width).toBe(300);
   });
 });

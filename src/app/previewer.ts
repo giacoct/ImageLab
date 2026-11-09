@@ -36,7 +36,8 @@ export class Previewer {
           bitmap.close(); // already outdated
         else this.onImage(bitmap);
       } catch (error) {
-        if (!this.next) this.onError(error instanceof Error ? error.message : String(error));
+        if (!this.next)
+          this.onError(error instanceof Error ? error.message : String(error));
       }
     }
     this.inFlight = false;
@@ -45,7 +46,10 @@ export class Previewer {
 }
 
 /** Draw a preview bitmap into a canvas (resizing it to match) and release the bitmap. */
-export function drawBitmap(canvas: HTMLCanvasElement, bitmap: ImageBitmap): void {
+export function drawBitmap(
+  canvas: HTMLCanvasElement,
+  bitmap: ImageBitmap,
+): void {
   canvas.width = bitmap.width;
   canvas.height = bitmap.height;
   const context = canvas.getContext('2d');

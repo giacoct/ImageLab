@@ -36,13 +36,22 @@ export interface Output {
 /** Longest side of the thumbnails: small in the file list, larger in the results. */
 const THUMBNAIL_SIDE = { file: 160, result: 480 };
 
-const EXTENSIONS: Record<string, string> = { 'image/svg+xml': 'svg', 'text/plain': 'txt' };
+const EXTENSIONS: Record<string, string> = {
+  'image/svg+xml': 'svg',
+  'text/plain': 'txt',
+};
 
 /** The steps, checked: a final step (OCR, SVG) can only be the last one. */
 function resolve(steps: readonly Step[]): { op: Op; values: Step['params'] }[] {
-  const resolved = steps.map((step) => ({ op: getOp(step.op), values: step.params }));
-  const misplaced = resolved.findIndex(({ op }, i) => op.kind === 'final' && i < steps.length - 1);
-  if (misplaced !== -1) throw new Error(`${resolved[misplaced].op.title} must be the last step.`);
+  const resolved = steps.map((step) => ({
+    op: getOp(step.op),
+    values: step.params,
+  }));
+  const misplaced = resolved.findIndex(
+    ({ op }, i) => op.kind === 'final' && i < steps.length - 1,
+  );
+  if (misplaced !== -1)
+    throw new Error(`${resolved[misplaced].op.title} must be the last step.`);
   return resolved;
 }
 
@@ -57,10 +66,12 @@ async function runImages(
   context: RunContext,
 ): Promise<Picture[]> {
   const split = steps.findIndex(({ op }) => op.kind === 'combine');
-  const [before, after] = split === -1 ? [steps, []] : [steps.slice(0, split), steps.slice(split)];
+  const [before, after] =
+    split === -1 ? [steps, []] : [steps.slice(0, split), steps.slice(split)];
 
   let pictures: Picture[] = [];
-  for (const load of loaders) pictures.push(await runSteps(await load(), before, context));
+  for (const load of loaders)
+    pictures.push(await runSteps(await load(), before, context));
   for (const { op, values } of after) {
     if (op.kind === 'combine') {
       const image = await op.run(
@@ -85,7 +96,11 @@ async function runSteps(
   for (const { op, values } of steps) {
     if (op.kind === 'map') {
       // New pixels: no file holds them yet.
-      picture = { ...picture, image: await op.run(picture.image, values, context), file: null };
+      picture = {
+        ...picture,
+        image: await op.run(picture.image, values, context),
+        file: null,
+      };
     } else if (op.kind === 'file') {
       picture = await op.run(picture, values, context);
     }
@@ -114,7 +129,8 @@ export async function processJob(
   const resolved = resolve(steps);
   if (resolved.length === 0) throw new Error('Add a step first.');
   const last = resolved[resolved.length - 1];
-  const imageSteps = last.op.kind === 'final' ? resolved.slice(0, -1) : resolved;
+  const imageSteps =
+    last.op.kind === 'final' ? resolved.slice(0, -1) : resolved;
   const pictures = await runImages(
     inputs.map((input) => () => load(input)),
     imageSteps,
@@ -130,13 +146,20 @@ export async function processJob(
         const isText = blob.type.startsWith('text/');
         output = {
           blob,
-          thumbnail: isText ? await thumbnailOf(image, THUMBNAIL_SIDE.result) : blob,
+          thumbnail: isText
+            ? await thumbnailOf(image, THUMBNAIL_SIDE.result)
+            : blob,
           text: isText ? await blob.text() : undefined,
         };
       } else {
         // The file a step already wrote, unless a later step changed the pixels.
-        const saved = file ? { blob: file.blob, ...size } : await encodeImage(image, encoding);
-        output = { ...saved, thumbnail: await thumbnailOf(image, THUMBNAIL_SIDE.result) };
+        const saved = file
+          ? { blob: file.blob, ...size }
+          : await encodeImage(image, encoding);
+        output = {
+          ...saved,
+          thumbnail: await thumbnailOf(image, THUMBNAIL_SIDE.result),
+        };
       }
       const type = output.blob.type.split(';')[0];
       const extension = EXTENSIONS[type] ?? extensionFor(type as ImageFormat);
@@ -220,7 +243,10 @@ function proxyFor(key: string, blob: Blob): Promise<Proxy> {
     proxy = decode(blob).then(({ image, type }) => {
       const scale = downscaleFactor(image, PROXY_SIDE);
       return {
-        image: scale < 1 ? downscaled(image, image.width * scale, image.height * scale) : image,
+        image:
+          scale < 1
+            ? downscaled(image, image.width * scale, image.height * scale)
+            : image,
         type,
         scale,
       };
@@ -241,17 +267,28 @@ export async function renderPreview(
   request: PreviewRequest,
   asset: RunContext['asset'],
 ): Promise<Img> {
-  const loaded = await Promise.all(request.files.map((file) => proxyFor(file.key, file.blob)));
+  const loaded = await Promise.all(
+    request.files.map((file) => proxyFor(file.key, file.blob)),
+  );
   const scale =
     Math.min(
-      ...loaded.map((proxy) => proxy.scale * downscaleFactor(proxy.image, request.maxSide)),
+      ...loaded.map(
+        (proxy) => proxy.scale * downscaleFactor(proxy.image, request.maxSide),
+      ),
     ) / Math.max(1, Math.sqrt(loaded.length));
   // Operations may edit their input in place: each run starts from fresh copies.
   const loaders = loaded.map((proxy) => async (): Promise<Picture> => {
     const factor = scale / proxy.scale;
-    const image = downscaled(proxy.image, proxy.image.width * factor, proxy.image.height * factor);
+    const image = downscaled(
+      proxy.image,
+      proxy.image.width * factor,
+      proxy.image.height * factor,
+    );
     return { image, encoding: initialEncoding(proxy.type), file: null };
   });
-  const [result] = await runImages(loaders, resolve(request.steps), { scale, asset });
+  const [result] = await runImages(loaders, resolve(request.steps), {
+    scale,
+    asset,
+  });
   return result.image;
 }

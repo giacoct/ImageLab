@@ -41,7 +41,11 @@ function multiply(a: Matrix, b: Matrix): Matrix {
   const out: number[] = [];
   for (let row = 0; row < 3; row++)
     for (let col = 0; col < 3; col++)
-      out.push(a[row * 3] * b[col] + a[row * 3 + 1] * b[3 + col] + a[row * 3 + 2] * b[6 + col]);
+      out.push(
+        a[row * 3] * b[col] +
+          a[row * 3 + 1] * b[3 + col] +
+          a[row * 3 + 2] * b[6 + col],
+      );
   return out;
 }
 
@@ -101,9 +105,12 @@ export function adjustPixels(data: Uint8ClampedArray, a: Adjustments): void {
   }
 
   let matrix = IDENTITY;
-  if (a.saturation !== 100) matrix = multiply(saturateMatrix(a.saturation / 100), matrix);
-  if (a.grayscale > 0) matrix = multiply(grayscaleMatrix(Math.min(1, a.grayscale / 100)), matrix);
-  if (a.sepia > 0) matrix = multiply(sepiaMatrix(Math.min(1, a.sepia / 100)), matrix);
+  if (a.saturation !== 100)
+    matrix = multiply(saturateMatrix(a.saturation / 100), matrix);
+  if (a.grayscale > 0)
+    matrix = multiply(grayscaleMatrix(Math.min(1, a.grayscale / 100)), matrix);
+  if (a.sepia > 0)
+    matrix = multiply(sepiaMatrix(Math.min(1, a.sepia / 100)), matrix);
   const mixes = matrix !== IDENTITY;
   const [m0, m1, m2, m3, m4, m5, m6, m7, m8] = matrix;
 
@@ -186,7 +193,8 @@ function boxBlurLine(
   const scale = 1 / (2 * r + 1);
   for (let line = 0; line < lines; line++) {
     const base = horizontal ? line * width : line;
-    const at = (i: number) => src[base + Math.min(length - 1, Math.max(0, i)) * stride];
+    const at = (i: number) =>
+      src[base + Math.min(length - 1, Math.max(0, i)) * stride];
     let sum = 0;
     for (let i = -r; i <= r; i++) sum += at(i);
     for (let i = 0; i < length; i++) {
@@ -197,12 +205,17 @@ function boxBlurLine(
 }
 
 /** 3×3 unsharp-style sharpen; returns a new buffer. `amount` is 0..1. */
-export function sharpenPixels(image: Pixels, amount: number): Uint8ClampedArray<ArrayBuffer> {
+export function sharpenPixels(
+  image: Pixels,
+  amount: number,
+): Uint8ClampedArray<ArrayBuffer> {
   const { data: src, width, height } = image;
   const out = new Uint8ClampedArray(src.length);
   const center = 1 + 4 * amount;
   const at = (x: number, y: number) =>
-    (Math.max(0, Math.min(height - 1, y)) * width + Math.max(0, Math.min(width - 1, x))) * 4;
+    (Math.max(0, Math.min(height - 1, y)) * width +
+      Math.max(0, Math.min(width - 1, x))) *
+    4;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
@@ -213,7 +226,8 @@ export function sharpenPixels(image: Pixels, amount: number): Uint8ClampedArray<
       for (let c = 0; c < 3; c++) {
         out[i + c] =
           src[i + c] * center -
-          amount * (src[up + c] + src[down + c] + src[left + c] + src[right + c]);
+          amount *
+            (src[up + c] + src[down + c] + src[left + c] + src[right + c]);
       }
       out[i + 3] = src[i + 3];
     }

@@ -40,7 +40,9 @@ export type Rotation = 0 | 90 | 180 | 270;
 
 /** Size of an image after rotation (90°/270° swap the axes). */
 export function orientedSize(size: Size, rotate: Rotation): Size {
-  return rotate === 90 || rotate === 270 ? { width: size.height, height: size.width } : size;
+  return rotate === 90 || rotate === 270
+    ? { width: size.height, height: size.width }
+    : size;
 }
 
 /** A crop region as fractions (0..1) of the oriented image, so it fits any image size. */
@@ -49,7 +51,8 @@ export type Crop = Rect;
 export const FULL_CROP: Crop = { x: 0, y: 0, width: 1, height: 1 };
 
 export type AspectPreset = 'free' | 'original' | '1:1' | '4:3' | '3:2' | '16:9';
-export type DragMode = 'move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+export type DragMode =
+  'move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 
 /** Smallest crop side, as a fraction of the image. */
 const MIN_CROP = 0.05;
@@ -58,10 +61,15 @@ const MIN_CROP = 0.05;
  * Fraction-space height/width factor `k` that gives the preset's pixel aspect
  * ratio on an image of size `oriented` (`null` for a free crop).
  */
-export function aspectFactor(preset: AspectPreset, oriented: Size): number | null {
+export function aspectFactor(
+  preset: AspectPreset,
+  oriented: Size,
+): number | null {
   if (preset === 'free') return null;
   const [rw, rh] =
-    preset === 'original' ? [oriented.width, oriented.height] : preset.split(':').map(Number);
+    preset === 'original'
+      ? [oriented.width, oriented.height]
+      : preset.split(':').map(Number);
   return (oriented.width / oriented.height) * (rh / rw);
 }
 
@@ -157,7 +165,10 @@ export interface MergeLayout extends Size {
   places: Rect[];
 }
 
-export function mergeLayout(sizes: readonly Size[], options: MergeOptions): MergeLayout {
+export function mergeLayout(
+  sizes: readonly Size[],
+  options: MergeOptions,
+): MergeLayout {
   const vertical = options.direction === 'vertical';
   const across = (s: Size) => (vertical ? s.width : s.height);
   const along = (s: Size) => (vertical ? s.height : s.width);
@@ -177,7 +188,11 @@ export function mergeLayout(sizes: readonly Size[], options: MergeOptions): Merg
   const places = drawn.map((s) => {
     const free = thickness - across(s);
     const offset =
-      options.align === 'start' ? 0 : options.align === 'center' ? Math.round(free / 2) : free;
+      options.align === 'start'
+        ? 0
+        : options.align === 'center'
+          ? Math.round(free / 2)
+          : free;
     const place = vertical
       ? { x: offset, y: cursor, width: s.width, height: s.height }
       : { x: cursor, y: offset, width: s.width, height: s.height };
@@ -203,7 +218,11 @@ export interface Sides {
  * Each side in whole pixels. In percent, sides are a percentage of the
  * image's shorter side, so margins stay proportional across a batch.
  */
-export function marginPixels(sides: Sides, unit: 'px' | 'percent', size: Size): Sides {
+export function marginPixels(
+  sides: Sides,
+  unit: 'px' | 'percent',
+  size: Size,
+): Sides {
   const base = Math.min(size.width, size.height);
   const px = (value: number) =>
     Math.max(0, Math.round(unit === 'percent' ? (base * value) / 100 : value));

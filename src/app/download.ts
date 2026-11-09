@@ -23,7 +23,12 @@ export async function downloadZip(
   const entries: ZipEntry<Blob>[] = [];
   for (const [i, file] of files.entries()) {
     const crc = crc32(new Uint8Array(await file.blob.arrayBuffer()));
-    entries.push({ name: names[i], data: file.blob, size: file.blob.size, crc });
+    entries.push({
+      name: names[i],
+      data: file.blob,
+      size: file.blob.size,
+      crc,
+    });
   }
   downloadBlob(new Blob(zipParts(entries), { type: 'application/zip' }), name);
 }

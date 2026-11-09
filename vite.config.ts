@@ -17,7 +17,12 @@ export default defineConfig({
   optimizeDeps: {
     // These ship WASM that they locate via `import.meta.url`; pre-bundling
     // would move the JS away from its .wasm files.
-    exclude: ['@jsquash/jpeg', '@jsquash/webp', '@jsquash/avif', 'vtracer-wasm'],
+    exclude: [
+      '@jsquash/jpeg',
+      '@jsquash/webp',
+      '@jsquash/avif',
+      'vtracer-wasm',
+    ],
     // Imported only from the worker, which Vite doesn't scan: prepare them up
     // front so the dev server doesn't reload the page the first time they load.
     include: ['libheif-js/libheif-wasm/libheif-bundle.mjs', 'tesseract.js'],
@@ -59,13 +64,17 @@ export default defineConfig({
  */
 const OCR_FILES: Record<string, string> = {
   'worker.min.js': 'tesseract.js/dist/worker.min.js',
-  'tesseract-core-simd-lstm.wasm.js': 'tesseract.js-core/tesseract-core-simd-lstm.wasm.js',
-  'eng.traineddata.gz': '@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz',
-  'ita.traineddata.gz': '@tesseract.js-data/ita/4.0.0_best_int/ita.traineddata.gz',
+  'tesseract-core-simd-lstm.wasm.js':
+    'tesseract.js-core/tesseract-core-simd-lstm.wasm.js',
+  'eng.traineddata.gz':
+    '@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz',
+  'ita.traineddata.gz':
+    '@tesseract.js-data/ita/4.0.0_best_int/ita.traineddata.gz',
 };
 
 function ocrFiles(): Plugin {
-  const read = (name: string) => readFileSync(`node_modules/${OCR_FILES[name]}`);
+  const read = (name: string) =>
+    readFileSync(`node_modules/${OCR_FILES[name]}`);
   return {
     name: 'imagelab:ocr-files',
     configureServer(server) {
@@ -74,14 +83,20 @@ function ocrFiles(): Plugin {
         if (!name || !(name in OCR_FILES)) return next();
         // A JavaScript type, or the worker refuses importScripts(); the .gz
         // files as plain bytes, so nothing decompresses them on the way.
-        const type = name.endsWith('.js') ? 'text/javascript' : 'application/octet-stream';
+        const type = name.endsWith('.js')
+          ? 'text/javascript'
+          : 'application/octet-stream';
         response.setHeader('Content-Type', type);
         response.end(read(name));
       });
     },
     generateBundle() {
       for (const name of Object.keys(OCR_FILES)) {
-        this.emitFile({ type: 'asset', fileName: `ocr/${name}`, source: read(name) });
+        this.emitFile({
+          type: 'asset',
+          fileName: `ocr/${name}`,
+          source: read(name),
+        });
       }
     },
   };

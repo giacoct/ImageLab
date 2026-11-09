@@ -42,7 +42,9 @@ export function readMetadata(bytes: Uint8Array): Metadata {
  * orientation, which would display differently without it). A JPEG keeps a
  * minimal EXIF block with just its orientation; color profiles always stay.
  */
-export function stripMetadata(bytes: Uint8Array): Uint8Array<ArrayBuffer> | null {
+export function stripMetadata(
+  bytes: Uint8Array,
+): Uint8Array<ArrayBuffer> | null {
   const parsed = parse(bytes);
   if (!parsed) return null;
   const { orientation } = summarize(parsed.blocks);
@@ -70,7 +72,8 @@ export function stripMetadata(bytes: Uint8Array): Uint8Array<ArrayBuffer> | null
     out.set(part, at);
     at += part.length;
   }
-  if (parsed.format === 'webp') new DataView(out.buffer).setUint32(4, out.length - 8, true);
+  if (parsed.format === 'webp')
+    new DataView(out.buffer).setUint32(4, out.length - 8, true);
   return out;
 }
 
@@ -141,11 +144,17 @@ function png(bytes: Uint8Array): Block[] {
     const type = ascii(bytes, offset + 4, 4);
     let kind: Kind = 'image';
     if (type === 'eXIf') kind = 'exif';
-    else if (type === 'iTXt' && ascii(bytes, offset + 8, 17) === 'XML:com.adobe.xmp') kind = 'xmp';
-    else if (type === 'tEXt' || type === 'zTXt' || type === 'iTXt') kind = 'text';
+    else if (
+      type === 'iTXt' &&
+      ascii(bytes, offset + 8, 17) === 'XML:com.adobe.xmp'
+    )
+      kind = 'xmp';
+    else if (type === 'tEXt' || type === 'zTXt' || type === 'iTXt')
+      kind = 'text';
     else if (type === 'tIME') kind = 'other';
     const block: Block = { kind, start: offset, end };
-    if (kind === 'exif') block.exif = bytes.subarray(offset + 8, offset + 8 + size);
+    if (kind === 'exif')
+      block.exif = bytes.subarray(offset + 8, offset + 8 + size);
     blocks.push(block);
     offset = end;
     if (type === 'IEND') break;
@@ -161,12 +170,14 @@ function webp(bytes: Uint8Array): Block[] {
     const size = view.getUint32(offset + 4, true);
     const end = Math.min(bytes.length, offset + 8 + size + (size % 2)); // padded to even sizes
     const type = ascii(bytes, offset, 4);
-    const kind: Kind = type === 'EXIF' ? 'exif' : type === 'XMP ' ? 'xmp' : 'image';
+    const kind: Kind =
+      type === 'EXIF' ? 'exif' : type === 'XMP ' ? 'xmp' : 'image';
     const block: Block = { kind, start: offset, end };
     if (kind === 'exif') {
       const payload = bytes.subarray(offset + 8, offset + 8 + size);
       // Some writers keep the JPEG-style "Exif\0\0" prefix.
-      block.exif = ascii(payload, 0, 6) === 'Exif\0\0' ? payload.subarray(6) : payload;
+      block.exif =
+        ascii(payload, 0, 6) === 'Exif\0\0' ? payload.subarray(6) : payload;
     }
     blocks.push(block);
     offset = end;
@@ -217,15 +228,25 @@ function readExif(tiff: Uint8Array): Metadata {
     const little = view.getUint16(0) === 0x4949;
     const ifd0 = readIfd(tiff, view, view.getUint32(4, little), little);
     const exifAt = ifd0.get(TAG.exifIfd);
-    const exif = typeof exifAt === 'number' ? readIfd(tiff, view, exifAt, little) : new Map();
+    const exif =
+      typeof exifAt === 'number'
+        ? readIfd(tiff, view, exifAt, little)
+        : new Map();
     const gpsAt = ifd0.get(TAG.gpsIfd);
-    const gps = typeof gpsAt === 'number' ? readIfd(tiff, view, gpsAt, little) : new Map();
+    const gps =
+      typeof gpsAt === 'number'
+        ? readIfd(tiff, view, gpsAt, little)
+        : new Map();
 
-    const text = (value: unknown) => (typeof value === 'string' && value ? value : undefined);
+    const text = (value: unknown) =>
+      typeof value === 'string' && value ? value : undefined;
     const found: string[] = [];
-    const camera = [text(ifd0.get(TAG.make)), text(ifd0.get(TAG.model))].filter(Boolean).join(' ');
+    const camera = [text(ifd0.get(TAG.make)), text(ifd0.get(TAG.model))]
+      .filter(Boolean)
+      .join(' ');
     if (camera) found.push(`Camera: ${camera}`);
-    const date = text(exif.get(TAG.dateTimeOriginal)) ?? text(ifd0.get(TAG.dateTime));
+    const date =
+      text(exif.get(TAG.dateTimeOriginal)) ?? text(ifd0.get(TAG.dateTime));
     if (date) found.push(`Date: ${date}`);
     const software = text(ifd0.get(TAG.software));
     if (software) found.push(`Software: ${software}`);
@@ -233,7 +254,8 @@ function readExif(tiff: Uint8Array): Metadata {
     if (found.length === 0) found.push('EXIF data');
 
     const raw = ifd0.get(TAG.orientation);
-    const orientation = typeof raw === 'number' && raw >= 1 && raw <= 8 ? raw : 1;
+    const orientation =
+      typeof raw === 'number' && raw >= 1 && raw <= 8 ? raw : 1;
     return { found, orientation };
   } catch {
     return { found: ['EXIF data'], orientation: 1 };
@@ -257,8 +279,10 @@ function readIfd(
     if (type === 2) {
       const at = length <= 4 ? entry + 8 : view.getUint32(entry + 8, little);
       tags.set(tag, ascii(tiff, at, length).replace(/\0+$/, '').trim());
-    } else if (type === 3 && length === 1) tags.set(tag, view.getUint16(entry + 8, little));
-    else if (type === 4 && length === 1) tags.set(tag, view.getUint32(entry + 8, little));
+    } else if (type === 3 && length === 1)
+      tags.set(tag, view.getUint16(entry + 8, little));
+    else if (type === 4 && length === 1)
+      tags.set(tag, view.getUint32(entry + 8, little));
     else tags.set(tag, true);
   }
   return tags;

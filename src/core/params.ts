@@ -46,14 +46,17 @@ export interface CustomParam<T> extends BaseParam<T> {
   kind: 'custom';
 }
 
-export type Param = NumberParam | ChoiceParam | BooleanParam | ColorParam | CustomParam<unknown>;
+export type Param =
+  NumberParam | ChoiceParam | BooleanParam | ColorParam | CustomParam<unknown>;
 
 export type Schema = Readonly<Record<string, Param>>;
 
 type ValueOf<P> = P extends BaseParam<infer T> ? T : never;
 
 /** The settings object a schema describes. */
-export type Values<S extends Schema> = { -readonly [K in keyof S]: ValueOf<S[K]> };
+export type Values<S extends Schema> = {
+  -readonly [K in keyof S]: ValueOf<S[K]>;
+};
 
 type Common<T> = Pick<BaseParam<T>, 'label' | 'default' | 'hint' | 'when'>;
 
@@ -99,6 +102,9 @@ export const p = {
 /** The schema's default settings. */
 export function defaults<S extends Schema>(schema: S): Values<S> {
   return Object.fromEntries(
-    Object.entries(schema).map(([key, param]) => [key, structuredClone(param.default)]),
+    Object.entries(schema).map(([key, param]) => [
+      key,
+      structuredClone(param.default),
+    ]),
   ) as Values<S>;
 }

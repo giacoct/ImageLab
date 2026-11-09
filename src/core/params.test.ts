@@ -16,12 +16,16 @@ describe('params', () => {
 
   it('shows long choices as a drop-down', () => {
     const option = (value: string) => ({ value, label: value });
-    expect(p.choice({ label: 'Few', default: 'a', options: ['a', 'b'].map(option) }).display).toBe(
-      'segmented',
-    );
     expect(
-      p.choice({ label: 'Many', default: 'a', options: ['a', 'b', 'c', 'd', 'e'].map(option) })
+      p.choice({ label: 'Few', default: 'a', options: ['a', 'b'].map(option) })
         .display,
+    ).toBe('segmented');
+    expect(
+      p.choice({
+        label: 'Many',
+        default: 'a',
+        options: ['a', 'b', 'c', 'd', 'e'].map(option),
+      }).display,
     ).toBe('select');
   });
 });

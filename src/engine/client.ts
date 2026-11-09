@@ -5,7 +5,12 @@
  * WASM code mid-run.
  */
 
-import type { RequestType, Requests, RequestMessage, ResponseMessage } from './protocol';
+import type {
+  RequestType,
+  Requests,
+  RequestMessage,
+  ResponseMessage,
+} from './protocol';
 
 /** Thrown (as the rejection) when a request is cancelled. */
 export class Cancelled extends Error {
@@ -65,7 +70,9 @@ class EngineWorker {
 
   private ensure(): Worker {
     if (this.worker) return this.worker;
-    const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+    const worker = new Worker(new URL('./worker.ts', import.meta.url), {
+      type: 'module',
+    });
     worker.onmessage = (event: MessageEvent<ResponseMessage>) => {
       const response = event.data;
       const entry = this.pending.get(response.id);
@@ -77,7 +84,9 @@ class EngineWorker {
     worker.onerror = (event) => {
       // A crash (e.g. out of memory) fails everything in flight on this worker.
       event.preventDefault();
-      const error = new Error(event.message || 'The image engine crashed (out of memory?).');
+      const error = new Error(
+        event.message || 'The image engine crashed (out of memory?).',
+      );
       for (const { reject } of this.pending.values()) reject(error);
       this.pending.clear();
       this.worker?.terminate();
@@ -89,10 +98,16 @@ class EngineWorker {
 }
 
 /** Up to 4 workers, leaving a core for the UI. */
-const POOL_SIZE = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1));
+const POOL_SIZE = Math.max(
+  1,
+  Math.min(4, (navigator.hardwareConcurrency || 2) - 1),
+);
 
 class Engine {
-  private readonly pool = Array.from({ length: POOL_SIZE }, () => new EngineWorker());
+  private readonly pool = Array.from(
+    { length: POOL_SIZE },
+    () => new EngineWorker(),
+  );
   private waiting: (() => void)[] = [];
   private readonly previewWorker = new EngineWorker();
 

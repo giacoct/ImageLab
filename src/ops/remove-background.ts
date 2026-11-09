@@ -31,11 +31,20 @@ export const removeBackground = mapOp({
       unit: '%',
       hint: 'How different a color can be and still count as background.',
     }),
-    softness: p.number({ label: 'Edge softness', default: 10, min: 0, max: 40, unit: '%' }),
+    softness: p.number({
+      label: 'Edge softness',
+      default: 10,
+      min: 0,
+      max: 40,
+      unit: '%',
+    }),
   },
   run(image, values) {
     return editPixels(image, (pixels) =>
-      remove(pixels, { ...values, color: values.detect ? edgeColor(pixels) : values.color }),
+      remove(pixels, {
+        ...values,
+        color: values.detect ? edgeColor(pixels) : values.color,
+      }),
     );
   },
 });

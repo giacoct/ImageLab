@@ -4,10 +4,10 @@
   with controls to reorder or remove it.
 -->
 <script lang="ts">
-  import { session } from '../app/session.svelte';
-  import { getOp } from '../ops';
-  import CropEditor from './CropEditor.svelte';
-  import ParamForm from './ParamForm.svelte';
+  import { session } from "../app/session.svelte";
+  import { getOp } from "../ops";
+  import CropEditor from "./CropEditor.svelte";
+  import ParamForm from "./ParamForm.svelte";
 
   let { index }: { index: number } = $props();
 
@@ -41,9 +41,9 @@
   </div>
   <p class="hint">{op.description}</p>
 
-  {#if op.id === 'transform'}
+  {#if op.id === "transform"}
     <CropEditor {index} />
-  {:else if op.id === 'strip-metadata' && session.selected?.info}
+  {:else if op.id === "strip-metadata" && session.selected?.info}
     {@const { file, info } = session.selected}
     {#if info.metadata.length}
       <div class="hint">

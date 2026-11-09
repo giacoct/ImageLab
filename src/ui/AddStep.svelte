@@ -3,8 +3,8 @@
   number of times; only one OCR or SVG step can end the chain.
 -->
 <script lang="ts">
-  import { session } from '../app/session.svelte';
-  import { OPS } from '../ops';
+  import { session } from "../app/session.svelte";
+  import { OPS } from "../ops";
 </script>
 
 <select
@@ -12,7 +12,7 @@
   value=""
   onchange={(event) => {
     const opId = event.currentTarget.value;
-    event.currentTarget.value = '';
+    event.currentTarget.value = "";
     if (opId) session.addStep(opId);
   }}
 >

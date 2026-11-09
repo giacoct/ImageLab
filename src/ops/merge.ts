@@ -33,7 +33,14 @@ export const merge = combineOp({
       label: 'Make them the same width (stacked) or height (side by side)',
       default: false,
     }),
-    gap: p.number({ label: 'Gap', default: 0, min: 0, max: 1000, unit: 'px', slider: false }),
+    gap: p.number({
+      label: 'Gap',
+      default: 0,
+      min: 0,
+      max: 1000,
+      unit: 'px',
+      slider: false,
+    }),
     transparent: p.boolean({ label: 'Transparent background', default: false }),
     background: p.color({
       label: 'Background',
@@ -42,7 +49,10 @@ export const merge = combineOp({
     }),
   },
   run(images, values, context) {
-    const layout = mergeLayout(images, { ...values, gap: values.gap * context.scale });
+    const layout = mergeLayout(images, {
+      ...values,
+      gap: values.gap * context.scale,
+    });
     const out = createCanvas(layout.width, layout.height);
     const ctx = context2d(out);
     if (!values.transparent) {

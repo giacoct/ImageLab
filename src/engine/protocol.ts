@@ -22,4 +22,5 @@ export type RequestMessage = {
 }[RequestType];
 
 export type ResponseMessage =
-  { id: number; ok: true; result: unknown } | { id: number; ok: false; error: string };
+  | { id: number; ok: true; result: unknown }
+  | { id: number; ok: false; error: string };

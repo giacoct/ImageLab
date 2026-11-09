@@ -3,32 +3,34 @@
   button on the left; the live preview and the results on the right.
 -->
 <script lang="ts">
-  import { session } from '../app/session.svelte';
-  import AddStep from './AddStep.svelte';
-  import DropOverlay from './DropOverlay.svelte';
-  import FileTray from './FileTray.svelte';
-  import Preview from './Preview.svelte';
-  import Results from './Results.svelte';
-  import StepCard from './StepCard.svelte';
+  import { session } from "../app/session.svelte";
+  import AddStep from "./AddStep.svelte";
+  import DropOverlay from "./DropOverlay.svelte";
+  import FileTray from "./FileTray.svelte";
+  import Preview from "./Preview.svelte";
+  import Results from "./Results.svelte";
+  import StepCard from "./StepCard.svelte";
 
-  let view = $state<'preview' | 'results'>('preview');
+  let view = $state<"preview" | "results">("preview");
 
   const runLabel = $derived.by(() => {
     const count = session.usable.length;
-    const verb = session.merges ? 'Merge' : 'Process';
+    const verb = session.merges ? "Merge" : "Process";
     if (count === 0) return `${verb} images`;
     return count === 1 ? `${verb} 1 image` : `${verb} ${count} images`;
   });
 
   function run(): void {
-    view = 'results';
+    view = "results";
     void session.run();
   }
 </script>
 
 <header>
   <strong>ImageLab</strong>
-  <span class="muted">Image tools that run in your browser. Nothing is uploaded.</span>
+  <span class="muted"
+    >Image tools that run in your browser. Nothing is uploaded.</span
+  >
 </header>
 
 <main>
@@ -42,13 +44,20 @@
     <div class="run">
       {#if session.running}
         <div class="row">
-          <progress value={session.progress.done} max={Math.max(1, session.progress.total)}
+          <progress
+            value={session.progress.done}
+            max={Math.max(1, session.progress.total)}
           ></progress>
           <span>{session.progress.done} of {session.progress.total} done</span>
           <button type="button" onclick={() => session.cancel()}>Cancel</button>
         </div>
       {:else}
-        <button class="primary" type="button" disabled={Boolean(session.blocker)} onclick={run}>
+        <button
+          class="primary"
+          type="button"
+          disabled={Boolean(session.blocker)}
+          onclick={run}
+        >
           {runLabel}
         </button>
         {#if session.blocker}<p class="hint">{session.blocker}</p>{/if}
@@ -58,14 +67,22 @@
 
   <div class="stage">
     <div class="row" role="group" aria-label="View">
-      <button type="button" aria-pressed={view === 'preview'} onclick={() => (view = 'preview')}>
+      <button
+        type="button"
+        aria-pressed={view === "preview"}
+        onclick={() => (view = "preview")}
+      >
         Preview
       </button>
-      <button type="button" aria-pressed={view === 'results'} onclick={() => (view = 'results')}>
-        Results{session.results.length ? ` (${session.results.length})` : ''}
+      <button
+        type="button"
+        aria-pressed={view === "results"}
+        onclick={() => (view = "results")}
+      >
+        Results{session.results.length ? ` (${session.results.length})` : ""}
       </button>
     </div>
-    {#if view === 'preview'}
+    {#if view === "preview"}
       <Preview />
     {:else}
       <Results />
@@ -127,7 +144,7 @@
     flex: 1;
   }
 
-  [aria-pressed='true'] {
+  [aria-pressed="true"] {
     border-color: var(--ink);
     font-weight: 600;
   }

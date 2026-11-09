@@ -12,6 +12,8 @@ describe('encoding', () => {
     const kept = initialEncoding('image/gif');
     expect(formatToWrite(kept, () => false)).toBe('image/jpeg');
     expect(formatToWrite(kept, () => true)).toBe('image/png');
-    expect(formatToWrite({ ...kept, chosen: true }, () => true)).toBe('image/jpeg');
+    expect(formatToWrite({ ...kept, chosen: true }, () => true)).toBe(
+      'image/jpeg',
+    );
   });
 });

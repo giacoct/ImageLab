@@ -4,7 +4,7 @@
   colors). Custom settings (the crop box) have their own editors.
 -->
 <script lang="ts">
-  import type { AnyValues, NumberParam, Schema } from '../core/params';
+  import type { AnyValues, NumberParam, Schema } from "../core/params";
 
   let {
     schema,
@@ -21,14 +21,15 @@
 
   const visible = $derived(
     Object.entries(schema).filter(
-      ([, param]) => param.kind !== 'custom' && (!param.when || param.when(values)),
+      ([, param]) =>
+        param.kind !== "custom" && (!param.when || param.when(values)),
     ),
   );
 
   /** Ignore an empty or half-typed box; clamp anything else into range. */
   function setNumber(key: string, param: NumberParam, raw: string): void {
     const value = Number(raw);
-    if (raw === '' || !Number.isFinite(value)) return;
+    if (raw === "" || !Number.isFinite(value)) return;
     onchange(key, Math.min(param.max, Math.max(param.min, value)));
   }
 </script>
@@ -36,12 +37,12 @@
 <div class="fields">
   {#each visible as [key, param] (key)}
     {@const id = `${idPrefix}-${key}`}
-    {#if param.kind === 'number'}
+    {#if param.kind === "number"}
       <div class="field">
         {#if param.slider}
           <label class="field-label" for={id}>
             {param.label}
-            <span class="field-value">{values[key]}{param.unit ?? ''}</span>
+            <span class="field-value">{values[key]}{param.unit ?? ""}</span>
           </label>
           <input
             {id}
@@ -50,7 +51,8 @@
             max={param.max}
             step={param.step}
             value={values[key]}
-            oninput={(event) => setNumber(key, param, event.currentTarget.value)}
+            oninput={(event) =>
+              setNumber(key, param, event.currentTarget.value)}
           />
         {:else}
           <label class="field-label" for={id}>{param.label}</label>
@@ -69,14 +71,14 @@
                 event.currentTarget.value = String(values[key]);
               }}
             />
-            <span class="muted">{param.unit ?? ''}</span>
+            <span class="muted">{param.unit ?? ""}</span>
           </div>
         {/if}
         {#if param.hint}<span class="hint">{param.hint}</span>{/if}
       </div>
-    {:else if param.kind === 'choice'}
+    {:else if param.kind === "choice"}
       <div class="field">
-        {#if param.display === 'select'}
+        {#if param.display === "select"}
           <label class="field-label" for={id}>{param.label}</label>
           <select
             {id}
@@ -103,7 +105,7 @@
         {/if}
         {#if param.hint}<span class="hint">{param.hint}</span>{/if}
       </div>
-    {:else if param.kind === 'color'}
+    {:else if param.kind === "color"}
       <div class="field">
         <label class="field-label" for={id}>{param.label}</label>
         <div class="row">
@@ -118,7 +120,10 @@
             aria-label="{param.label} (hex)"
             value={values[key]}
             onchange={(event) => {
-              const hex = event.currentTarget.value.trim().replace(/^#?/, '#').toLowerCase();
+              const hex = event.currentTarget.value
+                .trim()
+                .replace(/^#?/, "#")
+                .toLowerCase();
               if (/^#[0-9a-f]{6}$/.test(hex)) onchange(key, hex);
               event.currentTarget.value = String(values[key]);
             }}
@@ -126,7 +131,7 @@
         </div>
         {#if param.hint}<span class="hint">{param.hint}</span>{/if}
       </div>
-    {:else if param.kind === 'boolean'}
+    {:else if param.kind === "boolean"}
       <label class="check">
         <input
           type="checkbox"

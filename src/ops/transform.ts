@@ -64,7 +64,9 @@ export function cropForImage(
   const cy = crop.y + crop.height / 2;
   const x = Math.min(1 - width, Math.max(0, cx - width / 2));
   const y = Math.min(1 - height, Math.max(0, cy - height / 2));
-  return width === 1 && height === 1 ? centeredCrop(k) : { x, y, width, height };
+  return width === 1 && height === 1
+    ? centeredCrop(k)
+    : { x, y, width, height };
 }
 
 export const transform = mapOp({
@@ -77,7 +79,10 @@ export const transform = mapOp({
   run(image, values) {
     const rotate = Number(values.rotate) as Rotation;
     const oriented = orientedSize(image, rotate);
-    const crop = cropPixels(cropForImage(values.crop, values.aspect, oriented), oriented);
+    const crop = cropPixels(
+      cropForImage(values.crop, values.aspect, oriented),
+      oriented,
+    );
     const out = createCanvas(crop.width, crop.height);
     const context = context2d(out);
     // Shift so the crop lands at the origin, then rotate/flip about the

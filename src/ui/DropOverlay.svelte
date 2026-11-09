@@ -4,13 +4,14 @@
   carry no files (e.g. selected text) are ignored.
 -->
 <script lang="ts">
-  import { session } from '../app/session.svelte';
+  import { session } from "../app/session.svelte";
 
   let visible = $state(false);
   // dragenter/dragleave fire for every element crossed; count to know when the drag left the window.
   let depth = 0;
 
-  const carriesFiles = (event: DragEvent) => event.dataTransfer?.types.includes('Files') ?? false;
+  const carriesFiles = (event: DragEvent) =>
+    event.dataTransfer?.types.includes("Files") ?? false;
 
   function onPaste(event: ClipboardEvent): void {
     const files = [...(event.clipboardData?.files ?? [])];
@@ -35,14 +36,15 @@
   ondragover={(event) => {
     if (!carriesFiles(event)) return;
     event.preventDefault();
-    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
   }}
   ondrop={(event) => {
     if (!carriesFiles(event)) return;
     event.preventDefault();
     depth = 0;
     visible = false;
-    if (event.dataTransfer?.files.length) session.addFiles(event.dataTransfer.files);
+    if (event.dataTransfer?.files.length)
+      session.addFiles(event.dataTransfer.files);
   }}
 />
 

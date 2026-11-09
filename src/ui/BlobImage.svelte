@@ -3,7 +3,11 @@
   revoked when it changes or the component goes away, so callers never leak.
 -->
 <script lang="ts">
-  let { blob, alt, class: className = '' }: { blob: Blob; alt: string; class?: string } = $props();
+  let {
+    blob,
+    alt,
+    class: className = "",
+  }: { blob: Blob; alt: string; class?: string } = $props();
 
   let url = $state<string>();
 

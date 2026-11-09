@@ -43,8 +43,12 @@ export const compress = fileOp({
   run: (picture, values, context) =>
     writeNow(picture, {
       ...picture.encoding,
-      quality: values.mode === 'quality' ? values.quality : picture.encoding.quality,
+      quality:
+        values.mode === 'quality' ? values.quality : picture.encoding.quality,
       // A preview has fewer pixels: scale the budget with the area.
-      targetBytes: values.mode === 'target' ? values.targetKb * 1024 * context.scale ** 2 : null,
+      targetBytes:
+        values.mode === 'target'
+          ? values.targetKb * 1024 * context.scale ** 2
+          : null,
     }),
 });

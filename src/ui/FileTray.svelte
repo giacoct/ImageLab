@@ -4,9 +4,9 @@
   and problems. Clicking an image shows it in the preview.
 -->
 <script lang="ts">
-  import { session } from '../app/session.svelte';
-  import { formatBytes } from '../core/files';
-  import BlobImage from './BlobImage.svelte';
+  import { session } from "../app/session.svelte";
+  import { formatBytes } from "../core/files";
+  import BlobImage from "./BlobImage.svelte";
 
   let picker: HTMLInputElement;
 </script>
@@ -14,10 +14,10 @@
 <section class="section" aria-labelledby="files-title">
   <div class="section-head">
     <h2 id="files-title">
-      Images{session.items.length ? ` (${session.items.length})` : ''}
+      Images{session.items.length ? ` (${session.items.length})` : ""}
     </h2>
     <button type="button" onclick={() => picker.click()}>
-      {session.items.length ? 'Add' : 'Choose images'}
+      {session.items.length ? "Add" : "Choose images"}
     </button>
     {#if session.items.length}
       <button type="button" onclick={() => session.clearFiles()}>Clear</button>
@@ -31,12 +31,14 @@
     multiple
     onchange={(event) => {
       session.addFiles(event.currentTarget.files ?? []);
-      event.currentTarget.value = ''; // so choosing the same file again still counts
+      event.currentTarget.value = ""; // so choosing the same file again still counts
     }}
   />
 
   {#if session.items.length === 0}
-    <p class="hint">Or drop or paste them anywhere. JPEG, PNG, WebP, AVIF, GIF, HEIC.</p>
+    <p class="hint">
+      Or drop or paste them anywhere. JPEG, PNG, WebP, AVIF, GIF, HEIC.
+    </p>
   {:else}
     <ul>
       {#each session.items as item (item.id)}
@@ -48,7 +50,10 @@
             onclick={() => (session.selectedId = item.id)}
           >
             <span class="thumb checker">
-              {#if item.info}<BlobImage blob={item.info.thumbnail} alt="" />{/if}
+              {#if item.info}<BlobImage
+                  blob={item.info.thumbnail}
+                  alt=""
+                />{/if}
             </span>
             <span class="meta">
               <span class="name">{item.file.name}</span>
@@ -56,8 +61,10 @@
                 {#if item.error}
                   <span class="error-text">{item.error}</span>
                 {:else if item.info}
-                  {item.info.width} × {item.info.height} · {formatBytes(item.file.size)} ·
-                  {item.info.type.replace('image/', '').toUpperCase()}
+                  {item.info.width} × {item.info.height} · {formatBytes(
+                    item.file.size,
+                  )} ·
+                  {item.info.type.replace("image/", "").toUpperCase()}
                 {:else}
                   Reading…
                 {/if}

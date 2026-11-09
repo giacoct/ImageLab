@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { adjustPixels, blurPixels, hasTransparency, sharpenPixels } from './pixels';
+import {
+  adjustPixels,
+  blurPixels,
+  hasTransparency,
+  sharpenPixels,
+} from './pixels';
 
 const NEUTRAL = {
   brightness: 100,
@@ -11,7 +16,11 @@ const NEUTRAL = {
   invert: false,
 };
 
-function solid(width: number, height: number, rgba: number[]): Uint8ClampedArray {
+function solid(
+  width: number,
+  height: number,
+  rgba: number[],
+): Uint8ClampedArray {
   const data = new Uint8ClampedArray(width * height * 4);
   for (let i = 0; i < data.length; i += 4) data.set(rgba, i);
   return data;
@@ -50,7 +59,9 @@ describe('pixels', () => {
 
   it('sharpens edges and keeps flat areas', () => {
     const flat = solid(3, 3, [100, 100, 100, 255]);
-    expect([...sharpenPixels({ data: flat, width: 3, height: 3 }, 1)]).toEqual([...flat]);
+    expect([...sharpenPixels({ data: flat, width: 3, height: 3 }, 1)]).toEqual([
+      ...flat,
+    ]);
   });
 
   it('detects transparency', () => {

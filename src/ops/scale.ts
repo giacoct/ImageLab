@@ -52,7 +52,11 @@ const PARAMS = {
 };
 
 /** The output size for an input of `size`; `scale` is the preview factor (see RunContext). */
-function scaledSize(size: Size, values: Values<typeof PARAMS>, scale = 1): Size {
+function scaledSize(
+  size: Size,
+  values: Values<typeof PARAMS>,
+  scale = 1,
+): Size {
   const width = values.width * scale;
   const height = values.height * scale;
   switch (values.mode) {
@@ -64,9 +68,17 @@ function scaledSize(size: Size, values: Values<typeof PARAMS>, scale = 1): Size 
     case 'fit':
       return fitInside(size, { width, height }, values.enlarge);
     case 'width':
-      return fitInside(size, { width, height: Number.POSITIVE_INFINITY }, values.enlarge);
+      return fitInside(
+        size,
+        { width, height: Number.POSITIVE_INFINITY },
+        values.enlarge,
+      );
     case 'height':
-      return fitInside(size, { width: Number.POSITIVE_INFINITY, height }, values.enlarge);
+      return fitInside(
+        size,
+        { width: Number.POSITIVE_INFINITY, height },
+        values.enlarge,
+      );
     default:
       return roundSize({ width, height });
   }
@@ -76,13 +88,19 @@ export const scale = mapOp({
   id: 'scale',
   kind: 'map',
   title: 'Scale',
-  description: 'Resize by a percentage, to fit a box, or to an exact width/height.',
+  description:
+    'Resize by a percentage, to fit a box, or to an exact width/height.',
   suffix: 'scaled',
   params: PARAMS,
   run(image, values, context) {
     // Pixel targets are relative to the full-size image; previews are smaller.
-    const target = scaledSize(image, values, PIXEL_MODES.has(values.mode) ? context.scale : 1);
-    if (target.width === image.width && target.height === image.height) return image;
+    const target = scaledSize(
+      image,
+      values,
+      PIXEL_MODES.has(values.mode) ? context.scale : 1,
+    );
+    if (target.width === image.width && target.height === image.height)
+      return image;
     return target.width < image.width && target.height < image.height
       ? downscaled(image, target.width, target.height)
       : resized(image, target.width, target.height);

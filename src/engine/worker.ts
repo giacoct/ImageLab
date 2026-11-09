@@ -17,16 +17,24 @@ self.onmessage = async (event: MessageEvent<RequestMessage>) => {
         result = await inspect(message.args.blob);
         break;
       case 'process':
-        result = await processJob(message.args.inputs, message.args.steps, { scale: 1, asset });
+        result = await processJob(message.args.inputs, message.args.steps, {
+          scale: 1,
+          asset,
+        });
         break;
       case 'preview': {
-        const bitmap = (await renderPreview(message.args, asset)).transferToImageBitmap();
+        const bitmap = (
+          await renderPreview(message.args, asset)
+        ).transferToImageBitmap();
         transfer.push(bitmap);
         result = bitmap;
         break;
       }
     }
-    self.postMessage({ id: message.id, ok: true, result } satisfies ResponseMessage, transfer);
+    self.postMessage(
+      { id: message.id, ok: true, result } satisfies ResponseMessage,
+      transfer,
+    );
   } catch (error) {
     console.error(error);
     const text = error instanceof Error ? error.message : String(error);

@@ -5,7 +5,12 @@ import { readMetadata, stripMetadata } from './metadata';
 const text = (s: string) => [...s].map((c) => c.charCodeAt(0));
 const u16 = (n: number) => [n >> 8, n & 255];
 const u32 = (n: number) => [...u16(n >>> 16), ...u16(n & 0xffff)];
-const u32le = (n: number) => [n & 255, (n >> 8) & 255, (n >> 16) & 255, n >>> 24];
+const u32le = (n: number) => [
+  n & 255,
+  (n >> 8) & 255,
+  (n >> 16) & 255,
+  n >>> 24,
+];
 
 /** A big-endian TIFF: Make "Cam", orientation, and a GPS IFD with one tag. */
 function tiff(orientation: number): number[] {
@@ -62,7 +67,10 @@ describe('metadata', () => {
 
   it('strips a JPEG, keeping the image data, color profile and orientation', () => {
     const stripped = stripMetadata(jpeg())!;
-    expect(readMetadata(stripped)).toEqual({ found: ['EXIF data'], orientation: 6 });
+    expect(readMetadata(stripped)).toEqual({
+      found: ['EXIF data'],
+      orientation: 6,
+    });
     const bytes = [...stripped];
     expect(bytes.slice(-scan.length)).toEqual(scan);
     expect(String.fromCharCode(...bytes)).toContain('ICC_PROFILE');
@@ -95,7 +103,11 @@ describe('metadata', () => {
   });
 
   it('strips EXIF and XMP from a WebP and fixes its header', () => {
-    const chunk = (type: string, data: number[]) => [...text(type), ...u32le(data.length), ...data];
+    const chunk = (type: string, data: number[]) => [
+      ...text(type),
+      ...u32le(data.length),
+      ...data,
+    ];
     const body = [
       ...text('WEBP'),
       ...chunk('VP8X', [0x0c, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
@@ -103,7 +115,11 @@ describe('metadata', () => {
       ...chunk('EXIF', tiff(1)),
       ...chunk('XMP ', text('<x/>')),
     ];
-    const webp = new Uint8Array([...text('RIFF'), ...u32le(body.length), ...body]);
+    const webp = new Uint8Array([
+      ...text('RIFF'),
+      ...u32le(body.length),
+      ...body,
+    ]);
     expect(readMetadata(webp).found).toEqual([
       'Camera: Cam',
       'GPS location',
@@ -112,12 +128,17 @@ describe('metadata', () => {
     const stripped = stripMetadata(webp)!;
     expect(readMetadata(stripped).found).toEqual([]);
     expect(stripped[20] & 0x0c).toBe(0);
-    expect(new DataView(stripped.buffer).getUint32(4, true)).toBe(stripped.length - 8);
+    expect(new DataView(stripped.buffer).getUint32(4, true)).toBe(
+      stripped.length - 8,
+    );
   });
 
   it('leaves other and malformed files alone', () => {
     expect(stripMetadata(new Uint8Array([1, 2, 3]))).toBeNull();
     expect(stripMetadata(jpeg().subarray(0, 30))).toBeNull();
-    expect(readMetadata(new Uint8Array([0xff, 0xd8, 0, 0]))).toEqual({ found: [], orientation: 1 });
+    expect(readMetadata(new Uint8Array([0xff, 0xd8, 0, 0]))).toEqual({
+      found: [],
+      orientation: 1,
+    });
   });
 });

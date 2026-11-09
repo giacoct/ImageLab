@@ -28,7 +28,8 @@ export async function decode(blob: Blob): Promise<Decoded> {
       imageOrientation: 'from-image',
     });
   } catch {
-    if (type !== 'image/heic') throw new Error('This file is not an image the browser can open.');
+    if (type !== 'image/heic')
+      throw new Error('This file is not an image the browser can open.');
   }
 
   if (bitmap) {
@@ -43,7 +44,9 @@ export async function decode(blob: Blob): Promise<Decoded> {
 
 function checkSize(width: number, height: number): void {
   if (width * height > MAX_PIXELS) {
-    throw new Error(`The image is too large (${width} × ${height} px; at most 100 megapixels).`);
+    throw new Error(
+      `The image is too large (${width} × ${height} px; at most 100 megapixels).`,
+    );
   }
 }
 
@@ -80,7 +83,9 @@ async function decodeHeic(bytes: Uint8Array): Promise<Img> {
     const height = primary.get_height();
     checkSize(width, height);
     const data = new ImageData(width, height);
-    const result = await new Promise<ImageData | null>((resolve) => primary.display(data, resolve));
+    const result = await new Promise<ImageData | null>((resolve) =>
+      primary.display(data, resolve),
+    );
     if (!result) throw new Error('This HEIC photo could not be decoded.');
     const image = createCanvas(width, height);
     context2d(image).putImageData(result, 0, 0);

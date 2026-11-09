@@ -53,13 +53,21 @@ export interface MapOp<S extends Schema = Schema> extends Base<S> {
  */
 export interface FileOp<S extends Schema = Schema> extends Base<S> {
   kind: 'file';
-  run(picture: Picture, values: Values<S>, context: RunContext): Promise<Picture>;
+  run(
+    picture: Picture,
+    values: Values<S>,
+    context: RunContext,
+  ): Promise<Picture>;
 }
 
 /** All images in, one image out (Merge images). */
 export interface CombineOp<S extends Schema = Schema> extends Base<S> {
   kind: 'combine';
-  run(images: Img[], values: Values<S>, context: RunContext): Img | Promise<Img>;
+  run(
+    images: Img[],
+    values: Values<S>,
+    context: RunContext,
+  ): Img | Promise<Img>;
 }
 
 /**

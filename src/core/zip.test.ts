@@ -5,7 +5,9 @@ import { crc32, zipParts } from './zip';
 describe('zipParts', () => {
   it('writes a stored archive with UTF-8 names', async () => {
     const data = new TextEncoder().encode('hello');
-    const parts = zipParts([{ name: 'città.txt', data, size: data.length, crc: crc32(data) }]);
+    const parts = zipParts([
+      { name: 'città.txt', data, size: data.length, crc: crc32(data) },
+    ]);
     expect(parts[1]).toBe(data); // the content is passed through, not copied
     const zip = new Uint8Array(await new Blob(parts).arrayBuffer());
     const view = new DataView(zip.buffer);

@@ -24,7 +24,8 @@ export const vectorize = finalOp({
   id: 'vectorize',
   kind: 'final',
   title: 'Convert to SVG',
-  description: 'Trace the image into scalable vector shapes: logos, icons, drawings.',
+  description:
+    'Trace the image into scalable vector shapes: logos, icons, drawings.',
   suffix: 'vector',
   params: {
     colors: p.choice({
@@ -74,7 +75,10 @@ export const vectorize = finalOp({
       4,
       Math.max(1, Math.floor(TRACE_SIDE / Math.max(image.width, image.height))),
     );
-    const work = factor > 1 ? resized(image, image.width * factor, image.height * factor) : image;
+    const work =
+      factor > 1
+        ? resized(image, image.width * factor, image.height * factor)
+        : image;
     const { data, width, height } = readPixels(work);
     const svg = to_svg(
       new Uint8Array(data.buffer),

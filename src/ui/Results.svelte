@@ -3,13 +3,17 @@
   text shown in full, to read and copy), a ZIP of everything, and what failed.
 -->
 <script lang="ts">
-  import { downloadBlob, downloadZip } from '../app/download';
-  import { session, type Result } from '../app/session.svelte';
-  import { formatBytes } from '../core/files';
-  import BlobImage from './BlobImage.svelte';
+  import { downloadBlob, downloadZip } from "../app/download";
+  import { session, type Result } from "../app/session.svelte";
+  import { formatBytes } from "../core/files";
+  import BlobImage from "./BlobImage.svelte";
 
-  const texts = $derived(session.results.filter((result) => result.output.text !== undefined));
-  const files = $derived(session.results.filter((result) => result.output.text === undefined));
+  const texts = $derived(
+    session.results.filter((result) => result.output.text !== undefined),
+  );
+  const files = $derived(
+    session.results.filter((result) => result.output.text === undefined),
+  );
   const totalOut = $derived(
     session.results.reduce((sum, result) => sum + result.output.blob.size, 0),
   );
@@ -18,7 +22,7 @@
 
   async function copy(result: Result): Promise<void> {
     try {
-      await navigator.clipboard.writeText(result.output.text ?? '');
+      await navigator.clipboard.writeText(result.output.text ?? "");
       copied = result.id;
       setTimeout(() => (copied = null), 1500);
     } catch {
@@ -28,9 +32,10 @@
 
   /** Size change against the input, e.g. "−42%". */
   function change(result: Result): string {
-    if (result.inputSize === 0 || !result.output.blob.type.startsWith('image/')) return '';
+    if (result.inputSize === 0 || !result.output.blob.type.startsWith("image/"))
+      return "";
     const ratio = result.output.blob.size / result.inputSize - 1;
-    return `${ratio > 0 ? '+' : '−'}${Math.abs(Math.round(ratio * 100))}%`;
+    return `${ratio > 0 ? "+" : "−"}${Math.abs(Math.round(ratio * 100))}%`;
   }
 </script>
 
@@ -41,9 +46,13 @@
         Processing {session.progress.done} of {session.progress.total}…
       {:else if session.results.length}
         {session.results.length}
-        {session.results.length === 1 ? 'result' : 'results'} · {formatBytes(totalOut)}
+        {session.results.length === 1 ? "result" : "results"} · {formatBytes(
+          totalOut,
+        )}
       {:else if !session.failures.length}
-        <span class="muted">No results yet. Process the images to see them here.</span>
+        <span class="muted"
+          >No results yet. Process the images to see them here.</span
+        >
       {/if}
     </span>
     {#if session.results.length > 1 && !session.running}
@@ -52,7 +61,7 @@
         onclick={() =>
           downloadZip(
             session.results.map((result) => result.output),
-            'imagelab.zip',
+            "imagelab.zip",
           )}
       >
         Download all (ZIP)
@@ -62,7 +71,8 @@
 
   {#if session.stale && !session.running}
     <p class="notice warning">
-      The settings or images changed since these results were made. Process again to update them.
+      The settings or images changed since these results were made. Process
+      again to update them.
     </p>
   {/if}
 
@@ -88,10 +98,17 @@
         <p class="muted">No text was found.</p>
       {/if}
       <div class="row">
-        <button type="button" disabled={!result.output.text} onclick={() => copy(result)}>
-          {copied === result.id ? 'Copied' : 'Copy text'}
+        <button
+          type="button"
+          disabled={!result.output.text}
+          onclick={() => copy(result)}
+        >
+          {copied === result.id ? "Copied" : "Copy text"}
         </button>
-        <button type="button" onclick={() => downloadBlob(result.output.blob, result.output.name)}>
+        <button
+          type="button"
+          onclick={() => downloadBlob(result.output.blob, result.output.name)}
+        >
           Download .txt
         </button>
       </div>
@@ -103,11 +120,16 @@
       {#each files as result (result.id)}
         <li>
           <div class="thumb checker">
-            <BlobImage blob={result.output.thumbnail} alt={result.output.name} />
+            <BlobImage
+              blob={result.output.thumbnail}
+              alt={result.output.name}
+            />
           </div>
           <span class="name">{result.output.name}</span>
           <span class="hint">
-            {result.output.width} × {result.output.height} · {formatBytes(result.output.blob.size)}
+            {result.output.width} × {result.output.height} · {formatBytes(
+              result.output.blob.size,
+            )}
             {change(result)}
           </span>
           <button

@@ -32,9 +32,15 @@ export interface Picture {
 }
 
 /** Encode `image` as `encoding` says. */
-export async function encodeImage(image: Img, encoding: Encoding): Promise<Encoded> {
-  const format = formatToWrite(encoding, () => hasTransparency(readPixels(image).data));
-  if (encoding.targetBytes !== null) return encodeToSize(image, format, encoding.targetBytes);
+export async function encodeImage(
+  image: Img,
+  encoding: Encoding,
+): Promise<Encoded> {
+  const format = formatToWrite(encoding, () =>
+    hasTransparency(readPixels(image).data),
+  );
+  if (encoding.targetBytes !== null)
+    return encodeToSize(image, format, encoding.targetBytes);
   return {
     blob: await encodeRaster(image, format, encoding.quality),
     width: image.width,
@@ -47,13 +53,24 @@ export async function encodeImage(image: Img, encoding: Encoding): Promise<Encod
  * become what the file holds, so later steps and the preview see the result,
  * compression artifacts included.
  */
-export async function writeNow(picture: Picture, encoding: Encoding): Promise<Picture> {
+export async function writeNow(
+  picture: Picture,
+  encoding: Encoding,
+): Promise<Picture> {
   const { blob } = await encodeImage(picture.image, encoding);
-  return { image: (await decode(blob)).image, encoding, file: { blob, original: false } };
+  return {
+    image: (await decode(blob)).image,
+    encoding,
+    file: { blob, original: false },
+  };
 }
 
 /** Encode at `quality` (1–100; ignored by PNG). */
-async function encodeRaster(image: Img, format: ImageFormat, quality: number): Promise<Blob> {
+async function encodeRaster(
+  image: Img,
+  format: ImageFormat,
+  quality: number,
+): Promise<Blob> {
   if (format === 'image/png') return image.convertToBlob({ type: 'image/png' });
 
   // JPEG has no alpha channel: flatten onto white instead of letting
@@ -75,7 +92,11 @@ async function encodeRaster(image: Img, format: ImageFormat, quality: number): P
     }
     case 'image/avif': {
       const { default: encode } = await import('@jsquash/avif/encode');
-      buffer = await encode(data, { quality: q, lossless: q === 100, speed: 7 });
+      buffer = await encode(data, {
+        quality: q,
+        lossless: q === 100,
+        speed: 7,
+      });
       break;
     }
   }
@@ -86,14 +107,25 @@ async function encodeRaster(image: Img, format: ImageFormat, quality: number): P
  * Fit a byte budget: binary-search the quality, or — for lossless PNG — the
  * dimensions. Returns the best result that fits, or the smallest one possible.
  */
-function encodeToSize(image: Img, format: ImageFormat, targetBytes: number): Promise<Encoded> {
+function encodeToSize(
+  image: Img,
+  format: ImageFormat,
+  targetBytes: number,
+): Promise<Encoded> {
   if (format === 'image/png') {
     return largestThatFits(
       async (scale) => {
         const scaled =
-          scale >= 1 ? image : resized(image, image.width * scale, image.height * scale);
+          scale >= 1
+            ? image
+            : resized(image, image.width * scale, image.height * scale);
         const blob = await encodeRaster(scaled, format, 100);
-        return { blob, width: scaled.width, height: scaled.height, size: blob.size };
+        return {
+          blob,
+          width: scaled.width,
+          height: scaled.height,
+          size: blob.size,
+        };
       },
       targetBytes,
       0.05,
@@ -103,7 +135,12 @@ function encodeToSize(image: Img, format: ImageFormat, targetBytes: number): Pro
   return largestThatFits(
     async (quality) => {
       const blob = await encodeRaster(image, format, quality * 100);
-      return { blob, width: image.width, height: image.height, size: blob.size };
+      return {
+        blob,
+        width: image.width,
+        height: image.height,
+        size: blob.size,
+      };
     },
     targetBytes,
     0.05,

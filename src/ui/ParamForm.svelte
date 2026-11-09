@@ -1,9 +1,12 @@
 <!--
   The form generated from a settings schema: one field per visible setting
   (sliders, number boxes, segmented choices or drop-downs, checkboxes,
-  colors). Custom settings (the crop box) have their own editors.
+  colors). Custom settings (the crop box) have their own editors. A color
+  can also be picked from the image, when the form is given `onpick`.
 -->
 <script lang="ts">
+  import Pipette from "@lucide/svelte/icons/pipette";
+
   import type { AnyValues, NumberParam, Schema } from "../core/params";
 
   let {
@@ -11,10 +14,16 @@
     values,
     onchange,
     idPrefix,
+    picking = null,
+    onpick,
   }: {
     schema: Schema;
     values: AnyValues;
     onchange: (key: string, value: unknown) => void;
+    /** The color setting being picked from the image. */
+    picking?: string | null;
+    /** Start (or stop, for the one being picked) picking a color from the image. */
+    onpick?: (key: string) => void;
     /** Makes input ids unique when several forms are on the page. */
     idPrefix: string;
   } = $props();
@@ -128,6 +137,16 @@
               event.currentTarget.value = String(values[key]);
             }}
           />
+          {#if onpick}
+            <button
+              class="icon pick"
+              type="button"
+              aria-label="Pick {param.label.toLowerCase()} from the image"
+              title="Pick from the image"
+              aria-pressed={picking === key}
+              onclick={() => onpick(key)}><Pipette size={16} /></button
+            >
+          {/if}
         </div>
         {#if param.hint}<span class="hint">{param.hint}</span>{/if}
       </div>
@@ -148,5 +167,10 @@
   .hex {
     font-family: ui-monospace, monospace;
     width: 7rem;
+  }
+
+  .pick[aria-pressed="true"] {
+    background: var(--accent-soft);
+    color: var(--accent);
   }
 </style>

@@ -26,9 +26,10 @@ away.
   invert, blur, sharpen; the preview follows the sliders as you drag
   (drawn by the GPU).
 - **Remove background**: make a plain background transparent; its color is
-  detected, and only the background around the subject goes.
-- **Add margin**: colored or transparent, in pixels or percent, the same on
-  every side or each its own.
+  detected or picked on the image, and only the background around the
+  subject goes.
+- **Add margin**: colored (pick the color on the image) or transparent, in
+  pixels or percent, the same on every side or each its own.
 - **Merge images**: combine all the images into one, stacked or side by side.
 - **Convert format**: JPEG, PNG, WebP or AVIF.
 - **Compress**: to a chosen quality, or to fit a file size.

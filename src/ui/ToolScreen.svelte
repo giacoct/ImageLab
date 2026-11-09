@@ -96,6 +96,9 @@
           values={session.tool.params}
           idPrefix={op.id}
           onchange={(key, value) => session.setParam(key, value)}
+          picking={session.picking}
+          onpick={(key) =>
+            (session.picking = session.picking === key ? null : key)}
         />
       {/if}
       <Failures />

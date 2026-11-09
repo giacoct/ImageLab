@@ -56,6 +56,8 @@ class Session {
   /** The tool that's open, with its settings. */
   tool = $state<Action | null>(null);
   readonly op = $derived(this.tool ? getOp(this.tool.op) : null);
+  /** The color setting being picked from the image in the preview, if any. */
+  picking = $state<string | null>(null);
 
   /** The images the last run made. */
   results = $state.raw<Item[]>([]);
@@ -129,12 +131,14 @@ class Session {
   openTool(opId: string): void {
     this.cancel();
     this.tool = { op: opId, params: defaults(getOp(opId).params) };
+    this.picking = null;
     this.clearResults();
   }
 
   closeTool(): void {
     this.cancel();
     this.tool = null;
+    this.picking = null;
     this.clearResults();
   }
 

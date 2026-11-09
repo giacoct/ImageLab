@@ -8,6 +8,9 @@
   Adjust & filters is live: the engine renders the plain image, and the GPU
   redraws it at every move of a slider (`engine/live.ts`). Without WebGL2,
   or if the GPU drops it, the engine renders it like every other tool.
+
+  While a color setting is being picked (`session.picking`), it shows the
+  image as it is, and a tap or click on it sets that color.
 -->
 <script lang="ts">
   import Minus from "@lucide/svelte/icons/minus";
@@ -16,6 +19,7 @@
 
   import { drawBitmap, Previewer } from "../app/previewer";
   import { session } from "../app/session.svelte";
+  import { colorAt } from "../core/background";
   import { isLive, LiveAdjust, type LiveSettings } from "../engine/live";
 
   let canvas = $state<HTMLCanvasElement>();
@@ -94,7 +98,7 @@
   // tool's settings are left to the GPU: the engine renders the plain image.
   $effect(() => {
     const action =
-      !live && session.tool && op?.kind !== "final"
+      !live && !session.picking && session.tool && op?.kind !== "final"
         ? $state.snapshot(session.tool)
         : null;
     if (shown.length === 0) {
@@ -193,6 +197,8 @@
   // Drag to pan; two fingers pinch to zoom.
   const pointers = new Map<number, { x: number; y: number }>();
   let pinch: { distance: number; zoom: number } | null = null;
+  /** A press that may be a tap: one finger, not moved since it went down. */
+  let tap: { id: number; x: number; y: number } | null = null;
 
   const distance = () => {
     const [a, b] = [...pointers.values()];
@@ -204,7 +210,9 @@
     // Capturing would take the click away from the zoom buttons.
     if ((event.target as Element).closest("button")) return;
     stage!.setPointerCapture(event.pointerId);
-    pointers.set(event.pointerId, fromCenter(event));
+    const point = fromCenter(event);
+    pointers.set(event.pointerId, point);
+    tap = pointers.size === 1 ? { id: event.pointerId, ...point } : null;
     if (pointers.size === 2) pinch = { distance: distance(), zoom };
   }
 
@@ -213,6 +221,7 @@
     if (!last) return;
     const point = fromCenter(event);
     pointers.set(event.pointerId, point);
+    if (tap && Math.hypot(point.x - tap.x, point.y - tap.y) > 6) tap = null;
     if (pinch && pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       const middle = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
@@ -225,6 +234,26 @@
   function onPointerUp(event: PointerEvent): void {
     pointers.delete(event.pointerId);
     if (pointers.size < 2) pinch = null;
+    if (tap?.id === event.pointerId && event.type === "pointerup")
+      pickAt(fromCenter(event));
+    tap = null;
+  }
+
+  /** Set the color being picked to the image's at `point` (from the stage's center). */
+  function pickAt(point: { x: number; y: number }): void {
+    const key = session.picking;
+    if (!key || !canvas || !size.width) return;
+    const x = Math.floor(((point.x - pan.x) / size.width + 0.5) * canvas.width);
+    const y = Math.floor(
+      ((point.y - pan.y) / size.height + 0.5) * canvas.height,
+    );
+    if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
+    // The pixel and its neighbors (outside the canvas, they read as transparent).
+    const area = canvas.getContext("2d")?.getImageData(x - 1, y - 1, 3, 3);
+    const color = area && colorAt(area, 1, 1);
+    if (!color) return;
+    session.setParam(key, color);
+    session.picking = null;
   }
 
   /** Double click: fit ↔ real size (or 2× a small image) at that point. */
@@ -235,7 +264,8 @@
   }
 
   function onKeyDown(event: KeyboardEvent): void {
-    if (event.key === "+" || event.key === "=") zoomTo(zoom * 1.5);
+    if (event.key === "Escape" && session.picking) session.picking = null;
+    else if (event.key === "+" || event.key === "=") zoomTo(zoom * 1.5);
     else if (event.key === "-") zoomTo(zoom / 1.5);
     else if (event.key === "0") resetZoom();
     else return;
@@ -251,6 +281,7 @@
 <div
   class="stage"
   class:zoomed={zoom > 1}
+  class:picking={session.picking}
   bind:this={stage}
   bind:clientWidth={stageWidth}
   bind:clientHeight={stageHeight}
@@ -284,6 +315,17 @@
   {/if}
 
   {#if busy && real}<span class="busy hint">Updating…</span>{/if}
+
+  {#if session.picking && real && shown.length}
+    <div class="pick-hint">
+      <span>Tap or click the image to pick the color</span>
+      <button
+        class="quiet"
+        type="button"
+        onclick={() => (session.picking = null)}>Cancel</button
+      >
+    </div>
+  {/if}
 
   {#if real && shown.length}
     <div class="zoom" role="group" aria-label="Zoom">
@@ -331,6 +373,11 @@
     cursor: grabbing;
   }
 
+  .stage.picking,
+  .stage.picking:active {
+    cursor: crosshair;
+  }
+
   canvas {
     box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
     left: 50%;
@@ -358,6 +405,26 @@
     left: 0.75rem;
     position: absolute;
     top: 0.6rem;
+  }
+
+  .pick-hint {
+    align-items: center;
+    background: var(--sheet);
+    border-radius: var(--radius);
+    box-shadow: 0 0 0 1px var(--line);
+    display: flex;
+    gap: 0.5rem;
+    left: 50%;
+    max-width: calc(100% - 1.5rem);
+    padding: 2px 2px 2px 0.75rem;
+    position: absolute;
+    top: 0.75rem;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  .pick-hint button {
+    min-height: 2rem;
   }
 
   .zoom {

@@ -31,6 +31,32 @@ export function rgbToHex(r: number, g: number, b: number): string {
 }
 
 /**
+ * The color at (x, y), averaged with its neighbors within `radius` so a
+ * noisy or JPEG pixel doesn't decide alone; mostly transparent pixels are
+ * left out. `null` when there's none to go by (outside, or transparent).
+ */
+export function colorAt(
+  { data, width, height }: Pixels,
+  x: number,
+  y: number,
+  radius = 1,
+): string | null {
+  let [r, g, b, count] = [0, 0, 0, 0];
+  for (let j = y - radius; j <= y + radius; j++) {
+    for (let i = x - radius; i <= x + radius; i++) {
+      if (i < 0 || j < 0 || i >= width || j >= height) continue;
+      const k = (j * width + i) * 4;
+      if (data[k + 3] < 128) continue;
+      r += data[k];
+      g += data[k + 1];
+      b += data[k + 2];
+      count += 1;
+    }
+  }
+  return count ? rgbToHex(r / count, g / count, b / count) : null;
+}
+
+/**
  * The most common color along the image's border (opaque pixels, grouped
  * into buckets so noise and JPEG artifacts don't split the vote), averaged
  * within the winning bucket. White when the border is fully transparent.

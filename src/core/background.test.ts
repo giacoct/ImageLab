@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { edgeColor, hexToRgb, removeBackground, rgbToHex } from "./background";
+import {
+  colorAt,
+  edgeColor,
+  hexToRgb,
+  removeBackground,
+  rgbToHex,
+} from "./background";
 
 /** A `size`×`size` white image with a black ring and white inside it. */
 function ring(size = 9) {
@@ -21,6 +27,17 @@ describe("background", () => {
   it("converts colors", () => {
     expect(hexToRgb("#ff8000")).toEqual([255, 128, 0]);
     expect(rgbToHex(255, 128, 0)).toBe("#ff8000");
+  });
+
+  it("reads the color around a point", () => {
+    const image = ring();
+    expect(colorAt(image, 0, 0)).toBe("#ffffff");
+    expect(colorAt(image, 2, 4, 0)).toBe("#000000");
+    // Averaged with the neighbors: one black column out of three.
+    expect(colorAt(image, 1, 4)).toBe("#aaaaaa");
+    expect(colorAt(image, -5, 0)).toBeNull();
+    image.data.fill(0);
+    expect(colorAt(image, 4, 4)).toBeNull();
   });
 
   it("finds the background color on the edges", () => {

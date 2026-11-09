@@ -28,7 +28,11 @@ class EngineWorker {
   private nextId = 0;
   private readonly pending = new Map<
     number,
-    { resolve(value: unknown): void; reject(error: Error): void }
+    {
+      resolve(value: unknown): void;
+      reject(error: Error): void;
+      progress?: (fraction: number) => void;
+    }
   >();
   busy = false;
 
@@ -36,6 +40,7 @@ class EngineWorker {
     type: K,
     args: Requests[K]["args"],
     signal?: AbortSignal,
+    progress?: (fraction: number) => void,
   ): Promise<Requests[K]["result"]> {
     if (signal?.aborted) return Promise.reject(new Cancelled());
     const worker = this.ensure();
@@ -55,6 +60,7 @@ class EngineWorker {
           signal?.removeEventListener("abort", onAbort);
           reject(error);
         },
+        progress,
       });
       worker.postMessage({ id, type, appUrl, args } as RequestMessage);
     });
@@ -77,6 +83,10 @@ class EngineWorker {
       const response = event.data;
       const entry = this.pending.get(response.id);
       if (!entry) return;
+      if ("progress" in response) {
+        entry.progress?.(response.progress);
+        return;
+      }
       this.pending.delete(response.id);
       if (response.ok) entry.resolve(response.result);
       else entry.reject(new Error(response.error));
@@ -111,11 +121,15 @@ class Engine {
   private waiting: (() => void)[] = [];
   private readonly previewWorker = new EngineWorker();
 
-  /** Run a request on the first idle pool worker, waiting for one if they're all busy. */
+  /**
+   * Run a request on the first idle pool worker, waiting for one if they're
+   * all busy. `progress` hears how far a slow one is.
+   */
   async run<K extends RequestType>(
     type: K,
     args: Requests[K]["args"],
     signal?: AbortSignal,
+    progress?: (fraction: number) => void,
   ): Promise<Requests[K]["result"]> {
     for (;;) {
       if (signal?.aborted) throw new Cancelled();
@@ -123,7 +137,7 @@ class Engine {
       if (worker) {
         worker.busy = true;
         try {
-          return await worker.call(type, args, signal);
+          return await worker.call(type, args, signal, progress);
         } finally {
           worker.busy = false;
           // Wake every waiter: each checks again, so a cancelled one can't

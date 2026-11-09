@@ -31,4 +31,6 @@ export type RequestMessage = {
 
 export type ResponseMessage =
   | { id: number; ok: true; result: unknown }
-  | { id: number; ok: false; error: string };
+  | { id: number; ok: false; error: string }
+  /** How far a slow request is, 0–1, before its result. */
+  | { id: number; progress: number };

@@ -8,6 +8,7 @@
 -->
 <script lang="ts">
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import LoaderCircle from "@lucide/svelte/icons/loader-circle";
 
   import { goHome } from "../app/router";
   import { session } from "../app/session.svelte";
@@ -108,13 +109,21 @@
     <div class="apply">
       {#if session.running}
         <div class="progress">
-          <progress
-            value={session.progress.done}
-            max={Math.max(1, session.progress.total)}
-          ></progress>
-          <span class="hint numbers">
-            {session.progress.done} of {session.progress.total}
-          </span>
+          {#if session.measured}
+            <progress value={session.done} max={session.progress.total}
+            ></progress>
+            <span class="hint numbers">
+              {session.progress.total > 1
+                ? `${session.progress.done} of ${session.progress.total}`
+                : `${Math.floor(session.done * 100)}%`}
+            </span>
+          {:else}
+            <!-- One image, by a tool that can't tell how far it is. -->
+            <span class="working">
+              <span class="spinner"><LoaderCircle size={20} /></span>
+              Working…
+            </span>
+          {/if}
           <button type="button" onclick={() => session.cancel()}>Cancel</button>
         </div>
       {:else}
@@ -250,6 +259,26 @@
   progress {
     accent-color: var(--accent);
     flex: 1;
+  }
+
+  .working {
+    align-items: center;
+    color: var(--muted);
+    display: flex;
+    flex: 1;
+    gap: 0.5rem;
+  }
+
+  .spinner {
+    animation: spin 0.9s linear infinite;
+    color: var(--accent);
+    display: flex;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   /* Wide: the viewer fills the screen, the settings get a column of their own. */

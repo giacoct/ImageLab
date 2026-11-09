@@ -28,6 +28,11 @@ export interface RunContext {
   scale: number;
   /** Absolute URL of a file the app serves (the OCR engine, see vite.config.ts). */
   asset(path: string): string;
+  /**
+   * How far the run is through this image, 0–1, for the progress bar. Only
+   * slow tools report it (Upscale, OCR); the others are done in a blink.
+   */
+  progress?(fraction: number): void;
 }
 
 interface Base<S extends Schema> {

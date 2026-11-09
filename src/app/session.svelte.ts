@@ -74,7 +74,20 @@ class Session {
   );
 
   running = $state(false);
-  progress = $state({ done: 0, total: 0 });
+  /**
+   * Images done, of how many; and how far the ones running are (0–1 each,
+   * by job), for the tools that report it.
+   */
+  progress = $state({ done: 0, total: 0, parts: {} as Record<number, number> });
+  /** Whether the progress can be shown as a bar: a batch, or a tool that reports it. */
+  readonly measured = $derived(
+    this.progress.total > 1 || Object.keys(this.progress.parts).length > 0,
+  );
+  /** How much is done, in images (fractions included). */
+  readonly done = $derived(
+    this.progress.done +
+      Object.values(this.progress.parts).reduce((sum, part) => sum + part, 0),
+  );
   saving = $state(false);
   /**
    * The share sheet only opens right after a tap. When saving the files
@@ -172,7 +185,7 @@ class Session {
     this.ranWith = this.signature;
     this.controller = controller;
     this.running = true;
-    this.progress = { done: 0, total: jobs.length };
+    this.progress = { done: 0, total: jobs.length, parts: {} };
     this.failures = [];
     // Results keep the order of the images, whichever finishes first.
     const made: Item[][] = [];
@@ -181,10 +194,18 @@ class Session {
 
     const runJob = async (index: number) => {
       const job = jobs[index];
+      const report = (fraction: number) => {
+        if (!signal.aborted) this.progress.parts[index] = fraction;
+      };
       try {
         if (op.kind === "final") {
           const input = job[0].version;
-          const output = await engine.run("finish", { input, action }, signal);
+          const output = await engine.run(
+            "finish",
+            { input, action },
+            signal,
+            report,
+          );
           outputs[index] = { id: uid(), output };
         } else {
           const inputs = job.map((item) => item.version);
@@ -192,6 +213,7 @@ class Session {
             "apply",
             { inputs, action },
             signal,
+            report,
           );
           made[index] = versions.map((version) => ({ id: uid(), version }));
         }
@@ -206,6 +228,7 @@ class Session {
       this.results = made.flat();
       this.outputs = outputs.filter(Boolean);
       this.failures = [...failures];
+      delete this.progress.parts[index];
       this.progress.done += 1;
     };
 

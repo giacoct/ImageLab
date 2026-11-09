@@ -9,7 +9,12 @@ declare const self: DedicatedWorkerGlobalScope;
 self.onmessage = async (event: MessageEvent<RequestMessage>) => {
   const message = event.data;
   const asset = (path: string) => new URL(path, message.appUrl).href;
-  const context = { scale: 1, asset };
+  const context = {
+    scale: 1,
+    asset,
+    progress: (progress: number) =>
+      self.postMessage({ id: message.id, progress } satisfies ResponseMessage),
+  };
   try {
     let result: unknown;
     const transfer: Transferable[] = [];

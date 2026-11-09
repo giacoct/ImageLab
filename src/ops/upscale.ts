@@ -90,17 +90,20 @@ async function cpuModel(): Promise<Model> {
 }
 
 /** The image 4× larger; on the CPU from now on if the GPU fails. */
-async function enlarge(image: Img): Promise<Img> {
+async function enlarge(
+  image: Img,
+  progress?: (fraction: number) => void,
+): Promise<Img> {
   const loaded = await loadModel();
   try {
-    return await enlargeWith(loaded, image);
+    return await enlargeWith(loaded, image, progress);
   } catch (error) {
     if (!loaded.gpu) throw error;
     console.warn("Upscaling on the GPU failed, now on the CPU:", error);
     void loaded.session.release().catch(() => {});
     model = cpuModel();
     model.catch(() => (model = undefined));
-    return enlargeWith(await model, image);
+    return enlargeWith(await model, image, progress);
   }
 }
 
@@ -108,6 +111,7 @@ async function enlarge(image: Img): Promise<Img> {
 async function enlargeWith(
   { session, Tensor }: Model,
   image: Img,
+  progress?: (fraction: number) => void,
 ): Promise<Img> {
   const { data, width, height } = readPixels(image);
   const out = createCanvas(width * FACTOR, height * FACTOR);
@@ -119,6 +123,8 @@ async function enlargeWith(
   const input = new Float32Array(3 * plane);
   const ow = SIDE * FACTOR;
   const outPlane = ow * ow;
+  const tiles = Math.ceil(width / TILE) * Math.ceil(height / TILE);
+  let done = 0;
   for (let y0 = 0; y0 < height; y0 += TILE) {
     for (let x0 = 0; x0 < width; x0 += TILE) {
       // RGBA bytes → planar float RGB in [0, 1] (NCHW).
@@ -160,6 +166,7 @@ async function enlargeWith(
         }
       }
       outContext.putImageData(tile, x0 * FACTOR, y0 * FACTOR);
+      progress?.(++done / tiles);
     }
   }
 
@@ -191,12 +198,12 @@ export const upscale = mapOp({
       hint: `For images up to ${MAX_SIDE} px on the longest side. The preview shows the image as it is.`,
     }),
   },
-  async run(image, values) {
+  async run(image, values, context) {
     if (Math.max(image.width, image.height) > MAX_SIDE)
       throw new Error(
         `Too large to upscale (${image.width} × ${image.height} px): the longest side can be at most ${MAX_SIDE} px. Scale it down first.`,
       );
-    const out = await enlarge(image);
+    const out = await enlarge(image, context.progress);
     return values.factor === "2"
       ? downscaled(out, image.width * 2, image.height * 2)
       : out;

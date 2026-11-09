@@ -17,6 +17,8 @@ import {
 import { finalOp } from "./op";
 
 let current: { langs: string; worker: Promise<Tesseract> } | undefined;
+/** Hears Tesseract's progress while it reads an image. */
+let reportProgress: ((fraction: number) => void) | undefined;
 
 /** One Tesseract worker per engine worker, kept warm; recreated when the languages change. */
 function tesseract(
@@ -33,6 +35,9 @@ function tesseract(
         workerBlobURL: false,
         // The browser's HTTP cache keeps the language files already.
         cacheMethod: "none",
+        logger: ({ status, progress }) => {
+          if (status === "recognizing text") reportProgress?.(progress);
+        },
       }),
     );
     current = { langs, worker };
@@ -103,7 +108,10 @@ export const ocr = finalOp({
         values.layout === "sparse" ? PSM.SPARSE_TEXT : PSM.AUTO,
     });
     const png = await prepare(image).convertToBlob({ type: "image/png" });
-    const { data } = await worker.recognize(png);
+    reportProgress = context.progress;
+    const { data } = await worker.recognize(png).finally(() => {
+      reportProgress = undefined;
+    });
     // Tidy up: no trailing spaces, at most one blank line between paragraphs.
     const text = data.text
       .replace(/[ \t]+$/gm, "")

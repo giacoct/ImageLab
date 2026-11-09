@@ -11,8 +11,10 @@ import AlignEndHorizontal from "@lucide/svelte/icons/align-end-horizontal";
 import AlignEndVertical from "@lucide/svelte/icons/align-end-vertical";
 import AlignStartHorizontal from "@lucide/svelte/icons/align-start-horizontal";
 import AlignStartVertical from "@lucide/svelte/icons/align-start-vertical";
+import Columns2 from "@lucide/svelte/icons/columns-2";
 import RectangleHorizontal from "@lucide/svelte/icons/rectangle-horizontal";
 import RectangleVertical from "@lucide/svelte/icons/rectangle-vertical";
+import Rows2 from "@lucide/svelte/icons/rows-2";
 
 export const ICONS: Record<string, Component<{ size?: number }>> = {
   "align-center-horizontal": AlignCenterHorizontal,
@@ -21,6 +23,8 @@ export const ICONS: Record<string, Component<{ size?: number }>> = {
   "align-end-vertical": AlignEndVertical,
   "align-start-horizontal": AlignStartHorizontal,
   "align-start-vertical": AlignStartVertical,
+  "columns-2": Columns2,
   "rectangle-horizontal": RectangleHorizontal,
   "rectangle-vertical": RectangleVertical,
+  "rows-2": Rows2,
 };

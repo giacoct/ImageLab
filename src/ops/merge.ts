@@ -1,9 +1,15 @@
 /** Merge images: combine all the images into one, stacked or side by side. */
 
 import { mergeLayout } from "../core/geometry";
-import { p } from "../core/params";
+import { p, type AnyValues } from "../core/params";
 import { context2d, createCanvas } from "../engine/canvas";
 import { combineOp } from "./op";
+
+/** Stacked: the images line up left to right; side by side, top to bottom. */
+const stacked = (v: AnyValues) => v.direction === "vertical";
+/** The alignment's label and icon, which follow the direction. */
+const across = (vertical: string, horizontal: string) => (v: AnyValues) =>
+  stacked(v) ? vertical : horizontal;
 
 export const merge = combineOp({
   id: "merge",
@@ -16,21 +22,34 @@ export const merge = combineOp({
       label: "Direction",
       default: "vertical",
       options: [
-        { value: "vertical", label: "Stacked" },
-        { value: "horizontal", label: "Side by side" },
+        { value: "vertical", label: "Stacked", icon: "rows-2" },
+        { value: "horizontal", label: "Side by side", icon: "columns-2" },
       ],
     }),
     align: p.choice({
       label: "Alignment",
       default: "center",
+      display: "icons",
       options: [
-        { value: "start", label: "Left / top" },
-        { value: "center", label: "Center" },
-        { value: "end", label: "Right / bottom" },
+        {
+          value: "start",
+          label: across("Left", "Top"),
+          icon: across("align-start-vertical", "align-start-horizontal"),
+        },
+        {
+          value: "center",
+          label: across("Center", "Middle"),
+          icon: across("align-center-vertical", "align-center-horizontal"),
+        },
+        {
+          value: "end",
+          label: across("Right", "Bottom"),
+          icon: across("align-end-vertical", "align-end-horizontal"),
+        },
       ],
     }),
     match: p.boolean({
-      label: "Make them the same width (stacked) or height (side by side)",
+      label: across("Make them the same width", "Make them the same height"),
       default: false,
     }),
     gap: p.number({

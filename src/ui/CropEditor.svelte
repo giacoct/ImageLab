@@ -2,6 +2,8 @@
   Interactive crop box for "Rotate, flip & crop", filling the stage: the
   picked image rotated/flipped but uncropped, with a box to drag and
   handles. The crop is stored as fractions, so it applies to every image.
+  Each handle's grip is larger than the dot it shows, sized for a finger:
+  a corner's reaches past the image, a side's runs along the whole edge.
 -->
 <script lang="ts">
   import { drawBitmap, Previewer } from "../app/previewer";
@@ -117,6 +119,15 @@
   >
     <canvas bind:this={canvas} aria-label="Image to crop"></canvas>
     {#if size}
+      <!-- Dims the image around the crop; clipped to the image, unlike the handles. -->
+      <div class="shade">
+        <div
+          style:left={percent(shown.x)}
+          style:top={percent(shown.y)}
+          style:width={percent(shown.width)}
+          style:height={percent(shown.height)}
+        ></div>
+      </div>
       <div
         class="box"
         style:left={percent(shown.x)}
@@ -169,7 +180,6 @@
 
   .frame {
     left: 50%;
-    overflow: hidden; /* clips the dimming shadow around the crop box */
     position: absolute;
     top: calc(50% - 28px);
     touch-action: none;
@@ -185,6 +195,18 @@
     display: block;
     height: 100%;
     width: 100%;
+  }
+
+  .shade {
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    position: absolute;
+  }
+
+  .shade > div {
+    box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.45);
+    position: absolute;
   }
 
   /* Dashed thirds inside the crop box help with composition. */
@@ -213,72 +235,104 @@
         transparent 0
       );
     border: 2px solid #fff;
-    box-shadow:
-      0 0 0 1px rgb(0 0 0 / 0.5),
-      0 0 0 9999px rgb(0 0 0 / 0.45);
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.5);
     cursor: move;
     position: absolute;
   }
 
+  /* The grip: invisible, centered on the corner or along the edge. */
   .handle {
+    --grip: 44px;
+    --dot: 18px;
+    position: absolute;
+  }
+
+  /* What it shows: a dot on a corner, a bar on a side. */
+  .handle::after {
     background: #fff;
     border: 2px solid var(--accent);
-    border-radius: 50%;
+    border-radius: 999px;
     box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
-    height: 14px;
+    content: "";
+    height: var(--dot);
+    left: 50%;
     position: absolute;
-    width: 14px;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: var(--dot);
+  }
+
+  @media (pointer: coarse) {
+    .handle {
+      --grip: 56px;
+      --dot: 22px;
+    }
   }
 
   .nw,
   .ne,
   .sw,
   .se {
-    height: 16px;
-    width: 16px;
-  }
-
-  .n,
-  .s {
-    cursor: ns-resize;
-    left: calc(50% - 7px);
-  }
-  .e,
-  .w {
-    cursor: ew-resize;
-    top: calc(50% - 7px);
-  }
-  .n {
-    top: -2px;
-  }
-  .s {
-    bottom: -2px;
-  }
-  .e {
-    right: -2px;
-  }
-  .w {
-    left: -2px;
+    height: var(--grip);
+    width: var(--grip);
   }
   .nw {
     cursor: nwse-resize;
-    left: -2px;
-    top: -2px;
+    left: calc(var(--grip) / -2 - 1px);
+    top: calc(var(--grip) / -2 - 1px);
   }
   .ne {
     cursor: nesw-resize;
-    right: -2px;
-    top: -2px;
+    right: calc(var(--grip) / -2 - 1px);
+    top: calc(var(--grip) / -2 - 1px);
   }
   .sw {
-    bottom: -2px;
+    bottom: calc(var(--grip) / -2 - 1px);
     cursor: nesw-resize;
-    left: -2px;
+    left: calc(var(--grip) / -2 - 1px);
   }
   .se {
-    bottom: -2px;
+    bottom: calc(var(--grip) / -2 - 1px);
     cursor: nwse-resize;
-    right: -2px;
+    right: calc(var(--grip) / -2 - 1px);
+  }
+
+  /* Between the corners' grips; only the part of a short side they leave. */
+  .n,
+  .s {
+    cursor: ns-resize;
+    height: var(--grip);
+    left: calc(var(--grip) / 2);
+    right: calc(var(--grip) / 2);
+  }
+  .e,
+  .w {
+    bottom: calc(var(--grip) / 2);
+    cursor: ew-resize;
+    top: calc(var(--grip) / 2);
+    width: var(--grip);
+  }
+  .n {
+    top: calc(var(--grip) / -2 - 1px);
+  }
+  .s {
+    bottom: calc(var(--grip) / -2 - 1px);
+  }
+  .e {
+    right: calc(var(--grip) / -2 - 1px);
+  }
+  .w {
+    left: calc(var(--grip) / -2 - 1px);
+  }
+  .n::after,
+  .s::after {
+    height: calc(var(--dot) / 2);
+    width: calc(var(--dot) * 1.6);
+  }
+  .e::after,
+  .w::after {
+    height: calc(var(--dot) * 1.6);
+    width: calc(var(--dot) / 2);
   }
 
   .bar {

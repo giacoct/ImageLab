@@ -6,9 +6,11 @@ import {
   rotatedSize,
   type AspectPreset,
   type Crop,
+  type Rect,
   type Rotation,
+  type Size,
 } from "../core/geometry";
-import { p } from "../core/params";
+import { p, type Values } from "../core/params";
 import { context2d, createCanvas } from "../engine/canvas";
 import { mapOp } from "./op";
 
@@ -52,6 +54,15 @@ const PARAMS = {
       { value: "16:9", label: "16:9" },
     ],
   }),
+  orientation: p.choice({
+    label: "Orientation",
+    default: "landscape",
+    options: [
+      { value: "landscape", label: "Landscape", icon: "rectangle-horizontal" },
+      { value: "portrait", label: "Portrait", icon: "rectangle-vertical" },
+    ],
+    when: (v) => ["4:3", "3:2", "16:9"].includes(String(v.aspect)),
+  }),
   // Edited on the image by the crop editor (ui/CropEditor.svelte).
   crop: p.custom<Crop>({ label: "Crop", default: FULL_CROP }),
 };
@@ -65,8 +76,9 @@ export function cropForImage(
   crop: Crop,
   aspect: AspectPreset,
   size: { width: number; height: number },
+  portrait = false,
 ): Crop {
-  const k = aspectFactor(aspect, size);
+  const k = aspectFactor(aspect, size, portrait);
   if (k === null || Math.abs(crop.height - crop.width * k) < 1e-6) return crop; // free, or already this ratio
   let width = crop.width;
   let height = width * k;
@@ -83,6 +95,38 @@ export function cropForImage(
     : { x, y, width, height };
 }
 
+type TransformValues = Values<typeof PARAMS>;
+
+/**
+ * Where the result comes from, for an image of `size`: the turned image's
+ * size (whole pixels, rounded down, so a filled frame never shows a corner)
+ * and the crop in it. Also the result's size, for the crop editor.
+ */
+export function layout(
+  size: Size,
+  values: Pick<
+    TransformValues,
+    "rotate" | "angle" | "fill" | "aspect" | "orientation" | "crop"
+  >,
+): { oriented: Size; crop: Rect } {
+  const rotate = Number(values.rotate) as Rotation;
+  const turned = rotatedSize(size, rotate, values.angle, values.fill);
+  const oriented = {
+    width: Math.max(1, Math.floor(turned.width + 1e-6)),
+    height: Math.max(1, Math.floor(turned.height + 1e-6)),
+  };
+  const crop = cropPixels(
+    cropForImage(
+      values.crop,
+      values.aspect,
+      oriented,
+      values.orientation === "portrait",
+    ),
+    oriented,
+  );
+  return { oriented, crop };
+}
+
 export const transform = mapOp({
   id: "transform",
   kind: "map",
@@ -91,24 +135,14 @@ export const transform = mapOp({
   suffix: "edited",
   params: PARAMS,
   run(image, values) {
-    const rotate = Number(values.rotate) as Rotation;
-    // In whole pixels, rounded down: a filled frame never shows a corner.
-    const turned = rotatedSize(image, rotate, values.angle, values.fill);
-    const oriented = {
-      width: Math.max(1, Math.floor(turned.width + 1e-6)),
-      height: Math.max(1, Math.floor(turned.height + 1e-6)),
-    };
-    const crop = cropPixels(
-      cropForImage(values.crop, values.aspect, oriented),
-      oriented,
-    );
+    const { oriented, crop } = layout(image, values);
     const out = createCanvas(crop.width, crop.height);
     const context = context2d(out);
     // Shift so the crop lands at the origin, then rotate/flip about the
     // oriented image's center.
     context.translate(-crop.x, -crop.y);
     context.translate(oriented.width / 2, oriented.height / 2);
-    context.rotate(((rotate + values.angle) * Math.PI) / 180);
+    context.rotate(((Number(values.rotate) + values.angle) * Math.PI) / 180);
     context.scale(values.flipH ? -1 : 1, values.flipV ? -1 : 1);
     context.drawImage(image, -image.width / 2, -image.height / 2);
     return out;

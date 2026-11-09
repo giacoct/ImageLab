@@ -17,7 +17,7 @@
     type Crop,
     type DragMode,
   } from "../core/geometry";
-  import { cropForImage } from "../ops/transform";
+  import { cropForImage, layout } from "../ops/transform";
 
   let canvas = $state<HTMLCanvasElement>();
   let stageWidth = $state(0);
@@ -37,8 +37,18 @@
   const params = $derived(session.tool?.params ?? {});
   const aspect = $derived((params.aspect ?? "free") as AspectPreset);
   const crop = $derived((params.crop ?? FULL_CROP) as Crop);
-  const k = $derived(size ? aspectFactor(aspect, size) : null);
-  const shown = $derived(size ? cropForImage(crop, aspect, size) : crop);
+  const portrait = $derived(params.orientation === "portrait");
+  /** The result's size for the image shown, in pixels. */
+  const result = $derived.by(() => {
+    const version = session.selected?.version;
+    if (!version) return null;
+    return layout(version, params as unknown as Parameters<typeof layout>[1])
+      .crop;
+  });
+  const k = $derived(size ? aspectFactor(aspect, size, portrait) : null);
+  const shown = $derived(
+    size ? cropForImage(crop, aspect, size, portrait) : crop,
+  );
 
   /** Room around the image, and for the bar at the bottom. */
   const PADDING = 32;
@@ -163,9 +173,8 @@
   </div>
   <div class="bar">
     <span class="hint numbers">
-      {#if size}
-        {Math.round(shown.width * 100)}% × {Math.round(shown.height * 100)}% of
-        the image
+      {#if size && result}
+        Result: <strong>{result.width} × {result.height}</strong> px
       {/if}
     </span>
     <button

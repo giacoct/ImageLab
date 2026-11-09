@@ -90,12 +90,16 @@ const MIN_CROP = 0.05;
 export function aspectFactor(
   preset: AspectPreset,
   oriented: Size,
+  portrait = false,
 ): number | null {
   if (preset === "free") return null;
-  const [rw, rh] =
+  const [long, short] =
     preset === "original"
       ? [oriented.width, oriented.height]
       : preset.split(":").map(Number);
+  // A ratio preset is landscape, turned on its side for a portrait crop.
+  const [rw, rh] =
+    portrait && preset !== "original" ? [short, long] : [long, short];
   return (oriented.width / oriented.height) * (rh / rw);
 }
 

@@ -7,8 +7,16 @@
 /** Read-only view of a whole settings object, for `when`. */
 export type AnyValues = Readonly<Record<string, unknown>>;
 
+/** A text, or one that depends on the other settings (e.g. on a direction). */
+export type Text = string | ((values: AnyValues) => string);
+
+/** The text as shown with these settings. */
+export function textOf(text: Text, values: AnyValues): string {
+  return typeof text === "function" ? text(values) : text;
+}
+
 interface BaseParam<T> {
-  label: string;
+  label: Text;
   default: T;
   hint?: string;
   /** Show the field only when this returns true (the value is kept either way). */
@@ -25,11 +33,21 @@ export interface NumberParam extends BaseParam<number> {
   slider: boolean;
 }
 
+export interface ChoiceOption<V extends string = string> {
+  value: V;
+  label: Text;
+  /** A Lucide icon's name (the UI maps it, see `ui/icons.ts`). */
+  icon?: Text;
+}
+
 export interface ChoiceParam<V extends string = string> extends BaseParam<V> {
   kind: "choice";
-  options: readonly { value: V; label: string }[];
-  /** Buttons side by side, or a drop-down for long lists. */
-  display: "segmented" | "select";
+  options: readonly ChoiceOption<V>[];
+  /**
+   * Buttons side by side (with their icons, if any), buttons with only
+   * their icons (the label is their tooltip), or a drop-down for long lists.
+   */
+  display: "segmented" | "icons" | "select";
 }
 
 export interface BooleanParam extends BaseParam<boolean> {
@@ -75,8 +93,8 @@ export const p = {
 
   choice<const V extends string>(
     options: Common<V> & {
-      options: readonly { value: V; label: string }[];
-      display?: "segmented" | "select";
+      options: readonly ChoiceOption<V>[];
+      display?: ChoiceParam["display"];
     },
   ): ChoiceParam<V> {
     return {

@@ -25,7 +25,8 @@ away.
 
 - **Rotate, flip & crop**: turn by quarter turns or straighten by any angle
   (to 0.1°, cropping the empty corners or keeping them transparent), mirror,
-  and crop freely or to a ratio.
+  and crop freely or to a ratio, landscape or portrait, seeing the result's
+  size in pixels.
 - **Scale**: by percentage, to fit a box, or to a width or height.
 - **Upscale with AI**: enlarge 2× or 4× and rebuild the detail, with
   Real-ESRGAN's general model (BSD-3-Clause), on the GPU where the browser

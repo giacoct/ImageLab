@@ -7,7 +7,13 @@
 <script lang="ts">
   import Pipette from "@lucide/svelte/icons/pipette";
 
-  import type { AnyValues, NumberParam, Schema } from "../core/params";
+  import {
+    textOf,
+    type AnyValues,
+    type NumberParam,
+    type Schema,
+  } from "../core/params";
+  import { ICONS } from "./icons";
 
   let {
     schema,
@@ -50,14 +56,14 @@
       <div class="field">
         {#if param.slider}
           <div class="field-label">
-            <label for={id}>{param.label}</label>
+            <label for={id}>{textOf(param.label, values)}</label>
             <!-- The value, also to type in: a slider can't hit 0.1° on a phone. -->
             <span class="field-value">
               <input
                 class="exact"
                 type="number"
                 inputmode="decimal"
-                aria-label="{param.label} value"
+                aria-label="{textOf(param.label, values)} value"
                 min={param.min}
                 max={param.max}
                 step={param.step}
@@ -80,7 +86,9 @@
               setNumber(key, param, event.currentTarget.value)}
           />
         {:else}
-          <label class="field-label" for={id}>{param.label}</label>
+          <label class="field-label" for={id}
+            >{textOf(param.label, values)}</label
+          >
           <div class="row">
             <input
               {id}
@@ -104,26 +112,40 @@
     {:else if param.kind === "choice"}
       <div class="field">
         {#if param.display === "select"}
-          <label class="field-label" for={id}>{param.label}</label>
+          <label class="field-label" for={id}
+            >{textOf(param.label, values)}</label
+          >
           <select
             {id}
             value={values[key]}
             onchange={(event) => onchange(key, event.currentTarget.value)}
           >
             {#each param.options as option (option.value)}
-              <option value={option.value}>{option.label}</option>
+              <option value={option.value}
+                >{textOf(option.label, values)}</option
+              >
             {/each}
           </select>
         {:else}
-          <span class="field-label" {id}>{param.label}</span>
-          <div class="segmented" role="group" aria-labelledby={id}>
+          <span class="field-label" {id}>{textOf(param.label, values)}</span>
+          <div
+            class="segmented"
+            class:icons={param.display === "icons"}
+            role="group"
+            aria-labelledby={id}
+          >
             {#each param.options as option (option.value)}
+              {@const label = textOf(option.label, values)}
+              {@const Icon = option.icon && ICONS[textOf(option.icon, values)]}
               <button
                 type="button"
                 aria-pressed={values[key] === option.value}
+                aria-label={param.display === "icons" ? label : undefined}
+                title={param.display === "icons" ? label : undefined}
                 onclick={() => onchange(key, option.value)}
               >
-                {option.label}
+                {#if Icon}<Icon size={18} />{/if}
+                {#if param.display !== "icons"}{label}{/if}
               </button>
             {/each}
           </div>
@@ -132,7 +154,8 @@
       </div>
     {:else if param.kind === "color"}
       <div class="field">
-        <label class="field-label" for={id}>{param.label}</label>
+        <label class="field-label" for={id}>{textOf(param.label, values)}</label
+        >
         <div class="row">
           <input
             {id}
@@ -142,7 +165,7 @@
           />
           <input
             class="hex"
-            aria-label="{param.label} (hex)"
+            aria-label="{textOf(param.label, values)} (hex)"
             value={values[key]}
             onchange={(event) => {
               const hex = event.currentTarget.value
@@ -157,7 +180,10 @@
             <button
               class="icon pick"
               type="button"
-              aria-label="Pick {param.label.toLowerCase()} from the image"
+              aria-label="Pick {textOf(
+                param.label,
+                values,
+              ).toLowerCase()} from the image"
               title="Pick from the image"
               aria-pressed={picking === key}
               onclick={() => onpick(key)}><Pipette size={16} /></button
@@ -173,7 +199,7 @@
           checked={Boolean(values[key])}
           onchange={(event) => onchange(key, event.currentTarget.checked)}
         />
-        {param.label}
+        {textOf(param.label, values)}
       </label>
     {/if}
   {/each}

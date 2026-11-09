@@ -46,6 +46,10 @@ describe("crop", () => {
       1,
     );
     expect(aspectFactor("free", { width: 400, height: 300 })).toBeNull();
+    // Portrait: 3:4 on a 400×300 image is 400/300 · 4/3 high.
+    expect(aspectFactor("4:3", { width: 400, height: 300 }, true)).toBeCloseTo(
+      16 / 9,
+    );
   });
 
   it("centers the largest crop of a ratio", () => {

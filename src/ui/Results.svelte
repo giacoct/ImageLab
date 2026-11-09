@@ -1,14 +1,17 @@
 <!--
   What the tool made: the result images, to download one by one or all
-  together, or to use as the images for another tool; or, for Extract text
-  and Convert to SVG, the text (in full, to read and copy) and the SVGs.
+  together, to share, or to use as the images for another tool; or, for
+  Extract text and Convert to SVG, the text (in full, to read and copy) and
+  the SVGs. Share is there where the browser can share files.
 -->
 <script lang="ts">
   import Download from "@lucide/svelte/icons/download";
+  import Share from "@lucide/svelte/icons/share";
 
   import { downloadBlob, downloadZip } from "../app/download";
   import { goHome } from "../app/router";
   import { session } from "../app/session.svelte";
+  import { canShareFiles, shareFiles } from "../app/share";
   import { formatBytes } from "../core/files";
   import type { Output } from "../engine/pipeline";
   import type { Item } from "../app/session.svelte";
@@ -22,6 +25,7 @@
   };
 
   const count = $derived(session.results.length + session.outputs.length);
+  const canShare = canShareFiles();
   let copied = $state<string | null>(null);
 
   // When results arrive, bring them into view: on a phone they'd otherwise
@@ -48,6 +52,14 @@
     } catch {
       // No clipboard access: the text box can still be selected and copied.
     }
+  }
+
+  /** The file of a text or SVG, if the browser can share it. */
+  function shareable(output: Output): File | null {
+    const file = new File([output.blob], output.name, {
+      type: output.blob.type.split(";")[0],
+    });
+    return canShare && canShareFiles([file]) ? file : null;
   }
 
   function downloadAll(): void {
@@ -111,6 +123,7 @@
     {/if}
 
     {#each session.outputs as { id, output } (id)}
+      {@const file = shareable(output)}
       <article>
         <span class="name">{output.name}</span>
         {#if output.text !== undefined}
@@ -144,6 +157,14 @@
           >
             <Download size={16} /> Download
           </button>
+          {#if file}
+            <button
+              type="button"
+              onclick={() => shareFiles([file]).catch(() => {})}
+            >
+              <Share size={16} /> Share
+            </button>
+          {/if}
         </div>
       </article>
     {/each}
@@ -160,6 +181,20 @@
           onclick={() => session.download(session.results)}
         >
           <Download size={16} /> Download
+        </button>
+      {/if}
+      {#if canShare && session.results.length}
+        <button
+          type="button"
+          disabled={session.sharing === "saving"}
+          onclick={() => session.share(session.results)}
+        >
+          <Share size={16} />
+          {session.sharing === "saving"
+            ? "Preparing…"
+            : session.sharing === "ready"
+              ? "Tap to share"
+              : "Share"}
         </button>
       {/if}
       {#if session.results.length}

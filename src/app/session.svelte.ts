@@ -9,13 +9,14 @@
  * between: see `Version`).
  */
 
-import { isImageFile } from "../core/files";
+import { isImageFile, uniqueNames } from "../core/files";
 import { defaults } from "../core/params";
 import { Cancelled, engine } from "../engine/client";
-import type { Output, Version } from "../engine/pipeline";
+import type { Output, Saved, Version } from "../engine/pipeline";
 import { getOp } from "../ops";
 import type { Action } from "../ops/op";
 import { downloadBlob, downloadZip } from "./download";
+import { shareFiles } from "./share";
 
 /** One image, loaded or made by a tool. */
 export interface Item {
@@ -75,6 +76,13 @@ class Session {
   running = $state(false);
   progress = $state({ done: 0, total: 0 });
   saving = $state(false);
+  /**
+   * The share sheet only opens right after a tap. When saving the files
+   * took longer than that, they're "ready" and the next tap shares them.
+   */
+  sharing = $state<"idle" | "saving" | "ready">("idle");
+  /** Results saved to files, by item id: saved once for downloads and shares. */
+  private saved = new Map<string, Saved>();
 
   // --- images ----------------------------------------------------------------
 
@@ -223,6 +231,8 @@ class Session {
     this.results = [];
     this.outputs = [];
     this.ranWith = null;
+    this.saved.clear();
+    this.sharing = "idle";
   }
 
   /** Make the results the images, for another tool (the caller goes back to the tools). */
@@ -240,9 +250,7 @@ class Session {
     if (items.length === 0 || this.saving) return;
     this.saving = true;
     try {
-      const saved = await Promise.all(
-        items.map((item) => engine.run("save", { version: item.version })),
-      );
+      const saved = await this.save(items);
       if (saved.length === 1) downloadBlob(saved[0].blob, saved[0].name);
       else await downloadZip(saved, "imagelab.zip");
     } catch (error) {
@@ -253,6 +261,57 @@ class Session {
     } finally {
       this.saving = false;
     }
+  }
+
+  /** Open the share sheet with the images' files. */
+  async share(items: Item[]): Promise<void> {
+    if (items.length === 0 || this.sharing === "saving") return;
+    const ready = items.every((item) => this.saved.has(item.id));
+    let saved: Saved[];
+    try {
+      if (!ready) this.sharing = "saving";
+      saved = await this.save(items);
+    } catch (error) {
+      this.sharing = "idle";
+      this.failures = [
+        ...this.failures,
+        { name: "Share", message: messageOf(error) },
+      ];
+      return;
+    }
+    const names = uniqueNames(saved.map((file) => file.name));
+    const files = saved.map(
+      ({ blob }, i) => new File([blob], names[i], { type: blob.type }),
+    );
+    try {
+      await shareFiles(files);
+      this.sharing = "idle";
+    } catch (error) {
+      const name = error instanceof DOMException ? error.name : "";
+      // Saving took too long for the tap to count: the next one will do.
+      if (name === "NotAllowedError" && !ready) this.sharing = "ready";
+      else {
+        this.sharing = "idle";
+        if (name !== "AbortError")
+          this.failures = [
+            ...this.failures,
+            { name: "Share", message: messageOf(error) },
+          ];
+      }
+    }
+  }
+
+  /** The images' files, saved once each. */
+  private save(items: Item[]): Promise<Saved[]> {
+    return Promise.all(
+      items.map(async (item) => {
+        const known = this.saved.get(item.id);
+        if (known) return known;
+        const saved = await engine.run("save", { version: item.version });
+        this.saved.set(item.id, saved);
+        return saved;
+      }),
+    );
   }
 }
 

@@ -20,7 +20,7 @@ npm run format    # prettier --write .
 - `core/`: pure logic (geometry, pixels, params, metadata, ZIP…), no DOM; unit-tested in Node.
 - `engine/`: decoding, encoding and canvas primitives, the worker pipeline (`pipeline.ts`, `worker.ts`), its main-thread client (`client.ts`) and the GPU live preview (`live.ts`); browser-tested.
 - `ops/`: one file per tool, each an `Op` (`op.ts`) with a settings schema and a `run`; `index.ts` lists them in display order. `models/` holds the upscaler's ONNX model (patched, see `upscale.ts`).
-- `app/`: app state (`session.svelte.ts`), routing (`#/<tool id>`), previews, file picking and downloads.
+- `app/`: app state (`session.svelte.ts`), routing (`#/<tool id>`), previews, file picking, downloads and the share sheet (`share.ts`, with the share target's service worker in `public/share-target.js`).
 - `ui/`: Svelte components; `tools.ts` gives each tool its icon and color.
 
 Adding a tool: a file in `src/ops/`, its entry in `ops/index.ts` and `ui/tools.ts`, a line in `README.md`.

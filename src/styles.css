@@ -145,6 +145,13 @@ button.primary {
   min-height: 2.75rem;
 }
 
+/* Solid, not faded: it often sits over content that scrolls under it. */
+button.primary:disabled {
+  background: var(--fill-hover);
+  color: var(--muted);
+  opacity: 1;
+}
+
 button.primary:hover:not(:disabled) {
   background: color-mix(in oklab, var(--accent) 88%, var(--ink));
 }

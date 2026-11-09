@@ -1,7 +1,8 @@
 <!--
-  The images a tool works on, as a row of thumbnails: pick one to show it in
-  the viewer, remove one, or add more. Under the row, the picked image's
-  name and details.
+  The images, as a row of thumbnails: pick one to show it (in the viewer, on
+  a tool's page). Editable (on the home page, the only place images come
+  in), it also adds and removes them. Under the row, the picked image's name
+  and details.
 -->
 <script lang="ts">
   import Plus from "@lucide/svelte/icons/plus";
@@ -19,6 +20,8 @@
     "image/avif": "AVIF",
   };
 
+  let { editable = false }: { editable?: boolean } = $props();
+
   const version = $derived(session.selected?.version);
 </script>
 
@@ -35,24 +38,28 @@
         >
           <BlobImage blob={item.version.thumbnail} alt="" />
         </button>
-        <button
-          class="remove icon"
-          type="button"
-          aria-label="Remove {item.version.name}"
-          title="Remove"
-          onclick={() => session.remove(item.id)}><X size={14} /></button
-        >
+        {#if editable}
+          <button
+            class="remove icon"
+            type="button"
+            aria-label="Remove {item.version.name}"
+            title="Remove"
+            onclick={() => session.remove(item.id)}><X size={14} /></button
+          >
+        {/if}
       </li>
     {/each}
-    <li>
-      <button
-        class="add"
-        type="button"
-        aria-label="Add images"
-        title="Add images"
-        onclick={chooseImages}><Plus size={20} /></button
-      >
-    </li>
+    {#if editable}
+      <li>
+        <button
+          class="add"
+          type="button"
+          aria-label="Add images"
+          title="Add images"
+          onclick={chooseImages}><Plus size={20} /></button
+        >
+      </li>
+    {/if}
   </ul>
 
   <div class="caption">
@@ -71,7 +78,7 @@
         {session.reading === 1 ? "image" : "images"}…
       </span>
     {/if}
-    {#if session.items.length}
+    {#if editable && session.items.length}
       <button class="quiet clear" type="button" onclick={() => session.clear()}>
         Remove all
       </button>

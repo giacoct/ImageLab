@@ -1,8 +1,10 @@
 import { mount } from 'svelte';
 
 import './styles.css';
+import { startRouter } from './app/router';
 import App from './ui/App.svelte';
 
+startRouter();
 mount(App, { target: document.getElementById('app')! });
 
 // Earlier versions installed a service worker for offline use. Remove it and

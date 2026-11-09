@@ -1,7 +1,8 @@
 <!--
-  Images can be dropped or pasted anywhere on the page. While files are
-  dragged over the window an overlay says so; dropping adds them. Drags that
-  carry no files (e.g. selected text) are ignored.
+  On the home page (the only place images come in), they can be dropped or
+  pasted anywhere. While files are dragged over the window an overlay says
+  so; dropping adds them. Drags that carry no files (e.g. selected text) are
+  ignored.
 -->
 <script lang="ts">
   import { session } from "../app/session.svelte";

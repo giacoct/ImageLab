@@ -7,6 +7,7 @@
   import Download from "@lucide/svelte/icons/download";
 
   import { downloadBlob, downloadZip } from "../app/download";
+  import { goHome } from "../app/router";
   import { session } from "../app/session.svelte";
   import { formatBytes } from "../core/files";
   import type { Output } from "../engine/pipeline";
@@ -165,7 +166,10 @@
         <button
           type="button"
           title="Make the results the images for another tool"
-          onclick={() => session.useResults()}
+          onclick={() => {
+            session.useResults();
+            goHome();
+          }}
         >
           Use as input
         </button>

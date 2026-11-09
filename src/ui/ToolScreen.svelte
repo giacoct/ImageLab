@@ -1,12 +1,15 @@
 <!--
-  A tool, open: the viewer (or the crop box) as large as the screen allows,
+  A tool's page: the viewer (or the crop box) as large as the screen allows,
   the images under it, and the settings, Apply and the results beside it on
   a wide screen, below it on a phone, where the viewer stays in view at the
-  top and Apply stays at the bottom.
+  top and Apply stays at the bottom. Images are loaded only on the home
+  page: without any, the tool is shown greyed out and disabled, with a way
+  back to load them.
 -->
 <script lang="ts">
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
 
+  import { goHome } from "../app/router";
   import { session } from "../app/session.svelte";
   import CropEditor from "./CropEditor.svelte";
   import Failures from "./Failures.svelte";
@@ -21,7 +24,7 @@
   const count = $derived(session.items.length);
   const look = $derived(TOOL_LOOKS[op.id]);
   const applyLabel = $derived.by(() => {
-    if (count === 0) return "Add images to apply";
+    if (count === 0) return "Apply";
     const images = count === 1 ? "1 image" : `${count} images`;
     return op.kind === "combine" ? `Merge ${images}` : `Apply to ${images}`;
   });
@@ -30,11 +33,7 @@
 <!-- The tool's color is the accent of everything on its screen. -->
 <div class="screen" style:--accent={look.color} style:--accent-soft={look.soft}>
   <header class="bar">
-    <button
-      class="quiet back"
-      type="button"
-      onclick={() => session.closeTool()}
-    >
+    <button class="quiet back" type="button" onclick={goHome}>
       <ArrowLeft size={18} /> Tools
     </button>
     <h1>
@@ -44,7 +43,21 @@
   </header>
 
   <div class="stage">
-    {#if op.id === "transform" && count}
+    {#if count === 0}
+      <div class="empty">
+        {#if session.reading}
+          <p class="muted">Reading images…</p>
+        {:else}
+          <p class="empty-title">No images yet</p>
+          <p class="muted">
+            {op.title} works on the images you load on the home page.
+          </p>
+          <button class="primary" type="button" onclick={goHome}>
+            <ArrowLeft size={18} /> Go back and add images
+          </button>
+        {/if}
+      </div>
+    {:else if op.id === "transform"}
       <CropEditor />
     {:else}
       <Viewer />
@@ -55,7 +68,12 @@
     <div class="strip"><Filmstrip /></div>
   {/if}
 
-  <aside class="panel" aria-label="Settings">
+  <aside
+    class="panel"
+    class:off={count === 0}
+    inert={count === 0}
+    aria-label="Settings"
+  >
     <div class="settings">
       <p class="muted">{op.description}</p>
 
@@ -115,6 +133,38 @@
   .screen {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .empty {
+    align-content: center;
+    background: var(--stage);
+    display: grid;
+    gap: 0.6rem;
+    height: 100%;
+    justify-items: center;
+    padding: 1.5rem;
+    text-align: center;
+  }
+
+  .empty-title {
+    font-size: var(--text-title);
+    font-stretch: 85%;
+    font-weight: 600;
+  }
+
+  .empty .primary {
+    margin-top: 0.5rem;
+    padding-inline: 1.1rem;
+  }
+
+  /*
+   * No images: the tool is there to look at, greyed out, but does nothing.
+   * The settings fade; the Apply bar stays solid (its button is greyed as
+   * disabled), to hide what scrolls under it.
+   */
+  .off .settings {
+    filter: grayscale(1);
+    opacity: 0.5;
   }
 
   .bar {

@@ -10,7 +10,6 @@
   import Plus from "@lucide/svelte/icons/plus";
   import { untrack } from "svelte";
 
-  import { chooseImages } from "../app/picker";
   import { drawBitmap, Previewer } from "../app/previewer";
   import { session } from "../app/session.svelte";
 
@@ -231,16 +230,7 @@
     style:transform="translate(calc(-50% + {pan.x}px), calc(-50% + {pan.y}px))"
   ></canvas>
 
-  {#if shown.length === 0}
-    <div class="empty">
-      {#if session.reading}
-        <p class="muted">Reading images…</p>
-      {:else}
-        <p class="lead">Drop images here</p>
-        <button type="button" onclick={chooseImages}>Choose images</button>
-      {/if}
-    </div>
-  {:else if error}
+  {#if error && shown.length}
     <p class="notice error message">{error}</p>
   {/if}
 
@@ -306,23 +296,6 @@
 
   .hidden {
     visibility: hidden;
-  }
-
-  .empty {
-    align-content: center;
-    display: grid;
-    gap: 0.75rem;
-    inset: 0;
-    justify-items: center;
-    padding: 1rem;
-    position: absolute;
-    text-align: center;
-  }
-
-  .lead {
-    font-size: var(--text-title);
-    font-stretch: 85%;
-    font-weight: 600;
   }
 
   .message {

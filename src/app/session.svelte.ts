@@ -221,12 +221,11 @@ class Session {
     this.ranWith = null;
   }
 
-  /** Make the results the images, for another tool. */
+  /** Make the results the images, for another tool (the caller goes back to the tools). */
   useResults(): void {
     if (this.results.length === 0 || this.running) return;
     this.items = this.results;
     this.selectedIndex = 0;
-    this.tool = null;
     this.clearResults();
   }
 

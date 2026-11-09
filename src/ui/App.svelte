@@ -1,10 +1,9 @@
 <!--
-  The app: the home screen (images in, pick a tool) or the open tool.
-  Images can be dropped or pasted on either.
+  The app: the home page (images in, pick a tool) or a tool's page.
 -->
 <script lang="ts">
+  import { goHome } from "../app/router";
   import { session } from "../app/session.svelte";
-  import DropOverlay from "./DropOverlay.svelte";
   import Home from "./Home.svelte";
   import ToolScreen from "./ToolScreen.svelte";
 
@@ -21,7 +20,17 @@
     if (event.key !== "Escape" || !session.tool) return;
     if ((event.target as HTMLElement).matches("input, textarea, select"))
       return;
-    session.closeTool();
+    goHome();
+  }}
+  ondragover={(event) => {
+    // Images come in only on the home page. Elsewhere a dropped file would
+    // make the browser open it in place of the app.
+    if (!session.tool || !event.dataTransfer?.types.includes("Files")) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "none";
+  }}
+  ondrop={(event) => {
+    if (session.tool) event.preventDefault();
   }}
 />
 
@@ -30,5 +39,3 @@
 {:else}
   <Home />
 {/if}
-
-<DropOverlay />

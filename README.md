@@ -3,11 +3,14 @@
 Image tools that run entirely in the browser. There is no server and nothing
 is uploaded.
 
-Pick a tool and load some images, or the other way round. Tweak the
-settings while a live preview shows the result, then apply the tool to all
-the images at once. Download the results, one by one or as a ZIP, or use them
-as the input of another tool: crop, then scale, then convert to WebP, then
-compress to 200 KB, without downloading anything in between.
+Load some images on the home page and pick a tool. Each tool is a page of
+its own, and the browser's Back button returns to the home page. A tool can
+also be opened first: without images it stays greyed out until you go back
+and load some. Tweak the settings while a live preview shows the result
+(zoom in to look closely), then apply the tool to all the images at once.
+Download the results, one by one or as a ZIP, or use them as the input of
+another tool: crop, then scale, then convert to WebP, then compress to
+200 KB, without downloading anything in between.
 
 Results are kept at full quality and only saved to a file when you download
 them, so using them as input never adds compression. Convert format and

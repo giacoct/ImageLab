@@ -1,12 +1,14 @@
 <!--
-  The home screen: where images come in (a large drop zone, or the loaded
-  images) and the list of tools. Either can come first: a tool opened
-  without images asks for them.
+  The home page: the only place images come in (choosing, dropping or
+  pasting them), and the list of tools, each a page of its own. A tool can
+  be opened first; without images it waits for you to come back here.
 -->
 <script lang="ts">
   import { chooseImages } from "../app/picker";
+  import { toolHref } from "../app/router";
   import { session } from "../app/session.svelte";
   import { OPS } from "../ops";
+  import DropOverlay from "./DropOverlay.svelte";
   import Failures from "./Failures.svelte";
   import Filmstrip from "./Filmstrip.svelte";
   import { TOOL_LOOKS } from "./tools";
@@ -40,7 +42,7 @@
         <h1 id="intake-title" class="display">
           {count === 1 ? "1 image" : `${count} images`}
         </h1>
-        <Filmstrip />
+        <Filmstrip editable />
       {/if}
       <Failures />
     </section>
@@ -53,24 +55,25 @@
         {#each OPS as op (op.id)}
           {@const look = TOOL_LOOKS[op.id]}
           <li>
-            <button
-              type="button"
+            <a
+              href={toolHref(op.id)}
               style:--tool={look.color}
               style:--tool-soft={look.soft}
-              onclick={() => session.openTool(op.id)}
             >
               <span class="glyph"><look.icon size={20} /></span>
               <span class="text">
                 <span class="title">{op.title}</span>
                 <span class="hint">{op.description}</span>
               </span>
-            </button>
+            </a>
           </li>
         {/each}
       </ul>
     </section>
   </main>
 </div>
+
+<DropOverlay />
 
 <style>
   .home {
@@ -153,17 +156,17 @@
     padding: 0;
   }
 
-  .tools button {
+  .tools a {
     align-items: start;
-    background: transparent;
+    border-radius: var(--radius);
+    color: inherit;
+    display: flex;
     gap: 0.85rem;
-    justify-content: start;
     padding: 0.7rem 0.75rem;
-    text-align: left;
-    width: 100%;
+    text-decoration: none;
   }
 
-  .tools button:hover {
+  .tools a:hover {
     background: var(--tool-soft);
   }
 
@@ -179,7 +182,7 @@
     width: 2.5rem;
   }
 
-  .tools button:hover .glyph {
+  .tools a:hover .glyph {
     background: var(--tool);
     color: #fff;
   }

@@ -154,6 +154,25 @@ class Session {
     this.tool = { op: opId, params: defaults(getOp(opId).params) };
     this.picking = null;
     this.clearResults();
+    if (opId === "remove-background") void this.detectBackground();
+  }
+
+  /**
+   * Set Remove background's color to the picked image's background. Unless
+   * the color was changed meanwhile: the user's choice wins.
+   */
+  async detectBackground(): Promise<void> {
+    const tool = this.tool;
+    const version = this.selected?.version;
+    if (!tool || !version) return;
+    const before = tool.params.color;
+    try {
+      const color = await engine.run("background", { version });
+      if (this.tool === tool && tool.params.color === before)
+        tool.params.color = color;
+    } catch {
+      // Not detected: the color stays as it was.
+    }
   }
 
   closeTool(): void {

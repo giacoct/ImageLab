@@ -1,7 +1,14 @@
 /// <reference lib="webworker" />
 /** The engine worker: decodes, applies tools and encodes, off the main thread. */
 
-import { apply, finish, open, renderPreview, save } from "./pipeline";
+import {
+  apply,
+  backgroundOf,
+  finish,
+  open,
+  renderPreview,
+  save,
+} from "./pipeline";
 import type { RequestMessage, ResponseMessage } from "./protocol";
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -30,6 +37,9 @@ self.onmessage = async (event: MessageEvent<RequestMessage>) => {
         break;
       case "save":
         result = await save(message.args.version);
+        break;
+      case "background":
+        result = await backgroundOf(message.args.version);
         break;
       case "preview": {
         const { image, scale } = await renderPreview(message.args, asset);

@@ -14,6 +14,7 @@ export interface Requests {
   apply: { args: { inputs: Version[]; action: Action }; result: Version[] };
   finish: { args: { input: Version; action: Action }; result: Output };
   save: { args: { version: Version }; result: Saved };
+  background: { args: { version: Version }; result: string };
   preview: { args: PreviewRequest; result: PreviewImage };
 }
 

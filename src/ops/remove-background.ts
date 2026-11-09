@@ -1,6 +1,6 @@
 /** Remove background: make a background color transparent. */
 
-import { edgeColor, removeBackground as remove } from "../core/background";
+import { removeBackground as remove } from "../core/background";
 import { p } from "../core/params";
 import { editPixels } from "../engine/canvas";
 import { mapOp } from "./op";
@@ -12,12 +12,8 @@ export const removeBackground = mapOp({
   description: "Make a plain background transparent: logos, products, scans.",
   suffix: "nobg",
   params: {
-    detect: p.boolean({ label: "Detect the background color", default: true }),
-    color: p.color({
-      label: "Background color",
-      default: "#ffffff",
-      when: (v) => !v.detect,
-    }),
+    // Detected when the tool opens, and on demand (session.detectBackground).
+    color: p.color({ label: "Background color", default: "#ffffff" }),
     connected: p.boolean({
       label: "Only around the subject",
       default: true,
@@ -40,11 +36,6 @@ export const removeBackground = mapOp({
     }),
   },
   run(image, values) {
-    return editPixels(image, (pixels) =>
-      remove(pixels, {
-        ...values,
-        color: values.detect ? edgeColor(pixels) : values.color,
-      }),
-    );
+    return editPixels(image, (pixels) => remove(pixels, values));
   },
 });

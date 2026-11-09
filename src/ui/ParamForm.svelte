@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
   import Pipette from "@lucide/svelte/icons/pipette";
+  import type { Snippet } from "svelte";
 
   import {
     textOf,
@@ -22,6 +23,7 @@
     idPrefix,
     picking = null,
     onpick,
+    colorActions,
   }: {
     schema: Schema;
     values: AnyValues;
@@ -30,6 +32,8 @@
     picking?: string | null;
     /** Start (or stop, for the one being picked) picking a color from the image. */
     onpick?: (key: string) => void;
+    /** More buttons by a color field (e.g. Detect), given its key. */
+    colorActions?: Snippet<[string]>;
     /** Makes input ids unique when several forms are on the page. */
     idPrefix: string;
   } = $props();
@@ -189,6 +193,7 @@
               onclick={() => onpick(key)}><Pipette size={16} /></button
             >
           {/if}
+          {@render colorActions?.(key)}
         </div>
         {#if param.hint}<span class="hint">{param.hint}</span>{/if}
       </div>

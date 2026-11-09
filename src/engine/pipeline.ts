@@ -10,13 +10,14 @@
  * unless Convert format or Compress already wrote it.
  */
 
+import { edgeColor } from "../core/background";
 import { initialEncoding, type Encoding } from "../core/encoding";
 import { extensionFor, outputName, type ImageFormat } from "../core/files";
 import { downscaleFactor } from "../core/geometry";
 import { readMetadata } from "../core/metadata";
 import { getOp } from "../ops";
 import type { Action, Op, RunContext } from "../ops/op";
-import { downscaled, type Img } from "./canvas";
+import { downscaled, readPixels, type Img } from "./canvas";
 import { decode } from "./decode";
 import { encodeImage, type Picture } from "./encode";
 
@@ -157,6 +158,11 @@ async function store(
     // Files the app writes never carry metadata; only the input file does.
     metadata: picture.file?.original ? from.metadata : [],
   };
+}
+
+/** The image's background color: the most common one along its edges. */
+export async function backgroundOf(version: Version): Promise<string> {
+  return edgeColor(readPixels(await pixelsOf(version)));
 }
 
 /** Run a final tool (OCR, SVG) on one image. */

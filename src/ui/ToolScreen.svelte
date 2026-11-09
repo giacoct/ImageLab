@@ -9,6 +9,7 @@
 <script lang="ts">
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
   import LoaderCircle from "@lucide/svelte/icons/loader-circle";
+  import ScanSearch from "@lucide/svelte/icons/scan-search";
 
   import { goHome } from "../app/router";
   import { session } from "../app/session.svelte";
@@ -100,7 +101,19 @@
           picking={session.picking}
           onpick={(key) =>
             (session.picking = session.picking === key ? null : key)}
-        />
+        >
+          {#snippet colorActions(key: string)}
+            {#if op.id === "remove-background" && key === "color"}
+              <button
+                type="button"
+                title="Detect the background color of the picked image"
+                onclick={() => session.detectBackground()}
+              >
+                <ScanSearch size={16} /> Detect
+              </button>
+            {/if}
+          {/snippet}
+        </ParamForm>
       {/if}
       <Failures />
       <Results />

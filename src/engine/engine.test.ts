@@ -20,6 +20,7 @@ import { encodeImage } from "./encode";
 import heicUrl from "./fixtures/logo.heic?url";
 import {
   apply,
+  backgroundOf,
   finish,
   open,
   renderPreview,
@@ -209,14 +210,18 @@ describe("operations", () => {
     expect(pixel(sides, 1, 1)[3]).toBe(0);
   });
 
-  it("removes a detected background", async () => {
+  it("detects the background color and removes it", async () => {
     const canvas = createCanvas(30, 30);
     const ctx = context2d(canvas);
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#00ff00";
     ctx.fillRect(0, 0, 30, 30);
     ctx.fillStyle = "#0000ff";
     ctx.fillRect(10, 10, 10, 10);
-    const keyed = await run("remove-background", canvas);
+    const color = await backgroundOf(
+      await open(await pngBlob(canvas), "a.png"),
+    );
+    expect(color).toBe("#00ff00");
+    const keyed = await run("remove-background", canvas, { color });
     expect(pixel(keyed, 2, 2)[3]).toBe(0);
     expect(pixel(keyed, 15, 15)).toEqual([0, 0, 255, 255]);
   });

@@ -4,6 +4,10 @@
   that applying uses. It fits the stage; zoom with the wheel, a pinch, a
   double click or the buttons, and drag to move around. The zoom is shown
   relative to the real image (100% = one image pixel per screen point).
+
+  Adjust & filters is live: the engine renders the plain image, and the GPU
+  redraws it at every move of a slider (`engine/live.ts`). Without WebGL2,
+  or if the GPU drops it, the engine renders it like every other tool.
 -->
 <script lang="ts">
   import Minus from "@lucide/svelte/icons/minus";
@@ -12,6 +16,7 @@
 
   import { drawBitmap, Previewer } from "../app/previewer";
   import { session } from "../app/session.svelte";
+  import { isLive, LiveAdjust, type LiveSettings } from "../engine/live";
 
   let canvas = $state<HTMLCanvasElement>();
   let stage = $state<HTMLDivElement>();
@@ -26,10 +31,19 @@
   let zoom = $state(1);
   let pan = $state({ x: 0, y: 0 });
 
+  /** The GPU renderer, while the open tool is live. */
+  let renderer = $state.raw<LiveAdjust | null>(null);
+  let gpuFailed = $state(false);
+  /** The plain image the GPU adjusts, as the engine last rendered it. */
+  let source = $state.raw<{ bitmap: ImageBitmap; scale: number } | null>(null);
+
   const previewer = new Previewer(
     ({ bitmap, scale }) => {
       real = { width: bitmap.width / scale, height: bitmap.height / scale };
-      if (canvas) drawBitmap(canvas, bitmap);
+      if (live) {
+        source?.bitmap.close();
+        source = { bitmap, scale };
+      } else if (canvas) drawBitmap(canvas, bitmap);
       else bitmap.close();
       error = "";
     },
@@ -42,6 +56,7 @@
   const MAX_SCALE = 8;
 
   const op = $derived(session.op);
+  const live = $derived(!!op && isLive(op.id) && !gpuFailed);
   const shown = $derived(
     op?.kind === "combine"
       ? session.items
@@ -75,10 +90,11 @@
   });
 
   // Re-render when the tool, its settings, the images or the zoom change.
-  // Zoomed in, the render is larger (up to the engine's preview size).
+  // Zoomed in, the render is larger (up to the engine's preview size). A live
+  // tool's settings are left to the GPU: the engine renders the plain image.
   $effect(() => {
     const action =
-      session.tool && op?.kind !== "final"
+      !live && session.tool && op?.kind !== "final"
         ? $state.snapshot(session.tool)
         : null;
     if (shown.length === 0) {
@@ -90,6 +106,35 @@
     const images = shown.map(({ id, version }) => ({ key: id, version }));
     untrack(() => previewer.request({ images, action, maxSide }));
   });
+
+  // The GPU draws the latest settings on the next frame, however many
+  // changes came in since the last one.
+  $effect(() => {
+    if (!renderer || !source || !session.tool) return;
+    const draw = renderer;
+    const { bitmap, scale } = source;
+    const settings = $state.snapshot(session.tool.params) as unknown;
+    const frame = requestAnimationFrame(() =>
+      draw.draw(bitmap, settings as LiveSettings, scale),
+    );
+    return () => cancelAnimationFrame(frame);
+  });
+
+  /** Attached to the canvas while the tool is live: draws on it with the GPU. */
+  function startGpu(element: HTMLCanvasElement) {
+    const created = LiveAdjust.create(element, () => (gpuFailed = true));
+    if (!created) {
+      gpuFailed = true;
+      return;
+    }
+    renderer = created;
+    return () => {
+      created.dispose();
+      renderer = null;
+      source?.bitmap.close();
+      source = null;
+    };
+  }
 
   function resetZoom(): void {
     zoom = 1;
@@ -220,15 +265,19 @@
   ondblclick={onDoubleClick}
   onkeydown={onKeyDown}
 >
-  <canvas
-    bind:this={canvas}
-    class="checker"
-    class:hidden={!real || shown.length === 0}
-    class:pixels={scale >= 2}
-    style:width="{size.width}px"
-    style:height="{size.height}px"
-    style:transform="translate(calc(-50% + {pan.x}px), calc(-50% + {pan.y}px))"
-  ></canvas>
+  <!-- A new canvas when that changes: one drawn by the GPU can't take 2D drawing. -->
+  {#key live}
+    <canvas
+      bind:this={canvas}
+      {@attach live && startGpu}
+      class="checker"
+      class:hidden={!real || shown.length === 0}
+      class:pixels={scale >= 2}
+      style:width="{size.width}px"
+      style:height="{size.height}px"
+      style:transform="translate(calc(-50% + {pan.x}px), calc(-50% + {pan.y}px))"
+    ></canvas>
+  {/key}
 
   {#if error && shown.length}
     <p class="notice error message">{error}</p>

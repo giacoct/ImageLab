@@ -23,7 +23,8 @@ away.
   a ratio.
 - **Scale**: by percentage, to fit a box, or to a width or height.
 - **Adjust & filters**: brightness, contrast, saturation, grayscale, sepia,
-  invert, blur, sharpen.
+  invert, blur, sharpen; the preview follows the sliders as you drag
+  (drawn by the GPU).
 - **Remove background**: make a plain background transparent; its color is
   detected, and only the background around the subject goes.
 - **Add margin**: colored or transparent, in pixels or percent, the same on

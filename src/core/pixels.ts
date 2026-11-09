@@ -33,7 +33,7 @@ export interface Adjustments {
 }
 
 /** 3×3 color matrix, row-major. */
-type Matrix = readonly number[];
+export type Matrix = readonly number[];
 
 const IDENTITY: Matrix = [1, 0, 0, 0, 1, 0, 0, 0, 1];
 
@@ -91,6 +91,21 @@ export function isNeutral(a: Adjustments): boolean {
 }
 
 /**
+ * Saturation, grayscale and sepia as one color matrix (row-major), or null
+ * when they leave colors alone.
+ */
+export function colorMatrix(a: Adjustments): Matrix | null {
+  let matrix = IDENTITY;
+  if (a.saturation !== 100)
+    matrix = multiply(saturateMatrix(a.saturation / 100), matrix);
+  if (a.grayscale > 0)
+    matrix = multiply(grayscaleMatrix(Math.min(1, a.grayscale / 100)), matrix);
+  if (a.sepia > 0)
+    matrix = multiply(sepiaMatrix(Math.min(1, a.sepia / 100)), matrix);
+  return matrix === IDENTITY ? null : matrix;
+}
+
+/**
  * Apply brightness → contrast → saturation/grayscale/sepia → invert, the CSS
  * `filter` order, in place. Per-channel steps use a lookup table.
  */
@@ -104,21 +119,14 @@ export function adjustPixels(data: Uint8ClampedArray, a: Adjustments): void {
     before[v] = bright * contrast + 127.5 * (1 - contrast);
   }
 
-  let matrix = IDENTITY;
-  if (a.saturation !== 100)
-    matrix = multiply(saturateMatrix(a.saturation / 100), matrix);
-  if (a.grayscale > 0)
-    matrix = multiply(grayscaleMatrix(Math.min(1, a.grayscale / 100)), matrix);
-  if (a.sepia > 0)
-    matrix = multiply(sepiaMatrix(Math.min(1, a.sepia / 100)), matrix);
-  const mixes = matrix !== IDENTITY;
-  const [m0, m1, m2, m3, m4, m5, m6, m7, m8] = matrix;
+  const matrix = colorMatrix(a);
+  const [m0, m1, m2, m3, m4, m5, m6, m7, m8] = matrix ?? IDENTITY;
 
   for (let i = 0; i < data.length; i += 4) {
     let r = before[data[i]];
     let g = before[data[i + 1]];
     let b = before[data[i + 2]];
-    if (mixes) {
+    if (matrix) {
       const nr = m0 * r + m1 * g + m2 * b;
       const ng = m3 * r + m4 * g + m5 * b;
       const nb = m6 * r + m7 * g + m8 * b;
@@ -138,12 +146,21 @@ export function adjustPixels(data: Uint8ClampedArray, a: Adjustments): void {
 }
 
 /**
+ * A blur of `radius` pixels is three box blurs of this radius each way
+ * (sigma ≈ radius / 2), or none (0) below one pixel.
+ */
+export function blurBox(radius: number): number {
+  const r = Math.round(radius);
+  return r < 1 ? 0 : Math.max(1, Math.round(r / 2));
+}
+
+/**
  * Approximate Gaussian blur of `radius` pixels (three box blurs), computed on
  * premultiplied colors so transparent pixels don't bleed dark fringes.
  */
 export function blurPixels(image: Pixels, radius: number): void {
-  const r = Math.round(radius);
-  if (r < 1) return;
+  const box = blurBox(radius);
+  if (box === 0) return;
   const { data, width, height } = image;
   const n = width * height;
   const channels = [
@@ -159,8 +176,6 @@ export function blurPixels(image: Pixels, radius: number): void {
     channels[2][p] = data[p * 4 + 2] * alpha;
     channels[3][p] = data[p * 4 + 3];
   }
-  // Three passes of a box this wide approximate a Gaussian with sigma ≈ radius / 2.
-  const box = Math.max(1, Math.round(r / 2));
   const scratch = new Float32Array(n);
   for (const channel of channels) {
     for (let pass = 0; pass < 3; pass++) {

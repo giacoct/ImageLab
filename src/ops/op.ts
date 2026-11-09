@@ -4,7 +4,9 @@
  * results can be saved or taken further by another tool. An operation
  * declares its settings schema once (the UI generates its form from it) and
  * a `run` that the engine calls on full-size images (applying) and on
- * downscaled copies (live preview), the same code for both.
+ * downscaled copies (live preview), the same code for both. The one
+ * exception is Adjust & filters, previewed on the GPU so its sliders
+ * respond within the frame (`engine/live.ts`, tested against `run`).
  */
 
 import type { Schema, Values } from '../core/params';

@@ -9,6 +9,7 @@ import {
   marginPixels,
   mergeLayout,
   orientedSize,
+  rotatedSize,
 } from "./geometry";
 
 describe("fitInside", () => {
@@ -170,5 +171,30 @@ describe("marginPixels", () => {
       },
     );
     expect(marginPixels(sides, "px", { width: 400, height: 200 }).top).toBe(10);
+  });
+});
+
+describe("rotatedSize", () => {
+  it("sizes an image turned by any angle, cut to fill or whole", () => {
+    const size = { width: 400, height: 200 };
+    expect(rotatedSize(size, 90, 0, true)).toEqual({ width: 200, height: 400 });
+    const whole = rotatedSize(size, 0, 90, false);
+    expect(whole.width).toBeCloseTo(200);
+    expect(whole.height).toBeCloseTo(400);
+    // 45°: the bounding box of a 400×200 is 300√2 square.
+    const box = rotatedSize(size, 0, 45, false);
+    expect(box.width).toBeCloseTo(300 * Math.SQRT2);
+    expect(box.height).toBeCloseTo(300 * Math.SQRT2);
+    // Filled: same proportions, smaller, and its corners inside the image.
+    const filled = rotatedSize(size, 0, 10, true);
+    expect(filled.width / filled.height).toBeCloseTo(2);
+    expect(filled.width).toBeLessThan(400);
+    const t = (10 * Math.PI) / 180;
+    const corner = { x: filled.width / 2, y: filled.height / 2 };
+    // That corner, turned back into the image's frame, is inside it.
+    const x = corner.x * Math.cos(t) + corner.y * Math.sin(t);
+    const y = -corner.x * Math.sin(t) + corner.y * Math.cos(t);
+    expect(Math.abs(x)).toBeLessThanOrEqual(200 + 1e-9);
+    expect(Math.abs(y)).toBeLessThanOrEqual(100 + 1e-9);
   });
 });

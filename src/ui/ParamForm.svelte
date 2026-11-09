@@ -49,10 +49,26 @@
     {#if param.kind === "number"}
       <div class="field">
         {#if param.slider}
-          <label class="field-label" for={id}>
-            {param.label}
-            <span class="field-value">{values[key]}{param.unit ?? ""}</span>
-          </label>
+          <div class="field-label">
+            <label for={id}>{param.label}</label>
+            <!-- The value, also to type in: a slider can't hit 0.1° on a phone. -->
+            <span class="field-value">
+              <input
+                class="exact"
+                type="number"
+                inputmode="decimal"
+                aria-label="{param.label} value"
+                min={param.min}
+                max={param.max}
+                step={param.step}
+                value={values[key]}
+                onchange={(event) => {
+                  setNumber(key, param, event.currentTarget.value);
+                  event.currentTarget.value = String(values[key]);
+                }}
+              />{param.unit ?? ""}
+            </span>
+          </div>
           <input
             {id}
             type="range"
@@ -164,6 +180,31 @@
 </div>
 
 <style>
+  /* The slider's value, quiet until it's edited. */
+  .exact {
+    background: transparent;
+    border-color: transparent;
+    min-height: 0;
+    padding: 0 0.15rem;
+    margin-right: 0.1rem;
+    text-align: right;
+    width: 4rem;
+  }
+
+  .exact {
+    appearance: textfield;
+  }
+
+  .exact::-webkit-inner-spin-button {
+    appearance: none;
+  }
+
+  .exact:hover,
+  .exact:focus {
+    background: var(--sheet);
+    border-color: var(--line);
+  }
+
   .hex {
     font-family: ui-monospace, monospace;
     width: 7rem;

@@ -45,6 +45,32 @@ export function orientedSize(size: Size, rotate: Rotation): Size {
     : size;
 }
 
+/**
+ * Size of an image turned by `rotate` (quarter turns) and then by `angle`
+ * degrees more (straightening). Turned by an angle, it either keeps all of
+ * the image in a larger frame with empty corners, or, with `fill`, is cut to
+ * the largest rectangle of its own proportions that has none.
+ */
+export function rotatedSize(
+  size: Size,
+  rotate: Rotation,
+  angle: number,
+  fill: boolean,
+): Size {
+  const { width: w, height: h } = orientedSize(size, rotate);
+  if (angle === 0) return { width: w, height: h };
+  const radians = (angle * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(radians));
+  const sin = Math.abs(Math.sin(radians));
+  // The rotated image's bounding box.
+  const box = { width: w * cos + h * sin, height: w * sin + h * cos };
+  if (!fill) return box;
+  // A w×h rectangle scaled by k fits inside the rotated image when, turned
+  // back by the angle, its bounding box fits inside w×h.
+  const k = Math.min(w / box.width, h / box.height);
+  return { width: w * k, height: h * k };
+}
+
 /** A crop region as fractions (0..1) of the oriented image, so it fits any image size. */
 export type Crop = Rect;
 

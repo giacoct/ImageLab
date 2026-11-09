@@ -57,13 +57,21 @@
   $effect(() => {
     const item = session.selected;
     if (!item) return;
-    const { rotate, flipH, flipV } = params;
+    const { rotate, angle, fill, flipH, flipV } = params;
     const longest = Math.max(stageWidth, stageHeight, 320);
     previewer.request({
       images: [{ key: item.id, version: item.version }],
       action: {
         op: "transform",
-        params: { rotate, flipH, flipV, crop: FULL_CROP, aspect: "free" },
+        params: {
+          rotate,
+          angle,
+          fill,
+          flipH,
+          flipV,
+          crop: FULL_CROP,
+          aspect: "free",
+        },
       },
       maxSide: Math.round(longest * devicePixelRatio),
     });

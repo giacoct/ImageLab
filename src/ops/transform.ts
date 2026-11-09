@@ -3,7 +3,7 @@ import {
   aspectFactor,
   centeredCrop,
   cropPixels,
-  orientedSize,
+  rotatedSize,
   type AspectPreset,
   type Crop,
   type Rotation,
@@ -22,6 +22,20 @@ const PARAMS = {
       { value: "180", label: "180°" },
       { value: "270", label: "270°" },
     ],
+  }),
+  angle: p.number({
+    label: "Straighten",
+    default: 0,
+    min: -45,
+    max: 45,
+    step: 0.1,
+    unit: "°",
+  }),
+  fill: p.boolean({
+    label: "Crop the empty corners",
+    default: true,
+    hint: "Otherwise the corners are left transparent.",
+    when: (v) => v.angle !== 0,
   }),
   flipH: p.boolean({ label: "Flip horizontally", default: false }),
   flipV: p.boolean({ label: "Flip vertically", default: false }),
@@ -78,7 +92,12 @@ export const transform = mapOp({
   params: PARAMS,
   run(image, values) {
     const rotate = Number(values.rotate) as Rotation;
-    const oriented = orientedSize(image, rotate);
+    // In whole pixels, rounded down: a filled frame never shows a corner.
+    const turned = rotatedSize(image, rotate, values.angle, values.fill);
+    const oriented = {
+      width: Math.max(1, Math.floor(turned.width + 1e-6)),
+      height: Math.max(1, Math.floor(turned.height + 1e-6)),
+    };
     const crop = cropPixels(
       cropForImage(values.crop, values.aspect, oriented),
       oriented,
@@ -89,7 +108,7 @@ export const transform = mapOp({
     // oriented image's center.
     context.translate(-crop.x, -crop.y);
     context.translate(oriented.width / 2, oriented.height / 2);
-    context.rotate((rotate * Math.PI) / 180);
+    context.rotate(((rotate + values.angle) * Math.PI) / 180);
     context.scale(values.flipH ? -1 : 1, values.flipV ? -1 : 1);
     context.drawImage(image, -image.width / 2, -image.height / 2);
     return out;

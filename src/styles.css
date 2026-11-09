@@ -303,6 +303,7 @@ input[type="color"] {
 }
 
 .field-label {
+  align-items: center;
   display: flex;
   font-weight: 550;
   justify-content: space-between;

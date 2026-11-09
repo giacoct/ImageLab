@@ -1,12 +1,18 @@
 # ImageLab
 
-Image tools that can be chained without limit, running entirely in the
-browser. There is no server and nothing is uploaded.
+Image tools that run entirely in the browser. There is no server and nothing
+is uploaded.
 
-Load some images, then add steps: crop, then scale, then convert to WebP, then
-compress to 200 KB. Any tool can follow any other, any number of times, and
-every step works on all the images you loaded. A live preview shows the result
-as you change the settings.
+Load some images and pick a tool, or pick a tool and then load the images. The
+tool works on all of them at once, with a live preview as you change the
+settings. Its results can be downloaded, or taken further with another tool:
+crop, then scale, then convert to WebP, then compress to 200 KB. Undo and redo
+go back and forth through everything you did.
+
+Results are kept at full quality between tools and only saved to a file when
+you download them, so taking an image through several tools never adds
+compression. Convert format and Compress decide how that file is saved, and
+show its size and look right away.
 
 ## Tools
 
@@ -24,11 +30,11 @@ as you change the settings.
 - **Compress**: to a chosen quality, or to fit a file size.
 - **Strip metadata**: remove camera, date and GPS details without
   re-encoding the image.
-- **Convert to SVG**: trace the image into vector shapes (ends the chain).
+- **Convert to SVG**: trace the image into vector shapes, saved as SVG.
 - **Extract text (OCR)**: read the text in the image, in English and/or
-  Italian (ends the chain).
+  Italian, saved as text.
 
-Images keep their format unless a Convert format step changes it. HEIC photos
+Images keep their format unless Convert format changes it. HEIC photos
 can be opened too. Results can be downloaded one by one or as a ZIP.
 
 ## Running it

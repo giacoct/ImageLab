@@ -1,18 +1,18 @@
 /**
- * The operation contract: every tool is one operation, and a chain is a list
- * of steps, each an operation with its settings. An operation declares its
- * settings schema once (the UI generates its form from it) and a `run` that
- * the engine calls on full-size images (processing) and on downscaled copies
- * (live preview), the same code for both.
+ * The operation contract: every tool is one operation. Applying a tool runs
+ * its operation, with the chosen settings, on all the loaded images; the
+ * results can be saved or taken further by another tool. An operation
+ * declares its settings schema once (the UI generates its form from it) and
+ * a `run` that the engine calls on full-size images (applying) and on
+ * downscaled copies (live preview), the same code for both.
  */
 
 import type { Schema, Values } from '../core/params';
 import type { Img } from '../engine/canvas';
 import type { Picture } from '../engine/encode';
 
-export interface Step {
-  /** Unique within the page, for keyed lists in the UI. */
-  id: string;
+/** A tool with its settings, as the UI asks the engine to apply it. */
+export interface Action {
   op: string;
   params: Record<string, unknown>;
 }
@@ -20,7 +20,7 @@ export interface Step {
 export interface RunContext {
   /**
    * Size of the image being processed relative to the full-size original:
-   * 1 when processing, below 1 for previews. Operations multiply settings
+   * 1 when applying, below 1 for previews. Operations multiply settings
    * given in pixels (blur radius, margins, target sizes) by it.
    */
   scale: number;
@@ -31,7 +31,7 @@ export interface RunContext {
 interface Base<S extends Schema> {
   id: string;
   title: string;
-  /** One line shown under the step's title. */
+  /** One line shown under the tool's title. */
   description: string;
   /** Added to output file names, e.g. `photo-scaled.jpg`. */
   suffix: string;
@@ -48,8 +48,9 @@ export interface MapOp<S extends Schema = Schema> extends Base<S> {
 
 /**
  * Changes how the image is saved (Convert format, Compress, Strip metadata),
- * and writes the file right away so later steps and the preview see the
- * result.
+ * not its pixels. It writes the file right away, so its size is known and the
+ * preview shows the result, compression artifacts included; the next tool
+ * still starts from the untouched pixels.
  */
 export interface FileOp<S extends Schema = Schema> extends Base<S> {
   kind: 'file';
@@ -71,8 +72,9 @@ export interface CombineOp<S extends Schema = Schema> extends Base<S> {
 }
 
 /**
- * Ends the chain with something other than an image (OCR text, SVG), so it
- * must be the last step, and the live preview stops before it.
+ * Turns the image into something else (OCR text, SVG): its results can be
+ * saved but not taken further, and the live preview shows the image it
+ * starts from.
  */
 export interface FinalOp<S extends Schema = Schema> extends Base<S> {
   kind: 'final';

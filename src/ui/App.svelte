@@ -1,30 +1,29 @@
 <!--
-  The whole app on one page: the images, the chain of steps and the run
-  button on the left; the live preview and the results on the right.
+  The whole app on one page: the images, the history and the tools on the
+  left; the live preview and what a final tool made on the right.
 -->
 <script lang="ts">
   import { session } from "../app/session.svelte";
-  import AddStep from "./AddStep.svelte";
   import DropOverlay from "./DropOverlay.svelte";
-  import FileTray from "./FileTray.svelte";
+  import History from "./History.svelte";
+  import ImageList from "./ImageList.svelte";
+  import Outputs from "./Outputs.svelte";
   import Preview from "./Preview.svelte";
-  import Results from "./Results.svelte";
-  import StepCard from "./StepCard.svelte";
-
-  let view = $state<"preview" | "results">("preview");
-
-  const runLabel = $derived.by(() => {
-    const count = session.usable.length;
-    const verb = session.merges ? "Merge" : "Process";
-    if (count === 0) return `${verb} images`;
-    return count === 1 ? `${verb} 1 image` : `${verb} ${count} images`;
-  });
-
-  function run(): void {
-    view = "results";
-    void session.run();
-  }
+  import ToolPanel from "./ToolPanel.svelte";
 </script>
+
+<svelte:window
+  onkeydown={(event) => {
+    // Undo/redo, unless typing in a field (which has its own undo).
+    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "z")
+      return;
+    const target = event.target as HTMLElement;
+    if (target.matches("input, textarea, select")) return;
+    event.preventDefault();
+    if (event.shiftKey) session.redo();
+    else session.undo();
+  }}
+/>
 
 <header>
   <strong>ImageLab</strong>
@@ -35,58 +34,32 @@
 
 <main>
   <div class="controls">
-    <FileTray />
-    {#each session.steps as step, index (step.id)}
-      <StepCard {index} />
-    {/each}
-    <AddStep />
-
-    <div class="run">
-      {#if session.running}
+    <ImageList />
+    {#if session.failures.length}
+      <div class="notice error" role="alert">
         <div class="row">
-          <progress
-            value={session.progress.done}
-            max={Math.max(1, session.progress.total)}
-          ></progress>
-          <span>{session.progress.done} of {session.progress.total} done</span>
-          <button type="button" onclick={() => session.cancel()}>Cancel</button>
+          <strong>Something went wrong:</strong>
+          <button
+            class="icon"
+            type="button"
+            aria-label="Dismiss"
+            onclick={() => session.dismissFailures()}>×</button
+          >
         </div>
-      {:else}
-        <button
-          class="primary"
-          type="button"
-          disabled={Boolean(session.blocker)}
-          onclick={run}
-        >
-          {runLabel}
-        </button>
-        {#if session.blocker}<p class="hint">{session.blocker}</p>{/if}
-      {/if}
-    </div>
+        <ul>
+          {#each session.failures as failure, index (index)}
+            <li>{failure.name}: {failure.message}</li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+    <History />
+    <ToolPanel />
   </div>
 
   <div class="stage">
-    <div class="row" role="group" aria-label="View">
-      <button
-        type="button"
-        aria-pressed={view === "preview"}
-        onclick={() => (view = "preview")}
-      >
-        Preview
-      </button>
-      <button
-        type="button"
-        aria-pressed={view === "results"}
-        onclick={() => (view = "results")}
-      >
-        Results{session.results.length ? ` (${session.results.length})` : ""}
-      </button>
-    </div>
-    {#if view === "preview"}
-      <Preview />
-    {:else}
-      <Results />
-    {/if}
+    <Preview />
+    <Outputs />
   </div>
 </main>
 
@@ -131,21 +104,12 @@
     min-width: 0;
   }
 
-  .run {
-    display: grid;
-    gap: 0.4rem;
+  .notice ul {
+    margin: 0.3rem 0 0;
+    padding-left: 1.1rem;
   }
 
-  .run .primary {
-    padding: 0.5rem;
-  }
-
-  progress {
-    flex: 1;
-  }
-
-  [aria-pressed="true"] {
-    border-color: var(--ink);
-    font-weight: 600;
+  .notice .row {
+    justify-content: space-between;
   }
 </style>

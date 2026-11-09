@@ -1,8 +1,7 @@
 <!--
-  Interactive crop box for the "Rotate, flip & crop" step: shows the selected
-  image as it enters the step (rotated/flipped, uncropped) with a draggable
-  box and handles. The crop is stored as fractions, so it applies to every
-  image in the batch.
+  Interactive crop box for "Rotate, flip & crop": shows the selected image
+  rotated/flipped but uncropped, with a draggable box and handles. The crop
+  is stored as fractions, so it applies to every image.
 -->
 <script lang="ts">
   import { drawBitmap, Previewer } from "../app/previewer";
@@ -16,10 +15,7 @@
     type Crop,
     type DragMode,
   } from "../core/geometry";
-  import type { Step } from "../ops/op";
   import { cropForImage } from "../ops/transform";
-
-  let { index }: { index: number } = $props();
 
   let canvas: HTMLCanvasElement;
   let size = $state<{ width: number; height: number } | null>(null);
@@ -32,40 +28,24 @@
     () => (size = null),
   );
 
-  const params = $derived(session.steps[index]?.params ?? {});
+  const params = $derived(session.tool?.params ?? {});
   const aspect = $derived((params.aspect ?? "free") as AspectPreset);
   const crop = $derived((params.crop ?? FULL_CROP) as Crop);
   const k = $derived(size ? aspectFactor(aspect, size) : null);
   const shown = $derived(size ? cropForImage(crop, aspect, size) : crop);
 
-  // The image entering this step, rotated/flipped but not cropped. Only what
-  // changes that image is read, so dragging the crop box doesn't re-render it.
+  // The image rotated/flipped but not cropped. Only what changes that image
+  // is read, so dragging the crop box doesn't re-render it.
   $effect(() => {
     const item = session.selected;
-    const step = session.steps[index]; // briefly gone right after the step is removed
-    if (!item?.info || !step) return;
-    // After a merge, the step's input is all the images combined.
-    const merged = session.ops
-      .slice(0, index)
-      .some((op) => op.kind === "combine");
-    const items = merged
-      ? session.usable.filter((other) => other.info)
-      : [item];
-    const { id, op, params } = step;
-    const self: Step = {
-      id,
-      op,
-      params: {
-        rotate: params.rotate,
-        flipH: params.flipH,
-        flipV: params.flipV,
-        crop: FULL_CROP,
-        aspect: "free",
-      },
-    };
+    if (!item) return;
+    const { rotate, flipH, flipV } = params;
     previewer.request({
-      files: items.map((other) => ({ key: other.id, blob: other.file })),
-      steps: [...$state.snapshot(session.steps.slice(0, index)), self],
+      images: [{ key: item.id, version: item.version }],
+      action: {
+        op: "transform",
+        params: { rotate, flipH, flipV, crop: FULL_CROP, aspect: "free" },
+      },
       maxSide: 900,
     });
   });
@@ -95,11 +75,7 @@
     if (!drag) return;
     const dx = (event.clientX - drag.x) / drag.rect.width;
     const dy = (event.clientY - drag.y) / drag.rect.height;
-    session.setParam(
-      index,
-      "crop",
-      applyDrag(drag.start, drag.mode, dx, dy, k),
-    );
+    session.setParam("crop", applyDrag(drag.start, drag.mode, dx, dy, k));
   }
 
   function end(): void {
@@ -149,7 +125,7 @@
     </span>
     <button
       type="button"
-      onclick={() => session.setParam(index, "crop", centeredCrop(k))}
+      onclick={() => session.setParam("crop", centeredCrop(k))}
     >
       Reset crop
     </button>

@@ -22,13 +22,17 @@ export function formatBytes(size: number): string {
   return `${(size / 1024 / 1024).toFixed(2)} MB`;
 }
 
-/** `photo.png` + `scaled` + `webp` → `photo-scaled.webp`. */
+/**
+ * `photo.png` + `scaled` + `webp` → `photo-scaled.webp`; without a suffix
+ * (no tool changed it) → `photo.webp`.
+ */
 export function outputName(
   fileName: string,
-  suffix: string,
+  suffix: string | null,
   extension: string,
 ): string {
-  return `${fileName.replace(/\.[^/.]+$/, '')}-${suffix}.${extension}`;
+  const stem = fileName.replace(/\.[^/.]+$/, '');
+  return `${stem}${suffix ? `-${suffix}` : ''}.${extension}`;
 }
 
 const IMAGE_EXTENSION = /\.(jpe?g|png|webp|avif|gif|bmp|heic|heif)$/i;

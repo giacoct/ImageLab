@@ -17,7 +17,7 @@
     const files = [...(event.clipboardData?.files ?? [])];
     if (files.length === 0) return;
     event.preventDefault();
-    session.addFiles(files);
+    void session.addFiles(files);
   }
 </script>
 
@@ -44,7 +44,7 @@
     depth = 0;
     visible = false;
     if (event.dataTransfer?.files.length)
-      session.addFiles(event.dataTransfer.files);
+      void session.addFiles(event.dataTransfer.files);
   }}
 />
 

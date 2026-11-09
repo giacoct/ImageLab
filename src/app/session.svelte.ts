@@ -1,30 +1,33 @@
 /**
- * The app state: the loaded images, the chain of steps, and the results of
- * the last run. One shared instance, so a running batch keeps going whatever
- * the components do.
+ * The app state: the images and their history, the tool that's open, and
+ * the results of a final tool (OCR, SVG). One shared instance, so a running
+ * tool keeps going whatever the components do.
+ *
+ * Applying a tool replaces the images with its results as a new entry of the
+ * history, so the results are what the next tool works on; undo and redo
+ * move through the entries. Each entry holds its images as the engine left
+ * them (`Version`: lossless pixels plus how they'll be saved).
  */
 
 import { isImageFile } from '../core/files';
 import { defaults } from '../core/params';
 import { Cancelled, engine } from '../engine/client';
-import type { Inspection, Output } from '../engine/pipeline';
+import type { Output, Version } from '../engine/pipeline';
 import { getOp } from '../ops';
-import type { Op, Step } from '../ops/op';
+import type { Action } from '../ops/op';
+import { downloadBlob, downloadZip } from './download';
 
+/** One image of a history entry. */
 export interface Item {
+  /** Unique per version, so previews cache it and lists key it. */
   id: string;
-  file: File;
-  /** Set once the file has been read. */
-  info?: Inspection;
-  /** Why the file can't be opened (e.g. not an image). */
-  error?: string;
+  version: Version;
 }
 
-export interface Result {
-  id: string;
-  output: Output;
-  /** Size of the input file(s), to show how much the output grew or shrank. */
-  inputSize: number;
+interface Entry {
+  /** What made it, e.g. "Scale" or "Add 3 images". */
+  label: string;
+  items: Item[];
 }
 
 export interface Failure {
@@ -38,184 +41,228 @@ const uid = () => `id${++nextId}`;
 const messageOf = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 
-class Session {
-  items = $state<Item[]>([]);
-  selectedId = $state<string | null>(null);
-  steps = $state<Step[]>([]);
+const START: Entry = { label: 'Start', items: [] };
 
-  results = $state<Result[]>([]);
-  failures = $state<Failure[]>([]);
-  running = $state(false);
-  progress = $state({ done: 0, total: 0 });
-  /** What the results were produced from, to tell when they are out of date. */
-  private ranWith = $state<string | null>(null);
+class Session {
+  // Entries never change once made: raw state, replaced as a whole.
+  private history = $state.raw<Entry[]>([START]);
+  private at = $state(0);
+  /** Bumped by "Start over", so files still being read are dropped. */
+  private generation = 0;
   private controller: AbortController | null = null;
 
-  /** The image shown in the preview. */
+  /** The current images. */
+  readonly items = $derived(this.history[this.at].items);
+  /** Position of the image shown in the preview; kept across undo and tools. */
+  selectedIndex = $state(0);
   readonly selected = $derived(
-    this.items.find((item) => item.id === this.selectedId) ?? this.items[0],
-  );
-  readonly usable = $derived(this.items.filter((item) => !item.error));
-  readonly ops = $derived(this.steps.map((step) => getOp(step.op)));
-  /** Whether a step combines all the images into one. */
-  readonly merges = $derived(this.ops.some((op) => op.kind === 'combine'));
-  /** The OCR or SVG step that ends the chain, if any. */
-  readonly final = $derived(this.ops.find((op) => op.kind === 'final'));
-  private readonly signature = $derived(
-    JSON.stringify([this.items.map((item) => item.id), this.steps]),
-  );
-  readonly stale = $derived(
-    this.ranWith !== null && this.ranWith !== this.signature,
+    this.items[Math.min(this.selectedIndex, this.items.length - 1)],
   );
 
-  /** Why the chain can't run yet, or null. */
-  readonly blocker = $derived(
-    this.steps.length === 0
-      ? 'Add a step to start.'
-      : this.usable.length === 0
-        ? 'Add images to start.'
-        : null,
+  /** How many dropped files are still being read. */
+  reading = $state(0);
+  /** Files that couldn't be opened, images a tool failed on. */
+  failures = $state.raw<Failure[]>([]);
+
+  /** The tool that's open, with its settings. */
+  tool = $state<Action | null>(null);
+  readonly op = $derived(this.tool ? getOp(this.tool.op) : null);
+  /** What the last final tool (OCR, SVG) made. */
+  outputs = $state.raw<{ id: string; output: Output }[]>([]);
+
+  running = $state(false);
+  progress = $state({ done: 0, total: 0 });
+  saving = $state(false);
+
+  /** The history, oldest first, and where we are in it. */
+  readonly entries = $derived(this.history.map((entry) => entry.label));
+  readonly position = $derived(this.at);
+  readonly canUndo = $derived(!this.running && this.at > 0);
+  readonly canRedo = $derived(
+    !this.running && this.at < this.history.length - 1,
   );
+
+  // --- history -----------------------------------------------------------------
+
+  goTo(index: number): void {
+    if (this.running) return;
+    this.at = Math.max(0, Math.min(this.history.length - 1, index));
+  }
+
+  undo(): void {
+    this.goTo(this.at - 1);
+  }
+
+  redo(): void {
+    this.goTo(this.at + 1);
+  }
+
+  /** Add an entry after the current one, dropping what undo left to redo. */
+  private commit(label: string, items: Item[]): void {
+    this.history = [...this.history.slice(0, this.at + 1), { label, items }];
+    this.at = this.history.length - 1;
+  }
 
   // --- images ----------------------------------------------------------------
 
-  addFiles(files: Iterable<File>): void {
-    for (const file of files) {
-      if (!isImageFile(file)) continue;
-      const id = uid();
-      this.items.push({ id, file });
-      void this.inspect(id, file);
-    }
+  async addFiles(files: Iterable<File>): Promise<void> {
+    const images = [...files].filter(isImageFile);
+    if (images.length === 0) return;
+    const generation = this.generation;
+    const failures: Failure[] = [];
+    this.reading += images.length;
+    const opened = await Promise.all(
+      images.map(async (file): Promise<Item | null> => {
+        try {
+          const version = await engine.run('open', {
+            blob: file,
+            name: file.name,
+          });
+          return { id: uid(), version };
+        } catch (error) {
+          failures.push({ name: file.name, message: messageOf(error) });
+          return null;
+        } finally {
+          if (generation === this.generation) this.reading -= 1;
+        }
+      }),
+    );
+    if (generation !== this.generation) return;
+    const added = opened.filter((item) => item !== null);
+    if (failures.length) this.failures = [...this.failures, ...failures];
+    if (added.length === 0) return;
+    const label =
+      added.length === 1
+        ? `Add ${added[0].version.name}`
+        : `Add ${added.length} images`;
+    this.commit(label, [...this.items, ...added]);
   }
 
-  private async inspect(id: string, file: File): Promise<void> {
-    let found: Pick<Item, 'info' | 'error'>;
-    try {
-      found = { info: await engine.run('inspect', { blob: file }) };
-    } catch (error) {
-      found = { error: messageOf(error) };
-    }
-    // The file may have been removed meanwhile.
+  remove(id: string): void {
     const item = this.items.find((candidate) => candidate.id === id);
-    if (item) Object.assign(item, found);
+    if (!item) return;
+    this.commit(
+      `Remove ${item.version.name}`,
+      this.items.filter((other) => other !== item),
+    );
   }
 
-  removeItem(id: string): void {
-    this.items = this.items.filter((item) => item.id !== id);
-  }
-
-  clearFiles(): void {
+  /** Forget everything: images, history, results. */
+  clear(): void {
     this.cancel();
-    this.items = [];
-    this.clearResults();
+    this.generation += 1;
+    this.history = [START];
+    this.at = 0;
+    this.selectedIndex = 0;
+    this.reading = 0;
+    this.failures = [];
+    this.outputs = [];
   }
 
-  // --- steps -----------------------------------------------------------------
-
-  /** Whether `op` can be added: a chain ends with at most one OCR or SVG step. */
-  canAdd(op: Op): boolean {
-    return op.kind !== 'final' || !this.final;
+  dismissFailures(): void {
+    this.failures = [];
   }
 
-  /** Add a step at the end, or just before the OCR or SVG step that must stay last. */
-  addStep(opId: string): void {
-    const op = getOp(opId);
-    if (!this.canAdd(op)) return;
-    const step = { id: uid(), op: opId, params: defaults(op.params) };
-    const at =
-      op.kind === 'final' || !this.final
-        ? this.steps.length
-        : this.steps.length - 1;
-    this.steps.splice(at, 0, step);
+  // --- tools -----------------------------------------------------------------
+
+  openTool(opId: string): void {
+    this.tool = { op: opId, params: defaults(getOp(opId).params) };
+    this.outputs = [];
   }
 
-  removeStep(index: number): void {
-    this.steps.splice(index, 1);
+  closeTool(): void {
+    this.tool = null;
   }
 
-  /** Whether the step at `index` can move by `delta`; the final step stays last. */
-  canMove(index: number, delta: number): boolean {
-    const to = index + delta;
-    if (to < 0 || to >= this.steps.length) return false;
-    return this.ops[index].kind !== 'final' && this.ops[to].kind !== 'final';
+  setParam(key: string, value: unknown): void {
+    if (this.tool) this.tool.params[key] = value;
   }
-
-  moveStep(index: number, delta: number): void {
-    if (!this.canMove(index, delta)) return;
-    const [step] = this.steps.splice(index, 1);
-    this.steps.splice(index + delta, 0, step);
-  }
-
-  setParam(index: number, key: string, value: unknown): void {
-    this.steps[index].params[key] = value;
-  }
-
-  // --- running -----------------------------------------------------------------
 
   /**
-   * Process the images: each on its own, or all together when the chain
-   * merges. The engine runs as many jobs at once as it has workers, except
-   * slow steps (OCR), which go one at a time.
+   * Apply the open tool to every image (all together for a merge). The
+   * results become a new history entry and the tool closes; a final tool
+   * (OCR, SVG) leaves the images as they are and lists what it made. The
+   * engine runs as many images at once as it has workers, except slow tools
+   * (OCR), which go one at a time.
    */
-  async run(): Promise<void> {
-    if (this.running || this.blocker) return;
-    const items = this.usable;
-    const jobs = this.merges ? [items] : items.map((item) => [item]);
-    const steps = $state.snapshot(this.steps);
-    const parallel = this.ops.some((op) => op.heavy) ? 1 : jobs.length;
+  async apply(): Promise<void> {
+    const op = this.op;
+    const items = this.items;
+    if (!op || !this.tool || this.running || items.length === 0) return;
+    const action = $state.snapshot(this.tool);
+    const jobs = op.kind === 'combine' ? [items] : items.map((item) => [item]);
     const controller = new AbortController();
+    const { signal } = controller;
 
-    this.clearResults();
-    this.ranWith = this.signature;
+    this.controller = controller;
     this.running = true;
     this.progress = { done: 0, total: jobs.length };
-    this.controller = controller;
-    // Results keep the order of the images, whichever finishes first.
-    const slots: Result[][] = [];
+    this.failures = [];
+    this.outputs = [];
+    // Keyed by each job's first image; outputs keep the order of the images.
+    const made = new Map<string, Version[]>();
+    const outputs: Output[] = [];
+    const failures: Failure[] = [];
 
     const runJob = async (index: number) => {
       const job = jobs[index];
-      let failure: Failure | undefined;
       try {
-        const inputs = job.map((item) => ({
-          name: item.file.name,
-          blob: item.file,
-        }));
-        const outputs = await engine.run(
-          'process',
-          { inputs, steps },
-          controller.signal,
-        );
-        const inputSize = job.reduce((sum, item) => sum + item.file.size, 0);
-        slots[index] = outputs.map((output) => ({
-          id: uid(),
-          output,
-          inputSize,
-        }));
+        if (op.kind === 'final') {
+          const input = job[0].version;
+          outputs[index] = await engine.run(
+            'finish',
+            { input, action },
+            signal,
+          );
+        } else {
+          const inputs = job.map((item) => item.version);
+          made.set(
+            job[0].id,
+            await engine.run('apply', { inputs, action }, signal),
+          );
+        }
       } catch (error) {
         if (error instanceof Cancelled) return;
         const name =
-          job.length === 1 ? job[0].file.name : `${job.length} images`;
-        failure = { name, message: messageOf(error) };
+          job.length === 1 ? job[0].version.name : `${job.length} images`;
+        failures.push({ name, message: messageOf(error) });
       }
-      // After a cancel, the state belongs to whatever came next.
-      if (controller.signal.aborted) return;
-      if (failure) this.failures.push(failure);
-      this.results = slots.flat();
-      this.progress.done += 1;
+      if (!signal.aborted) this.progress.done += 1;
     };
 
     let next = 0;
     const lane = async () => {
-      while (next < jobs.length && !controller.signal.aborted)
-        await runJob(next++);
+      while (next < jobs.length && !signal.aborted) await runJob(next++);
     };
-    await Promise.all(Array.from({ length: parallel }, lane));
+    const lanes = op.heavy ? 1 : jobs.length;
+    await Promise.all(Array.from({ length: lanes }, lane));
+    // After a cancel, the state belongs to whatever came next.
+    if (signal.aborted) return;
+    this.controller = null;
+    this.running = false;
+    this.failures = failures;
 
-    if (this.controller === controller) {
-      this.controller = null;
-      this.running = false;
+    if (op.kind === 'final') {
+      this.outputs = outputs
+        .filter(Boolean)
+        .map((output) => ({ id: uid(), output }));
+      return;
     }
+    if (made.size === 0) return;
+    // Built on the images as they are now: some may have been added or
+    // removed while the tool ran. A merge replaces all its inputs.
+    const used = new Set(jobs.flat().map((item) => item.id));
+    const results: Item[] = [];
+    for (const item of this.items) {
+      const versions = made.get(item.id);
+      if (versions) {
+        results.push(...versions.map((version) => ({ id: uid(), version })));
+      } else if (op.kind !== 'combine' || !used.has(item.id)) {
+        results.push(item);
+      }
+    }
+    this.commit(op.title, results);
+    this.tool = null;
   }
 
   cancel(): void {
@@ -224,10 +271,26 @@ class Session {
     this.running = false;
   }
 
-  clearResults(): void {
-    this.results = [];
-    this.failures = [];
-    this.ranWith = null;
+  // --- saving ----------------------------------------------------------------
+
+  /** Download one image, or all of them (one ZIP when there are several). */
+  async download(items: Item[] = this.items): Promise<void> {
+    if (items.length === 0 || this.saving) return;
+    this.saving = true;
+    try {
+      const saved = await Promise.all(
+        items.map((item) => engine.run('save', { version: item.version })),
+      );
+      if (saved.length === 1) downloadBlob(saved[0].blob, saved[0].name);
+      else await downloadZip(saved, 'imagelab.zip');
+    } catch (error) {
+      this.failures = [
+        ...this.failures,
+        { name: 'Download', message: messageOf(error) },
+      ];
+    } finally {
+      this.saving = false;
+    }
   }
 }
 

@@ -20,6 +20,7 @@ describe('files', () => {
     expect(outputName('photo.final.png', 'scaled', 'webp')).toBe(
       'photo.final-scaled.webp',
     );
+    expect(outputName('photo.heic', null, 'jpg')).toBe('photo.jpg');
   });
 
   it('recognizes images, HEIC with or without a type', () => {

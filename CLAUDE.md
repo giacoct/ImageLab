@@ -1,6 +1,6 @@
 # ImageLab
 
-Image tools that chain without limit, running entirely in the browser: a static Svelte 5 + TypeScript site on GitHub Pages, no backend. What it does is in `README.md`; how it's built is below (`docs/architecture.md`).
+Image tools whose results can be taken further by any other tool, running entirely in the browser: a static Svelte 5 + TypeScript site on GitHub Pages, no backend. What it does is in `README.md`; how it's built is below (`docs/architecture.md`).
 
 ## Commands
 

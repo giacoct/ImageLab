@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
-/** The engine worker: decodes, runs the steps and encodes, off the main thread. */
+/** The engine worker: decodes, applies tools and encodes, off the main thread. */
 
-import { inspect, processJob, renderPreview } from './pipeline';
+import { apply, finish, open, renderPreview, save } from './pipeline';
 import type { RequestMessage, ResponseMessage } from './protocol';
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -9,18 +9,22 @@ declare const self: DedicatedWorkerGlobalScope;
 self.onmessage = async (event: MessageEvent<RequestMessage>) => {
   const message = event.data;
   const asset = (path: string) => new URL(path, message.appUrl).href;
+  const context = { scale: 1, asset };
   try {
     let result: unknown;
     const transfer: Transferable[] = [];
     switch (message.type) {
-      case 'inspect':
-        result = await inspect(message.args.blob);
+      case 'open':
+        result = await open(message.args.blob, message.args.name);
         break;
-      case 'process':
-        result = await processJob(message.args.inputs, message.args.steps, {
-          scale: 1,
-          asset,
-        });
+      case 'apply':
+        result = await apply(message.args.inputs, message.args.action, context);
+        break;
+      case 'finish':
+        result = await finish(message.args.input, message.args.action, context);
+        break;
+      case 'save':
+        result = await save(message.args.version);
         break;
       case 'preview': {
         const bitmap = (

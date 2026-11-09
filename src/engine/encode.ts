@@ -10,7 +10,6 @@ import type { ImageFormat } from '../core/files';
 import { hasTransparency } from '../core/pixels';
 import { largestThatFits } from '../core/search';
 import { flattened, readPixels, resized, type Img } from './canvas';
-import { decode } from './decode';
 
 export interface Encoded {
   blob: Blob;
@@ -19,11 +18,10 @@ export interface Encoded {
 }
 
 /**
- * An image on its way through the chain: its pixels, how it will be saved,
- * and the file holding exactly these pixels, if there is one: the input file
- * (`original`) until a step changes the pixels, or the file Convert format,
- * Compress or Strip metadata wrote. That file is the output, unless a later
- * step changes the pixels.
+ * An image while a tool works on it: its pixels, how it will be saved, and
+ * the file it saves to, if that's already written: the input file
+ * (`original`) until a tool changes the pixels, or the file Convert format,
+ * Compress or Strip metadata wrote. A tool that changes the pixels drops it.
  */
 export interface Picture {
   image: Img;
@@ -49,20 +47,16 @@ export async function encodeImage(
 }
 
 /**
- * Write the picture's file right away (Convert format, Compress). Its pixels
- * become what the file holds, so later steps and the preview see the result,
- * compression artifacts included.
+ * Save the picture as `encoding` says, right away (Convert format, Compress),
+ * so its size is known. The pixels stay untouched: the next tool starts from
+ * them, not from the compressed file.
  */
-export async function writeNow(
+export async function write(
   picture: Picture,
   encoding: Encoding,
 ): Promise<Picture> {
   const { blob } = await encodeImage(picture.image, encoding);
-  return {
-    image: (await decode(blob)).image,
-    encoding,
-    file: { blob, original: false },
-  };
+  return { ...picture, encoding, file: { blob, original: false } };
 }
 
 /** Encode at `quality` (1–100; ignored by PNG). */

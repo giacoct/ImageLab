@@ -1,8 +1,8 @@
 <!--
-  Live preview of the chain, rendered by the engine on downscaled copies with
-  the same operations the processing uses: the selected image, or all of them
-  when the chain merges. It stops before an OCR or SVG step, whose result
-  isn't an image.
+  Live preview, rendered by the engine on downscaled copies with the same
+  operations the tools apply: the open tool on the selected image (on all of
+  them for a merge), or the image as it is when no tool is open. Extract
+  text and Convert to SVG show the image they'll read.
 -->
 <script lang="ts">
   import { untrack } from "svelte";
@@ -26,32 +26,30 @@
     (value) => (busy = value),
   );
 
-  const item = $derived(session.selected);
-  /** The images shown, once they've been read without problems. */
+  const op = $derived(session.op);
   const shown = $derived(
-    session.merges
-      ? session.usable.filter((other) => other.info)
-      : item?.info
-        ? [item]
+    op?.kind === "combine"
+      ? session.items
+      : session.selected
+        ? [session.selected]
         : [],
   );
-  /** Changes only when the images shown do, not when other details of the list arrive. */
-  const ids = $derived(shown.map((other) => other.id).join(" "));
-  const finalAt = $derived(session.ops.findIndex((op) => op.kind === "final"));
 
-  // Re-render when the previewed steps' settings or the images shown change.
+  // Re-render when the tool, its settings or the images shown change.
   $effect(() => {
-    const steps = $state.snapshot(
-      session.steps.slice(0, finalAt === -1 ? undefined : finalAt),
-    );
-    if (!ids) {
+    const action =
+      session.tool && op?.kind !== "final"
+        ? $state.snapshot(session.tool)
+        : null;
+    if (shown.length === 0) {
       ready = false;
       return;
     }
+    const images = shown.map(({ id, version }) => ({ key: id, version }));
     untrack(() =>
       previewer.request({
-        files: shown.map(({ id, file }) => ({ key: id, blob: file })),
-        steps,
+        images,
+        action,
         maxSide: Math.round((stage?.clientWidth || 800) * devicePixelRatio),
       }),
     );
@@ -63,26 +61,18 @@
     <canvas
       bind:this={canvas}
       class:hidden={!ready || shown.length === 0}
-      aria-label="Preview of the result"
+      aria-label={op ? `Preview of ${op.title}` : "The selected image"}
     ></canvas>
-    {#if !item}
-      <p class="muted">Add images to see a preview.</p>
-    {:else if shown.length === 0 && item.error}
-      <p class="error-text">{item.file.name}: {item.error}</p>
-    {:else if shown.length === 0}
-      <p class="muted">Reading {item.file.name}…</p>
+    {#if shown.length === 0}
+      <p class="muted">
+        {session.reading ? "Reading images…" : "Add images to see them here."}
+      </p>
     {/if}
     {#if busy}<span class="busy hint" aria-live="polite">Rendering…</span>{/if}
   </div>
 
   {#if error && shown.length}
     <p class="notice error">{error}</p>
-  {/if}
-  {#if finalAt !== -1 && shown.length}
-    <p class="hint">
-      The preview stops before <strong>{session.ops[finalAt].title}</strong>,
-      which runs when you process the images.
-    </p>
   {/if}
 </div>
 

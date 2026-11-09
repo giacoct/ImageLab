@@ -2,7 +2,7 @@
 
 import type { ImageFormat } from '../core/files';
 import { p } from '../core/params';
-import { writeNow } from '../engine/encode';
+import { write } from '../engine/encode';
 import { fileOp } from './op';
 
 const FORMATS: Record<string, ImageFormat> = {
@@ -39,7 +39,7 @@ export const convert = fileOp({
     }),
   },
   run: (picture, values) =>
-    writeNow(picture, {
+    write(picture, {
       ...picture.encoding,
       format: FORMATS[values.format],
       chosen: true,

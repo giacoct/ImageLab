@@ -1,7 +1,8 @@
 <!--
-  The images to process: a button to choose more (dropping and pasting
-  anywhere also work, see DropOverlay), and the list with thumbnails, sizes
-  and problems. Clicking an image shows it in the preview.
+  The current images: a button to choose more (dropping and pasting anywhere
+  also work, see DropOverlay), and the list with thumbnails, sizes and a
+  download each. After a tool, these are its results. Clicking an image shows
+  it in the preview.
 -->
 <script lang="ts">
   import { session } from "../app/session.svelte";
@@ -9,18 +10,32 @@
   import BlobImage from "./BlobImage.svelte";
 
   let picker: HTMLInputElement;
+
+  const FORMAT_NAMES: Record<string, string> = {
+    "image/jpeg": "JPEG",
+    "image/png": "PNG",
+    "image/webp": "WebP",
+    "image/avif": "AVIF",
+  };
 </script>
 
-<section class="section" aria-labelledby="files-title">
+<section class="section" aria-labelledby="images-title">
   <div class="section-head">
-    <h2 id="files-title">
+    <h2 id="images-title">
       Images{session.items.length ? ` (${session.items.length})` : ""}
     </h2>
     <button type="button" onclick={() => picker.click()}>
       {session.items.length ? "Add" : "Choose images"}
     </button>
     {#if session.items.length}
-      <button type="button" onclick={() => session.clearFiles()}>Clear</button>
+      <button
+        type="button"
+        disabled={session.saving}
+        onclick={() => session.download()}
+      >
+        {session.items.length > 1 ? "Download all (ZIP)" : "Download"}
+      </button>
+      <button type="button" onclick={() => session.clear()}>Start over</button>
     {/if}
   </div>
   <input
@@ -30,43 +45,45 @@
     accept="image/*,.heic,.heif"
     multiple
     onchange={(event) => {
-      session.addFiles(event.currentTarget.files ?? []);
+      void session.addFiles(event.currentTarget.files ?? []);
       event.currentTarget.value = ""; // so choosing the same file again still counts
     }}
   />
 
-  {#if session.items.length === 0}
+  {#if session.items.length === 0 && !session.reading}
     <p class="hint">
       Or drop or paste them anywhere. JPEG, PNG, WebP, AVIF, GIF, HEIC.
     </p>
-  {:else}
+  {/if}
+  {#if session.reading}
+    <p class="hint">
+      Reading {session.reading}
+      {session.reading === 1 ? "image" : "images"}…
+    </p>
+  {/if}
+
+  {#if session.items.length}
     <ul>
-      {#each session.items as item (item.id)}
-        <li class:selected={item.id === session.selected?.id}>
+      {#each session.items as item, index (item.id)}
+        {@const { version } = item}
+        <li class:selected={item === session.selected}>
           <button
             class="select"
             type="button"
             title="Show in the preview"
-            onclick={() => (session.selectedId = item.id)}
+            onclick={() => (session.selectedIndex = index)}
           >
             <span class="thumb checker">
-              {#if item.info}<BlobImage
-                  blob={item.info.thumbnail}
-                  alt=""
-                />{/if}
+              <BlobImage blob={version.thumbnail} alt="" />
             </span>
             <span class="meta">
-              <span class="name">{item.file.name}</span>
+              <span class="name">{version.name}</span>
               <span class="hint">
-                {#if item.error}
-                  <span class="error-text">{item.error}</span>
-                {:else if item.info}
-                  {item.info.width} × {item.info.height} · {formatBytes(
-                    item.file.size,
-                  )} ·
-                  {item.info.type.replace("image/", "").toUpperCase()}
-                {:else}
-                  Reading…
+                {version.width} × {version.height} ·
+                {FORMAT_NAMES[version.encoding.format]}
+                <!-- The size once known: the file is written (or is the input, in that format). -->
+                {#if version.file?.blob.type === version.encoding.format}
+                  · {formatBytes(version.file.blob.size)}
                 {/if}
               </span>
             </span>
@@ -74,8 +91,17 @@
           <button
             class="icon"
             type="button"
-            aria-label="Remove {item.file.name}"
-            onclick={() => session.removeItem(item.id)}>×</button
+            aria-label="Download {version.name}"
+            title="Download"
+            disabled={session.saving}
+            onclick={() => session.download([item])}>↓</button
+          >
+          <button
+            class="icon"
+            type="button"
+            aria-label="Remove {version.name}"
+            title="Remove"
+            onclick={() => session.remove(item.id)}>×</button
           >
         </li>
       {/each}

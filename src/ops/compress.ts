@@ -1,7 +1,7 @@
 /** Compress: write the image in its current format at a lower quality, or to fit a file size. */
 
 import { p } from '../core/params';
-import { writeNow } from '../engine/encode';
+import { write } from '../engine/encode';
 import { fileOp } from './op';
 
 export const compress = fileOp({
@@ -41,7 +41,7 @@ export const compress = fileOp({
     }),
   },
   run: (picture, values, context) =>
-    writeNow(picture, {
+    write(picture, {
       ...picture.encoding,
       quality:
         values.mode === 'quality' ? values.quality : picture.encoding.quality,

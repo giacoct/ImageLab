@@ -302,8 +302,7 @@
   }
 
   function onKeyDown(event: KeyboardEvent): void {
-    if (event.key === "Escape" && session.picking) session.picking = null;
-    else if (event.key === "+" || event.key === "=") zoomTo(zoom * 1.5);
+    if (event.key === "+" || event.key === "=") zoomTo(zoom * 1.5);
     else if (event.key === "-") zoomTo(zoom / 1.5);
     else if (event.key === "0") resetZoom();
     else return;

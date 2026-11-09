@@ -16,11 +16,13 @@
 
 <svelte:window
   onkeydown={(event) => {
-    // Escape goes back to the tools, unless it's closing something in a field.
+    // Escape stops picking a color, or goes back to the tools, unless it's
+    // closing something in a field.
     if (event.key !== "Escape" || !session.tool) return;
     if ((event.target as HTMLElement).matches("input, textarea, select"))
       return;
-    goHome();
+    if (session.picking) session.picking = null;
+    else goHome();
   }}
   ondragover={(event) => {
     // Images come in only on the home page. Elsewhere a dropped file would

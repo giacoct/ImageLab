@@ -2,9 +2,12 @@
   What the tool made: the result images, to download one by one or all
   together, to share, or to use as the images for another tool; or, for
   Extract text and Convert to SVG, the text (in full, to read and copy) and
-  the SVGs. Share is there where the browser can share files.
+  the SVGs. Share is there where the browser can share files. A card in
+  the tool's color, so the results stand out from the settings; grey once
+  the settings changed since.
 -->
 <script lang="ts">
+  import CircleCheck from "@lucide/svelte/icons/circle-check";
   import Download from "@lucide/svelte/icons/download";
   import Share from "@lucide/svelte/icons/share";
 
@@ -85,9 +88,17 @@
 </script>
 
 {#if count}
-  <section class="results" aria-labelledby="results-title" bind:this={section}>
+  <section
+    class="results"
+    class:stale={session.stale}
+    aria-labelledby="results-title"
+    bind:this={section}
+  >
     <div class="head">
-      <h2 id="results-title">{count === 1 ? "Result" : `${count} results`}</h2>
+      <h2 id="results-title">
+        <CircleCheck size={20} />
+        {count === 1 ? "Result" : `${count} results`}
+      </h2>
       {#if session.stale}
         <p class="notice warning">
           The settings changed since. Apply again to update the results.
@@ -215,10 +226,37 @@
 
 <style>
   .results {
+    animation: arrive 0.6s ease-out;
+    background: color-mix(in oklab, var(--accent-soft) 55%, var(--sheet));
+    border: 1.5px solid var(--accent);
+    border-radius: calc(var(--radius) * 1.5);
     display: grid;
     gap: 0.75rem;
+    padding: 0.9rem;
     /* Clear of the sticky viewer above and the Apply bar below. */
     scroll-margin: 50svh 0 6rem;
+  }
+
+  .results button:not(.quiet):not(:hover) {
+    background: var(--sheet);
+  }
+
+  .results.stale {
+    background: var(--sheet);
+    border-color: var(--line);
+  }
+
+  /* A glow in the tool's color as the results come in. */
+  @keyframes arrive {
+    from {
+      box-shadow: 0 0 0 6px color-mix(in oklab, var(--accent) 35%, transparent);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .results {
+      animation: none;
+    }
   }
 
   .head {
@@ -227,7 +265,15 @@
   }
 
   h2 {
+    align-items: center;
+    color: var(--accent);
+    display: flex;
     font-size: var(--text-lead);
+    gap: 0.4rem;
+  }
+
+  .stale h2 {
+    color: var(--muted);
   }
 
   ul {

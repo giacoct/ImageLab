@@ -1,14 +1,14 @@
 # Build the static site and publish it to GitHub Pages on every push to
 # main that changes the app (or by hand from the Actions tab). This is the
 # only workflow in the repo: it deploys, it doesn't gate anything — run
-# `npm test` locally.
+# `npm run check` locally.
 name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
     # Docs and editor settings aren't part of the site.
-    paths-ignore: ["docs/**", "**.md", ".vscode/**", ".claude/**"]
+    paths-ignore: ["**.md", ".vscode/**", ".claude/**"]
   workflow_dispatch:
 
 permissions:

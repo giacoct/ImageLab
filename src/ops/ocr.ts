@@ -77,12 +77,13 @@ export const ocr = finalOp({
   params: {
     language: p.choice({
       label: "Language",
-      default: "eng",
+      default: "eng+ita",
       options: [
+        { value: "eng+ita", label: "Both" },
         { value: "eng", label: "English" },
         { value: "ita", label: "Italian" },
-        { value: "eng+ita", label: "Both" },
       ],
+      hint: "Picking the text's language gives a more precise result.",
     }),
     layout: p.choice({
       label: "Layout",

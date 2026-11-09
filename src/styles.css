@@ -76,10 +76,17 @@
   box-sizing: border-box;
 }
 
+/*
+ * The page fills the whole screen, under the notch and the rounded corners
+ * too (viewport-fit=cover): the content keeps clear of them. Sticky and
+ * full-height parts allow for the top and bottom insets themselves.
+ */
 body {
   background: var(--page);
   font-size: var(--text-body);
   margin: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0
+    env(safe-area-inset-left);
 }
 
 h1,

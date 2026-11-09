@@ -79,7 +79,7 @@
   .home {
     margin: 0 auto;
     max-width: 68rem;
-    padding: 0 var(--gutter) 4rem;
+    padding: 0 var(--gutter) calc(4rem + env(safe-area-inset-bottom));
   }
 
   header {

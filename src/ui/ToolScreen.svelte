@@ -204,7 +204,7 @@
   .stage {
     height: 46svh;
     position: sticky;
-    top: 0;
+    top: env(safe-area-inset-top);
     z-index: 1;
   }
 
@@ -261,7 +261,7 @@
         "strip panel";
       grid-template-columns: minmax(0, 1fr) 23rem;
       grid-template-rows: auto minmax(0, 1fr) auto;
-      height: 100dvh;
+      height: calc(100dvh - env(safe-area-inset-top));
     }
 
     .bar {
@@ -279,14 +279,15 @@
 
     .strip {
       grid-area: strip;
-      padding: 0.75rem var(--gutter) 0.5rem;
+      padding: 0.75rem var(--gutter) max(0.5rem, env(safe-area-inset-bottom));
     }
 
     .panel {
       background: var(--sheet);
       grid-area: panel;
       grid-template-rows: minmax(0, 1fr) auto;
-      margin: var(--gutter);
+      margin: var(--gutter) var(--gutter)
+        max(var(--gutter), env(safe-area-inset-bottom));
       border-radius: calc(var(--radius) * 1.5);
       min-height: 0;
       overflow: hidden;

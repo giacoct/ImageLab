@@ -3,12 +3,18 @@
 import type { Action } from '../ops/op';
 import type { Output, PreviewRequest, Saved, Version } from './pipeline';
 
+/** A rendered preview, and its size relative to the full-size result. */
+export interface PreviewImage {
+  bitmap: ImageBitmap;
+  scale: number;
+}
+
 export interface Requests {
   open: { args: { blob: Blob; name: string }; result: Version };
   apply: { args: { inputs: Version[]; action: Action }; result: Version[] };
   finish: { args: { input: Version; action: Action }; result: Output };
   save: { args: { version: Version }; result: Saved };
-  preview: { args: PreviewRequest; result: ImageBitmap };
+  preview: { args: PreviewRequest; result: PreviewImage };
 }
 
 export type RequestType = keyof Requests;

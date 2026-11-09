@@ -136,7 +136,9 @@ class Engine {
   }
 
   /** Run on the preview worker, so previews never wait behind a batch. */
-  preview(args: Requests['preview']['args']): Promise<ImageBitmap> {
+  preview(
+    args: Requests['preview']['args'],
+  ): Promise<Requests['preview']['result']> {
     return this.previewWorker.call('preview', args);
   }
 }

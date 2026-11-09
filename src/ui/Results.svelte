@@ -4,10 +4,13 @@
   and Convert to SVG, the text (in full, to read and copy) and the SVGs.
 -->
 <script lang="ts">
+  import Download from "@lucide/svelte/icons/download";
+
   import { downloadBlob, downloadZip } from "../app/download";
   import { session } from "../app/session.svelte";
   import { formatBytes } from "../core/files";
   import type { Output } from "../engine/pipeline";
+  import type { Item } from "../app/session.svelte";
   import BlobImage from "./BlobImage.svelte";
 
   const FORMAT_NAMES: Record<string, string> = {
@@ -19,6 +22,22 @@
 
   const count = $derived(session.results.length + session.outputs.length);
   let copied = $state<string | null>(null);
+
+  // When results arrive, bring them into view: on a phone they'd otherwise
+  // land below the settings, out of sight.
+  let section = $state<HTMLElement>();
+  let had = false;
+  $effect(() => {
+    const has = count > 0;
+    if (has && !had && section) {
+      const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      section.scrollIntoView({
+        block: "nearest",
+        behavior: still ? "auto" : "smooth",
+      });
+    }
+    had = has;
+  });
 
   async function copy(id: string, output: Output): Promise<void> {
     try {
@@ -38,63 +57,53 @@
         "imagelab.zip",
       );
   }
+
+  /** Size and format of a result, and its file size once known. */
+  function details(item: Item): string[] {
+    const { version } = item;
+    const parts = [
+      `${version.width} × ${version.height}`,
+      FORMAT_NAMES[version.encoding.format],
+    ];
+    if (version.file?.blob.type === version.encoding.format)
+      parts.push(formatBytes(version.file.blob.size));
+    return parts;
+  }
 </script>
 
-{#if count || session.running}
-  <section class="section" aria-label="Results">
-    <div class="section-head">
-      <h2>
-        {#if session.running}
-          Working… {session.progress.done} of {session.progress.total}
-        {:else}
-          {count === 1 ? "1 result" : `${count} results`}
-        {/if}
-      </h2>
-      {#if count > 1 && !session.running}
-        <button type="button" disabled={session.saving} onclick={downloadAll}>
-          Download all (ZIP)
-        </button>
-      {/if}
-      {#if session.results.length && !session.running}
-        <button
-          type="button"
-          title="Use the results as the images for another tool"
-          onclick={() => session.useResults()}
-        >
-          Use as input
-        </button>
+{#if count}
+  <section class="results" aria-labelledby="results-title" bind:this={section}>
+    <div class="head">
+      <h2 id="results-title">{count === 1 ? "Result" : `${count} results`}</h2>
+      {#if session.stale}
+        <p class="notice warning">
+          The settings changed since. Apply again to update the results.
+        </p>
       {/if}
     </div>
 
-    {#if session.stale && !session.running}
-      <p class="notice warning">
-        The settings or images changed since these results were made. Apply
-        again to update them.
-      </p>
-    {/if}
-
     {#if session.results.length}
-      <ul class="grid">
+      <ul>
         {#each session.results as item (item.id)}
-          {@const { version } = item}
           <li>
-            <div class="thumb checker">
-              <BlobImage blob={version.thumbnail} alt={version.name} />
-            </div>
-            <span class="hint">
-              {version.width} × {version.height} ·
-              {FORMAT_NAMES[version.encoding.format]}
-              {#if version.file?.blob.type === version.encoding.format}
-                · {formatBytes(version.file.blob.size)}
-              {/if}
+            <span class="thumb checker">
+              <BlobImage blob={item.version.thumbnail} alt="" />
+            </span>
+            <span class="meta">
+              <span class="name">{item.version.name}</span>
+              <span class="hint numbers parts">
+                {#each details(item) as part (part)}<span>{part}</span>{/each}
+              </span>
             </span>
             <button
+              class="icon quiet"
               type="button"
+              aria-label="Download {item.version.name}"
+              title="Download"
               disabled={session.saving}
               onclick={() => session.download([item])}
+              ><Download size={18} /></button
             >
-              Download
-            </button>
           </li>
         {/each}
       </ul>
@@ -112,7 +121,7 @@
             <p class="muted">No text was found.</p>
           {/if}
         {:else}
-          <div class="thumb checker">
+          <div class="svg checker">
             <BlobImage blob={output.thumbnail} alt={output.name} />
           </div>
         {/if}
@@ -126,65 +135,135 @@
               {copied === id ? "Copied" : "Copy text"}
             </button>
           {:else}
-            <span class="hint">{formatBytes(output.blob.size)}</span>
+            <span class="hint numbers">{formatBytes(output.blob.size)}</span>
           {/if}
           <button
             type="button"
             onclick={() => downloadBlob(output.blob, output.name)}
           >
-            Download
+            <Download size={16} /> Download
           </button>
         </div>
       </article>
     {/each}
+
+    <div class="row actions">
+      {#if count > 1}
+        <button type="button" disabled={session.saving} onclick={downloadAll}>
+          <Download size={16} /> Download all
+        </button>
+      {:else if session.results.length === 1}
+        <button
+          type="button"
+          disabled={session.saving}
+          onclick={() => session.download(session.results)}
+        >
+          <Download size={16} /> Download
+        </button>
+      {/if}
+      {#if session.results.length}
+        <button
+          type="button"
+          title="Make the results the images for another tool"
+          onclick={() => session.useResults()}
+        >
+          Use as input
+        </button>
+      {/if}
+    </div>
   </section>
 {/if}
 
 <style>
-  .grid {
+  .results {
     display: grid;
     gap: 0.75rem;
-    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    /* Clear of the sticky viewer above and the Apply bar below. */
+    scroll-margin: 50svh 0 6rem;
+  }
+
+  .head {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  h2 {
+    font-size: var(--text-lead);
+  }
+
+  ul {
+    display: grid;
+    gap: 0.25rem;
     list-style: none;
     margin: 0;
+    max-height: 18rem;
+    overflow-y: auto;
     padding: 0;
   }
 
-  .grid li,
-  article {
-    display: grid;
-    gap: 0.4rem;
+  li {
+    align-items: center;
+    display: flex;
+    gap: 0.7rem;
   }
 
   .thumb {
-    align-items: center;
-    aspect-ratio: 4 / 3;
-    display: flex;
-    justify-content: center;
+    border-radius: 4px;
+    flex: none;
+    height: 2.75rem;
     overflow: hidden;
+    width: 2.75rem;
   }
 
   .thumb :global(img) {
-    max-height: 100%;
-    object-fit: contain;
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
   }
 
-  article .thumb {
-    aspect-ratio: auto;
-    max-height: 20rem;
-  }
-
-  article .thumb :global(img) {
-    max-height: 20rem;
+  .meta {
+    display: grid;
+    flex: 1;
+    min-width: 0;
   }
 
   .name {
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .parts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.6rem;
+  }
+
+  article {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .svg {
+    border-radius: var(--radius);
+    display: flex;
+    justify-content: center;
+    max-height: 16rem;
+    overflow: hidden;
+  }
+
+  .svg :global(img) {
+    max-height: 16rem;
+    object-fit: contain;
   }
 
   textarea {
     min-height: 10rem;
     resize: vertical;
     width: 100%;
+  }
+
+  .actions button {
+    flex: 1;
   }
 </style>

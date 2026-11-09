@@ -27,11 +27,10 @@ self.onmessage = async (event: MessageEvent<RequestMessage>) => {
         result = await save(message.args.version);
         break;
       case 'preview': {
-        const bitmap = (
-          await renderPreview(message.args, asset)
-        ).transferToImageBitmap();
+        const { image, scale } = await renderPreview(message.args, asset);
+        const bitmap = image.transferToImageBitmap();
         transfer.push(bitmap);
-        result = bitmap;
+        result = { bitmap, scale };
         break;
       }
     }

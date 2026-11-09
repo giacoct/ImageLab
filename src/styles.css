@@ -1,33 +1,74 @@
 /*
- * Global styles: a few color tokens, plain native controls, and the handful
- * of shared classes (sections, notices, the transparency checkerboard).
- * Components keep only their own layout in their <style>. Colors are defined
- * once with `light-dark()`, so the page follows the system's light/dark scheme.
+ * Global styles: the color and type tokens, native controls, and the few
+ * shared classes (notices, the transparency checkerboard, the settings
+ * form). Components keep their own layout in their <style>.
+ *
+ * Light and bright. The page is a clean neutral (a tinted one would skew how
+ * colors are judged), and the color comes from the tools: each has its own
+ * hue (ui/tools.ts), and the tools run through the spectrum in order. An open
+ * tool sets `--accent` to its color, so its controls and Apply wear it.
  */
 
-:root {
-  color-scheme: light dark;
+@import "@fontsource-variable/instrument-sans/wdth.css";
 
-  --bg: light-dark(#ffffff, #161616);
-  --ink: light-dark(#1a1a1a, #e8e8e8);
-  --muted: light-dark(#666666, #a0a0a0);
-  --border: light-dark(#d6d6d6, #3a3a3a);
-  --subtle: light-dark(#f4f4f4, #222222);
-  --accent: light-dark(#1d4ed8, #7aa2ff);
-  --on-accent: light-dark(#ffffff, #10131a);
-  --danger: light-dark(#b42318, #ff8a80);
-  --warning: light-dark(#8a5300, #f2c26b);
-  --checker: light-dark(#e6e6e6, #2c2c2c);
+:root {
+  color-scheme: light;
+
+  /* The page, behind everything. */
+  --page: #f3f4f6;
+  /* Panels and controls on the page. */
+  --sheet: #ffffff;
+  /* Behind the image in the viewer. */
+  --stage: #e8eaed;
+  --ink: #1b1d22;
+  --muted: #5f6570;
+  --line: #dcdfe4;
+  /* A control's resting fill, and on hover. */
+  --fill: #eef0f3;
+  --fill-hover: #e3e6ea;
+  /* The app's own color, until a tool sets its own. */
+  --accent: #3b5bdb;
+  --accent-soft: #dbe4ff;
+  --on-accent: #ffffff;
+  --danger: #c92a2a;
+  --warning: #a35400;
+  --checker: #dfe1e5;
+  /* The tools' hues in order, for the spectrum stripe. */
+  --spectrum: linear-gradient(
+    90deg,
+    #c92a2a 0 9.09%,
+    #d9480f 0 18.18%,
+    #f59f00 0 27.27%,
+    #2b8a3e 0 36.36%,
+    #087f5b 0 45.45%,
+    #0b7285 0 54.54%,
+    #1971c2 0 63.63%,
+    #3b5bdb 0 72.72%,
+    #6741d9 0 81.81%,
+    #9c36b5 0 90.9%,
+    #c2255c 0
+  );
+
+  --radius: 8px;
+  --gutter: 1rem;
+
+  /* Type scale (≈1.25): 13 · 15 · 18 · 23 · 44. */
+  --text-small: 0.8125rem;
+  --text-body: 0.9375rem;
+  --text-lead: 1.125rem;
+  --text-title: 1.4375rem;
+  --text-display: clamp(2.25rem, 7vw, 2.75rem);
 
   font-family:
+    "Instrument Sans Variable",
     system-ui,
     -apple-system,
-    "Segoe UI",
-    Roboto,
     sans-serif;
-  font-size: 15px;
+  font-size: 100%;
+  font-size-adjust: from-font;
   line-height: 1.45;
   color: var(--ink);
+  -webkit-text-size-adjust: 100%;
 }
 
 * {
@@ -35,7 +76,8 @@
 }
 
 body {
-  background: var(--bg);
+  background: var(--page);
+  font-size: var(--text-body);
   margin: 0;
 }
 
@@ -46,12 +88,12 @@ p {
   margin: 0;
 }
 
-h1 {
-  font-size: 1.4rem;
-}
-
-h2 {
-  font-size: 1rem;
+h1,
+h2,
+h3 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 a {
@@ -71,16 +113,23 @@ textarea {
   font: inherit;
 }
 
+/* --- buttons --------------------------------------------------------------- */
+
 button {
-  background: var(--subtle);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  align-items: center;
+  background: var(--fill);
+  border: 0;
+  border-radius: var(--radius);
   cursor: pointer;
-  padding: 0.3rem 0.75rem;
+  display: inline-flex;
+  gap: 0.4rem;
+  justify-content: center;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.8rem;
 }
 
 button:hover:not(:disabled) {
-  border-color: var(--muted);
+  background: var(--fill-hover);
 }
 
 button:disabled {
@@ -88,75 +137,109 @@ button:disabled {
   opacity: 0.45;
 }
 
+/* The one action that changes something: Apply. */
 button.primary {
   background: var(--accent);
-  border-color: var(--accent);
   color: var(--on-accent);
   font-weight: 600;
+  min-height: 2.75rem;
 }
 
-/* A compact square button for ↑ ↓ × controls. */
-button.icon {
-  line-height: 1;
-  min-width: 1.9rem;
-  padding: 0.3rem;
+button.primary:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--accent) 88%, var(--ink));
 }
+
+/* No fill until hovered: secondary actions next to content. */
+button.quiet {
+  background: transparent;
+}
+
+/* Square, for icon-only buttons (they carry an aria-label). */
+button.icon {
+  min-width: 2.25rem;
+  padding: 0;
+}
+
+button svg {
+  flex: none;
+}
+
+/* --- fields ---------------------------------------------------------------- */
 
 input:not([type]),
 input[type="text"],
 input[type="number"],
 select,
 textarea {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.3rem 0.45rem;
+  background: var(--sheet);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  min-height: 2.25rem;
+  padding: 0.35rem 0.6rem;
+}
+
+input[type="number"] {
+  font-variant-numeric: tabular-nums;
+  width: 7rem;
+}
+
+input[type="range"],
+input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+input[type="range"] {
+  margin: 0;
+  width: 100%;
+}
+
+input[type="checkbox"] {
+  height: 1.05rem;
+  margin: 0;
+  width: 1.05rem;
+}
+
+input[type="color"] {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  height: 2.25rem;
+  padding: 0.2rem;
+  width: 3rem;
 }
 
 :focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 
-/* A block of the controls: the images, or a step. */
-.section {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  display: grid;
-  gap: 0.75rem;
-  padding: 0.75rem;
+/* --- shared ---------------------------------------------------------------- */
+
+.muted {
+  color: var(--muted);
 }
 
-.section-head {
-  align-items: center;
-  display: flex;
-  gap: 0.3rem;
+.hint {
+  color: var(--muted);
+  font-size: var(--text-small);
 }
 
-.section-head h2 {
-  flex: 1;
+.numbers {
+  font-variant-numeric: tabular-nums;
 }
 
 .row {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.muted,
-.hint {
-  color: var(--muted);
-}
-
-.hint {
-  font-size: 0.85rem;
+  gap: 0.5rem;
 }
 
 .notice {
-  border-left: 3px solid currentColor;
-  font-size: 0.9rem;
-  padding: 0.4rem 0.6rem;
+  background: var(--fill);
+  border-radius: var(--radius);
+  font-size: var(--text-small);
+  padding: 0.6rem 0.75rem;
 }
 
 .notice.error {
@@ -167,13 +250,9 @@ textarea {
   color: var(--warning);
 }
 
-.error-text {
-  color: var(--danger);
-}
-
 /* Shows transparency behind an image. */
 .checker {
-  background-color: var(--bg);
+  background-color: var(--sheet);
   background-image:
     linear-gradient(45deg, var(--checker) 25%, transparent 25%),
     linear-gradient(-45deg, var(--checker) 25%, transparent 25%),
@@ -181,31 +260,41 @@ textarea {
     linear-gradient(-45deg, transparent 75%, var(--checker) 75%);
   background-position:
     0 0,
-    0 8px,
-    8px -8px,
-    -8px 0;
-  background-size: 16px 16px;
+    0 6px,
+    6px -6px,
+    -6px 0;
+  background-size: 12px 12px;
 }
 
-/* Generated settings forms (ParamForm). */
+.visually-hidden {
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* --- the generated settings form (ParamForm) ------------------------------ */
+
 .fields {
   display: grid;
-  gap: 0.75rem;
+  gap: 1.1rem;
 }
 
 .field {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.4rem;
 }
 
 .field-label {
   display: flex;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 550;
   justify-content: space-between;
 }
 
 .field-value {
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
   font-weight: 400;
 }
@@ -213,26 +302,36 @@ textarea {
 .check {
   align-items: center;
   display: flex;
-  gap: 0.45rem;
+  gap: 0.55rem;
 }
 
+/* Choices side by side, in one track. */
 .segmented {
+  background: var(--fill);
+  border-radius: var(--radius);
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
+  gap: 2px;
+  padding: 2px;
+}
+
+.segmented button {
+  background: transparent;
+  border-radius: calc(var(--radius) - 2px);
+  flex: 1 1 auto;
+  min-height: 2rem;
 }
 
 .segmented button[aria-pressed="true"] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
+  background: var(--sheet);
+  box-shadow: 0 0 0 1.5px var(--accent);
+  color: var(--accent);
+  font-weight: 600;
 }
 
-input[type="range"] {
-  accent-color: var(--accent);
-  width: 100%;
-}
-
-input[type="checkbox"] {
-  accent-color: var(--accent);
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
 }

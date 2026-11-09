@@ -262,7 +262,21 @@ function proxyFor(key: string, pixels: Blob): Promise<Proxy> {
 export async function renderPreview(
   request: PreviewRequest,
   asset: RunContext['asset'],
-): Promise<Img> {
+): Promise<Preview> {
+  const { image, scale } = await render(request, asset);
+  return { image: await image, scale };
+}
+
+export interface Preview {
+  image: Img;
+  /** Preview size / full size, to show the zoom of the real image. */
+  scale: number;
+}
+
+async function render(
+  request: PreviewRequest,
+  asset: RunContext['asset'],
+): Promise<{ image: Img | Promise<Img>; scale: number }> {
   const loaded = await Promise.all(
     request.images.map(({ key, version }) => proxyFor(key, version.pixels)),
   );
@@ -284,14 +298,14 @@ export async function renderPreview(
   });
 
   const op = request.action && getOp(request.action.op);
-  if (!op || op.kind === 'final') return images[0];
+  if (!op || op.kind === 'final') return { image: images[0], scale };
   const values = request.action!.params;
   const context = { scale, asset };
   switch (op.kind) {
     case 'map':
-      return op.run(images[0], values, context);
+      return { image: op.run(images[0], values, context), scale };
     case 'combine':
-      return op.run(images, values, context);
+      return { image: op.run(images, values, context), scale };
     case 'file': {
       const picture = {
         image: images[0],
@@ -299,7 +313,10 @@ export async function renderPreview(
         file: null,
       };
       const written = await op.run(picture, values, context);
-      return written.file ? (await decode(written.file.blob)).image : images[0];
+      const image = written.file
+        ? (await decode(written.file.blob)).image
+        : images[0];
+      return { image, scale };
     }
   }
 }

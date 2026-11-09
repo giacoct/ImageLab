@@ -49,19 +49,23 @@
 />
 
 {#if visible}
-  <div class="overlay">Drop to add images</div>
+  <div class="overlay">Drop to add</div>
 {/if}
 
 <style>
   .overlay {
     align-items: center;
-    background: color-mix(in srgb, var(--bg) 85%, transparent);
-    border: 3px dashed var(--accent);
+    background: color-mix(in oklab, var(--page) 88%, transparent);
+    border: 2px dashed var(--accent);
+    border-radius: calc(var(--radius) * 2);
+    color: var(--accent);
     display: flex;
-    font-size: 1.3rem;
+    font-size: var(--text-display);
+    font-stretch: 82%;
     font-weight: 600;
-    inset: 0.5rem;
+    inset: 0.75rem;
     justify-content: center;
+    letter-spacing: -0.025em;
     pointer-events: none;
     position: fixed;
     z-index: 100;

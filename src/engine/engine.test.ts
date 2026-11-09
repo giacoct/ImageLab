@@ -447,13 +447,14 @@ describe('preview', () => {
     const images = [await shown('a', twoTone(400, 200))];
     const tool = action('scale', { mode: 'width', width: 200 });
     // 400×200 → 100×50 preview; 200 px wide at full size is 50 px at this scale.
-    const preview = await renderPreview(
+    const { image: preview, scale } = await renderPreview(
       { images, action: tool, maxSide: 100 },
       context.asset,
     );
     expect([preview.width, preview.height]).toEqual([50, 25]);
+    expect(scale).toBe(0.25);
     // Another size comes from the same cached copy, scaled the same way.
-    const larger = await renderPreview(
+    const { image: larger } = await renderPreview(
       { images, action: tool, maxSide: 200 },
       context.asset,
     );
@@ -463,7 +464,7 @@ describe('preview', () => {
   it('shows the image as it is without a tool, or with a final tool', async () => {
     const images = [await shown('plain', twoTone())];
     for (const tool of [null, action('ocr')]) {
-      const preview = await renderPreview(
+      const { image: preview } = await renderPreview(
         { images, action: tool, maxSide: 100 },
         context.asset,
       );
@@ -476,7 +477,7 @@ describe('preview', () => {
     const clear = createCanvas(20, 20);
     context2d(clear); // a canvas needs a context to be encoded
     const images = [await shown('clear', clear)];
-    const preview = await renderPreview(
+    const { image: preview } = await renderPreview(
       { images, action: action('convert', { format: 'jpeg' }), maxSide: 100 },
       context.asset,
     );
@@ -488,7 +489,7 @@ describe('preview', () => {
       await shown('m1', twoTone(400, 200)),
       await shown('m2', twoTone(200, 100)),
     ];
-    const preview = await renderPreview(
+    const { image: preview } = await renderPreview(
       { images, action: action('merge'), maxSide: 200 },
       context.asset,
     );
@@ -521,7 +522,7 @@ describe('worker client', () => {
       blob: await pngBlob(twoTone()),
       name: 'p.png',
     });
-    const bitmap = await engine.preview({
+    const { bitmap } = await engine.preview({
       images: [{ key: 'worker', version }],
       action: null,
       maxSide: 100,

@@ -29,9 +29,11 @@
     "vitest": "5.1.0"
   },
   "dependencies": {
+    "@fontsource-variable/instrument-sans": "5.3.0",
     "@jsquash/avif": "2.1.1",
     "@jsquash/jpeg": "1.6.0",
     "@jsquash/webp": "1.5.0",
+    "@lucide/svelte": "1.70.0",
     "@tesseract.js-data/eng": "1.0.0",
     "@tesseract.js-data/ita": "1.0.0",
     "libheif-js": "1.23.5",

@@ -5,7 +5,7 @@
  */
 
 import { engine } from '../engine/client';
-import type { Requests } from '../engine/protocol';
+import type { PreviewImage, Requests } from '../engine/protocol';
 
 type Args = Requests['preview']['args'];
 
@@ -14,7 +14,7 @@ export class Previewer {
   private next: Args | null = null;
 
   constructor(
-    private readonly onImage: (bitmap: ImageBitmap) => void,
+    private readonly onImage: (preview: PreviewImage) => void,
     private readonly onError: (message: string) => void,
     private readonly onBusy: (busy: boolean) => void = () => {},
   ) {}
@@ -31,10 +31,10 @@ export class Previewer {
       const args = this.next;
       this.next = null;
       try {
-        const bitmap = await engine.preview(args);
+        const preview = await engine.preview(args);
         if (this.next)
-          bitmap.close(); // already outdated
-        else this.onImage(bitmap);
+          preview.bitmap.close(); // already outdated
+        else this.onImage(preview);
       } catch (error) {
         if (!this.next)
           this.onError(error instanceof Error ? error.message : String(error));

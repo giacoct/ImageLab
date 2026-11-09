@@ -1,7 +1,7 @@
 <!--
-  Interactive crop box for "Rotate, flip & crop": shows the selected image
-  rotated/flipped but uncropped, with a draggable box and handles. The crop
-  is stored as fractions, so it applies to every image.
+  Interactive crop box for "Rotate, flip & crop", filling the stage: the
+  picked image rotated/flipped but uncropped, with a box to drag and
+  handles. The crop is stored as fractions, so it applies to every image.
 -->
 <script lang="ts">
   import { drawBitmap, Previewer } from "../app/previewer";
@@ -17,13 +17,17 @@
   } from "../core/geometry";
   import { cropForImage } from "../ops/transform";
 
-  let canvas: HTMLCanvasElement;
+  let canvas = $state<HTMLCanvasElement>();
+  let stageWidth = $state(0);
+  let stageHeight = $state(0);
+  /** Size of the rendered image (only its ratio matters). */
   let size = $state<{ width: number; height: number } | null>(null);
 
   const previewer = new Previewer(
-    (bitmap) => {
+    ({ bitmap }) => {
       size = { width: bitmap.width, height: bitmap.height };
-      drawBitmap(canvas, bitmap);
+      if (canvas) drawBitmap(canvas, bitmap);
+      else bitmap.close();
     },
     () => (size = null),
   );
@@ -34,19 +38,32 @@
   const k = $derived(size ? aspectFactor(aspect, size) : null);
   const shown = $derived(size ? cropForImage(crop, aspect, size) : crop);
 
+  /** Room around the image, and for the bar at the bottom. */
+  const PADDING = 32;
+  const BAR = 56;
+  const display = $derived.by(() => {
+    if (!size || !stageWidth) return { width: 0, height: 0 };
+    const fit = Math.min(
+      (stageWidth - PADDING * 2) / size.width,
+      (stageHeight - PADDING - BAR) / size.height,
+    );
+    return { width: size.width * fit, height: size.height * fit };
+  });
+
   // The image rotated/flipped but not cropped. Only what changes that image
   // is read, so dragging the crop box doesn't re-render it.
   $effect(() => {
     const item = session.selected;
     if (!item) return;
     const { rotate, flipH, flipV } = params;
+    const longest = Math.max(stageWidth, stageHeight, 320);
     previewer.request({
       images: [{ key: item.id, version: item.version }],
       action: {
         op: "transform",
         params: { rotate, flipH, flipV, crop: FULL_CROP, aspect: "free" },
       },
-      maxSide: 900,
+      maxSide: Math.round(longest * devicePixelRatio),
     });
   });
 
@@ -59,6 +76,7 @@
   } | null = null;
 
   function start(event: PointerEvent, mode: DragMode): void {
+    if (!canvas) return;
     event.preventDefault();
     event.stopPropagation();
     (event.currentTarget as Element).setPointerCapture(event.pointerId);
@@ -86,8 +104,17 @@
   const percent = (n: number) => `${(n * 100).toFixed(3)}%`;
 </script>
 
-<div class="editor">
-  <div class="frame checker">
+<div
+  class="editor"
+  bind:clientWidth={stageWidth}
+  bind:clientHeight={stageHeight}
+>
+  <div
+    class="frame checker"
+    class:hidden={!size}
+    style:width="{display.width}px"
+    style:height="{display.height}px"
+  >
     <canvas bind:this={canvas} aria-label="Image to crop"></canvas>
     {#if size}
       <div
@@ -115,15 +142,15 @@
       </div>
     {/if}
   </div>
-  <div class="row">
-    <span class="hint">
+  <div class="bar">
+    <span class="hint numbers">
       {#if size}
-        Crop: {Math.round(shown.width * 100)}% × {Math.round(
-          shown.height * 100,
-        )}% of the image
+        {Math.round(shown.width * 100)}% × {Math.round(shown.height * 100)}% of
+        the image
       {/if}
     </span>
     <button
+      class="quiet"
       type="button"
       onclick={() => session.setParam("crop", centeredCrop(k))}
     >
@@ -134,23 +161,30 @@
 
 <style>
   .editor {
-    display: grid;
-    gap: 0.5rem;
+    background: var(--stage);
+    height: 100%;
+    min-height: 12rem;
+    position: relative;
   }
 
   .frame {
-    border: 1px solid var(--border);
-    justify-self: center;
-    line-height: 0;
+    left: 50%;
     overflow: hidden; /* clips the dimming shadow around the crop box */
-    position: relative;
+    position: absolute;
+    top: calc(50% - 28px);
     touch-action: none;
+    transform: translate(-50%, -50%);
     user-select: none;
   }
 
+  .hidden {
+    visibility: hidden;
+  }
+
   canvas {
-    max-height: 22rem;
-    max-width: 100%;
+    display: block;
+    height: 100%;
+    width: 100%;
   }
 
   /* Dashed thirds inside the crop box help with composition. */
@@ -247,9 +281,15 @@
     right: -2px;
   }
 
-  .row {
+  .bar {
     align-items: center;
+    bottom: 0;
     display: flex;
-    justify-content: space-between;
+    gap: 0.5rem;
+    justify-content: center;
+    left: 0;
+    min-height: 56px;
+    position: absolute;
+    right: 0;
   }
 </style>

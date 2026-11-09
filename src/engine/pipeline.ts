@@ -3,11 +3,11 @@
  * turn an image into text or SVG (`finish`), save an image to its file, and
  * render live previews on downscaled copies with the same operations.
  *
- * Between tools an image is a `Version`: plain data the main thread keeps in
- * its history and sends back for the next tool. Its pixels are kept
- * losslessly (the input file, or a PNG once a tool changed them), so taking
- * a result further never compounds compression; its file is written when
- * it's saved, unless Convert format or Compress already wrote it.
+ * An image is a `Version`: plain data the main thread keeps and sends back,
+ * e.g. when a result is used as the input of another tool. Its pixels are
+ * kept losslessly (the input file, or a PNG once a tool changed them), so
+ * that never compounds compression; its file is written when it's saved,
+ * unless Convert format or Compress already wrote it.
  */
 
 import { initialEncoding, type Encoding } from '../core/encoding';

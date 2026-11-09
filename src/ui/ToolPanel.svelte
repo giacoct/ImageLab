@@ -35,10 +35,8 @@
     {@const op = session.op}
     <div class="section-head">
       <h2 id="tool-title">{op.title}</h2>
-      <button
-        type="button"
-        disabled={session.running}
-        onclick={() => session.closeTool()}>All tools</button
+      <button type="button" onclick={() => session.closeTool()}
+        >All tools</button
       >
     </div>
     <p class="hint">{op.description}</p>

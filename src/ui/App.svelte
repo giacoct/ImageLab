@@ -1,29 +1,15 @@
 <!--
-  The whole app on one page: the images, the history and the tools on the
-  left; the live preview and what a final tool made on the right.
+  The whole app on one page: the images and the tool on the left; the live
+  preview and what the tool made on the right.
 -->
 <script lang="ts">
   import { session } from "../app/session.svelte";
   import DropOverlay from "./DropOverlay.svelte";
-  import History from "./History.svelte";
   import ImageList from "./ImageList.svelte";
-  import Outputs from "./Outputs.svelte";
   import Preview from "./Preview.svelte";
+  import Results from "./Results.svelte";
   import ToolPanel from "./ToolPanel.svelte";
 </script>
-
-<svelte:window
-  onkeydown={(event) => {
-    // Undo/redo, unless typing in a field (which has its own undo).
-    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "z")
-      return;
-    const target = event.target as HTMLElement;
-    if (target.matches("input, textarea, select")) return;
-    event.preventDefault();
-    if (event.shiftKey) session.redo();
-    else session.undo();
-  }}
-/>
 
 <header>
   <strong>ImageLab</strong>
@@ -53,13 +39,12 @@
         </ul>
       </div>
     {/if}
-    <History />
     <ToolPanel />
   </div>
 
   <div class="stage">
     <Preview />
-    <Outputs />
+    <Results />
   </div>
 </main>
 

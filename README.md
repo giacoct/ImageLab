@@ -3,16 +3,16 @@
 Image tools that run entirely in the browser. There is no server and nothing
 is uploaded.
 
-Load some images and pick a tool, or pick a tool and then load the images. The
-tool works on all of them at once, with a live preview as you change the
-settings. Its results can be downloaded, or taken further with another tool:
-crop, then scale, then convert to WebP, then compress to 200 KB. Undo and redo
-go back and forth through everything you did.
+Pick a tool and load some images, or the other way round. Tweak the
+settings while a live preview shows the result, then apply the tool to all
+the images at once. Download the results, one by one or as a ZIP, or use them
+as the input of another tool: crop, then scale, then convert to WebP, then
+compress to 200 KB, without downloading anything in between.
 
-Results are kept at full quality between tools and only saved to a file when
-you download them, so taking an image through several tools never adds
-compression. Convert format and Compress decide how that file is saved, and
-show its size and look right away.
+Results are kept at full quality and only saved to a file when you download
+them, so using them as input never adds compression. Convert format and
+Compress decide how that file is saved, and show its size and look right
+away.
 
 ## Tools
 
@@ -35,7 +35,7 @@ show its size and look right away.
   Italian, saved as text.
 
 Images keep their format unless Convert format changes it. HEIC photos
-can be opened too. Results can be downloaded one by one or as a ZIP.
+can be opened too.
 
 ## Running it
 

@@ -1,8 +1,7 @@
 <!--
-  The current images: a button to choose more (dropping and pasting anywhere
-  also work, see DropOverlay), and the list with thumbnails, sizes and a
-  download each. After a tool, these are its results. Clicking an image shows
-  it in the preview.
+  The images the tool works on: a button to choose more (dropping and pasting
+  anywhere also work, see DropOverlay), and the list with thumbnails and
+  sizes. Clicking an image shows it in the preview.
 -->
 <script lang="ts">
   import { session } from "../app/session.svelte";
@@ -28,14 +27,7 @@
       {session.items.length ? "Add" : "Choose images"}
     </button>
     {#if session.items.length}
-      <button
-        type="button"
-        disabled={session.saving}
-        onclick={() => session.download()}
-      >
-        {session.items.length > 1 ? "Download all (ZIP)" : "Download"}
-      </button>
-      <button type="button" onclick={() => session.clear()}>Start over</button>
+      <button type="button" onclick={() => session.clear()}>Clear</button>
     {/if}
   </div>
   <input
@@ -88,14 +80,6 @@
               </span>
             </span>
           </button>
-          <button
-            class="icon"
-            type="button"
-            aria-label="Download {version.name}"
-            title="Download"
-            disabled={session.saving}
-            onclick={() => session.download([item])}>↓</button
-          >
           <button
             class="icon"
             type="button"

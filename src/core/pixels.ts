@@ -79,7 +79,7 @@ function sepiaMatrix(amount: number): Matrix {
 }
 
 /** Whether the adjustments leave every pixel unchanged. */
-export function isNeutral(a: Adjustments): boolean {
+function isNeutral(a: Adjustments): boolean {
   return (
     a.brightness === 100 &&
     a.contrast === 100 &&

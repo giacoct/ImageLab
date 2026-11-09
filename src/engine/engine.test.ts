@@ -227,6 +227,26 @@ describe("operations", () => {
     expect(r).toBe(g);
     expect(g).toBe(b);
   });
+
+  it("upscales 4× or 2× with the model, keeping transparency", async () => {
+    const four = await run("upscale", twoTone(16, 8));
+    expect([four.width, four.height]).toEqual([64, 32]);
+    expect(pixel(four, 4, 16)[0]).toBeGreaterThan(200); // still red on the left
+    expect(pixel(four, 60, 16)[2]).toBeGreaterThan(200); // still blue on the right
+    const two = await run("upscale", twoTone(16, 8), { factor: "2" });
+    expect([two.width, two.height]).toEqual([32, 16]);
+    const holed = twoTone(16, 8);
+    context2d(holed).clearRect(0, 0, 4, 8);
+    const kept = await run("upscale", holed);
+    expect(pixel(kept, 2, 16)[3]).toBe(0);
+    expect(pixel(kept, 60, 16)[3]).toBe(255);
+  });
+
+  it("refuses images too large to upscale", async () => {
+    await expect(run("upscale", createCanvas(2000, 10))).rejects.toThrow(
+      /at most 1500/,
+    );
+  });
 });
 
 describe("pipeline", () => {
@@ -461,9 +481,9 @@ describe("preview", () => {
     expect([larger.width, larger.height]).toEqual([100, 50]);
   });
 
-  it("shows the image as it is without a tool, or with a final tool", async () => {
+  it("shows the image as it is without a tool, or with a final or heavy one", async () => {
     const images = [await shown("plain", twoTone())];
-    for (const tool of [null, action("ocr")]) {
+    for (const tool of [null, action("ocr"), action("upscale")]) {
       const { image: preview } = await renderPreview(
         { images, action: tool, maxSide: 100 },
         context.asset,

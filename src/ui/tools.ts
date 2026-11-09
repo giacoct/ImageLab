@@ -18,6 +18,7 @@ import Scaling from "@lucide/svelte/icons/scaling";
 import ScanText from "@lucide/svelte/icons/scan-text";
 import Shrink from "@lucide/svelte/icons/shrink";
 import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
+import Sparkles from "@lucide/svelte/icons/sparkles";
 
 export interface ToolLook {
   icon: Component<{ size?: number }>;
@@ -28,6 +29,7 @@ export interface ToolLook {
 export const TOOL_LOOKS: Record<string, ToolLook> = {
   transform: { icon: Crop, color: "#c92a2a", soft: "#ffe3e3" },
   scale: { icon: Scaling, color: "#d9480f", soft: "#ffe8cc" },
+  upscale: { icon: Sparkles, color: "#c25000", soft: "#ffe8cc" },
   adjust: { icon: SlidersHorizontal, color: "#b25e00", soft: "#fff3bf" },
   "remove-background": { icon: Eraser, color: "#2b8a3e", soft: "#d3f9d8" },
   margin: { icon: Frame, color: "#087f5b", soft: "#c3fae8" },

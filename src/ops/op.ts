@@ -38,7 +38,10 @@ interface Base<S extends Schema> {
   /** Added to output file names, e.g. `photo-scaled.jpg`. */
   suffix: string;
   params: S;
-  /** Slow and memory-hungry (OCR): a batch runs one image at a time. */
+  /**
+   * Slow and memory-hungry (OCR, Upscale): a batch runs one image at a
+   * time, and the preview shows the image it starts from.
+   */
   heavy?: boolean;
 }
 

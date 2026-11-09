@@ -22,6 +22,7 @@ export default defineConfig({
       "@jsquash/webp",
       "@jsquash/avif",
       "vtracer-wasm",
+      "onnxruntime-web",
     ],
     // Imported only from the worker, which Vite doesn't scan: prepare them up
     // front so the dev server doesn't reload the page the first time they load.

@@ -11,11 +11,13 @@ import { removeBackground } from "./remove-background";
 import { scale } from "./scale";
 import { stripMetadata } from "./strip-metadata";
 import { transform } from "./transform";
+import { upscale } from "./upscale";
 import { vectorize } from "./vectorize";
 
 export const OPS: readonly Op[] = [
   transform,
   scale,
+  upscale,
   adjust,
   removeBackground,
   margin,

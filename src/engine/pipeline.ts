@@ -256,8 +256,9 @@ function proxyFor(key: string, pixels: Blob): Promise<Proxy> {
 /**
  * Render the tool on downscaled copies of the images. All of them share one
  * scale, so a merge keeps their relative sizes; it's smaller with many
- * images, so a merged preview stays light. A final tool (OCR, SVG) shows the
- * image it starts from; a file tool, the file it writes.
+ * images, so a merged preview stays light. A final tool (OCR, SVG) or a
+ * heavy one (Upscale) shows the image it starts from; a file tool, the file
+ * it writes.
  */
 export async function renderPreview(
   request: PreviewRequest,
@@ -298,7 +299,8 @@ async function render(
   });
 
   const op = request.action && getOp(request.action.op);
-  if (!op || op.kind === "final") return { image: images[0], scale };
+  if (!op || op.kind === "final" || op.heavy)
+    return { image: images[0], scale };
   const values = request.action!.params;
   const context = { scale, asset };
   switch (op.kind) {

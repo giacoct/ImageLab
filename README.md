@@ -22,6 +22,9 @@ away.
 - **Rotate, flip & crop**: turn or mirror the image, and crop it freely or to
   a ratio.
 - **Scale**: by percentage, to fit a box, or to a width or height.
+- **Upscale with AI**: enlarge 2× or 4× and rebuild the detail, with
+  Real-ESRGAN's general model (BSD-3-Clause), on the GPU where the browser
+  supports WebGPU.
 - **Adjust & filters**: brightness, contrast, saturation, grayscale, sepia,
   invert, blur, sharpen; the preview follows the sliders as you drag
   (drawn by the GPU).

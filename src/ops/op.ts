@@ -9,9 +9,9 @@
  * respond within the frame (`engine/live.ts`, tested against `run`).
  */
 
-import type { Schema, Values } from '../core/params';
-import type { Img } from '../engine/canvas';
-import type { Picture } from '../engine/encode';
+import type { Schema, Values } from "../core/params";
+import type { Img } from "../engine/canvas";
+import type { Picture } from "../engine/encode";
 
 /** A tool with its settings, as the UI asks the engine to apply it. */
 export interface Action {
@@ -44,7 +44,7 @@ interface Base<S extends Schema> {
 
 /** Changes the pixels: one image in, one image out. */
 export interface MapOp<S extends Schema = Schema> extends Base<S> {
-  kind: 'map';
+  kind: "map";
   run(image: Img, values: Values<S>, context: RunContext): Img | Promise<Img>;
 }
 
@@ -55,7 +55,7 @@ export interface MapOp<S extends Schema = Schema> extends Base<S> {
  * still starts from the untouched pixels.
  */
 export interface FileOp<S extends Schema = Schema> extends Base<S> {
-  kind: 'file';
+  kind: "file";
   run(
     picture: Picture,
     values: Values<S>,
@@ -65,7 +65,7 @@ export interface FileOp<S extends Schema = Schema> extends Base<S> {
 
 /** All images in, one image out (Merge images). */
 export interface CombineOp<S extends Schema = Schema> extends Base<S> {
-  kind: 'combine';
+  kind: "combine";
   run(
     images: Img[],
     values: Values<S>,
@@ -79,7 +79,7 @@ export interface CombineOp<S extends Schema = Schema> extends Base<S> {
  * starts from.
  */
 export interface FinalOp<S extends Schema = Schema> extends Base<S> {
-  kind: 'final';
+  kind: "final";
   run(image: Img, values: Values<S>, context: RunContext): Promise<Blob>;
 }
 

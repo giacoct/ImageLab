@@ -10,13 +10,13 @@ import type {
   Requests,
   RequestMessage,
   ResponseMessage,
-} from './protocol';
+} from "./protocol";
 
 /** Thrown (as the rejection) when a request is cancelled. */
 export class Cancelled extends Error {
   constructor() {
-    super('Cancelled');
-    this.name = 'Cancelled';
+    super("Cancelled");
+    this.name = "Cancelled";
   }
 }
 
@@ -34,25 +34,25 @@ class EngineWorker {
 
   call<K extends RequestType>(
     type: K,
-    args: Requests[K]['args'],
+    args: Requests[K]["args"],
     signal?: AbortSignal,
-  ): Promise<Requests[K]['result']> {
+  ): Promise<Requests[K]["result"]> {
     if (signal?.aborted) return Promise.reject(new Cancelled());
     const worker = this.ensure();
     const id = ++this.nextId;
-    return new Promise<Requests[K]['result']>((resolve, reject) => {
+    return new Promise<Requests[K]["result"]>((resolve, reject) => {
       const onAbort = () => {
         this.restart();
         reject(new Cancelled());
       };
-      signal?.addEventListener('abort', onAbort, { once: true });
+      signal?.addEventListener("abort", onAbort, { once: true });
       this.pending.set(id, {
         resolve: (value) => {
-          signal?.removeEventListener('abort', onAbort);
-          resolve(value as Requests[K]['result']);
+          signal?.removeEventListener("abort", onAbort);
+          resolve(value as Requests[K]["result"]);
         },
         reject: (error) => {
-          signal?.removeEventListener('abort', onAbort);
+          signal?.removeEventListener("abort", onAbort);
           reject(error);
         },
       });
@@ -70,8 +70,8 @@ class EngineWorker {
 
   private ensure(): Worker {
     if (this.worker) return this.worker;
-    const worker = new Worker(new URL('./worker.ts', import.meta.url), {
-      type: 'module',
+    const worker = new Worker(new URL("./worker.ts", import.meta.url), {
+      type: "module",
     });
     worker.onmessage = (event: MessageEvent<ResponseMessage>) => {
       const response = event.data;
@@ -85,7 +85,7 @@ class EngineWorker {
       // A crash (e.g. out of memory) fails everything in flight on this worker.
       event.preventDefault();
       const error = new Error(
-        event.message || 'The image engine crashed (out of memory?).',
+        event.message || "The image engine crashed (out of memory?).",
       );
       for (const { reject } of this.pending.values()) reject(error);
       this.pending.clear();
@@ -114,9 +114,9 @@ class Engine {
   /** Run a request on the first idle pool worker, waiting for one if they're all busy. */
   async run<K extends RequestType>(
     type: K,
-    args: Requests[K]['args'],
+    args: Requests[K]["args"],
     signal?: AbortSignal,
-  ): Promise<Requests[K]['result']> {
+  ): Promise<Requests[K]["result"]> {
     for (;;) {
       if (signal?.aborted) throw new Cancelled();
       const worker = this.pool.find((candidate) => !candidate.busy);
@@ -137,9 +137,9 @@ class Engine {
 
   /** Run on the preview worker, so previews never wait behind a batch. */
   preview(
-    args: Requests['preview']['args'],
-  ): Promise<Requests['preview']['result']> {
-    return this.previewWorker.call('preview', args);
+    args: Requests["preview"]["args"],
+  ): Promise<Requests["preview"]["result"]> {
+    return this.previewWorker.call("preview", args);
   }
 }
 

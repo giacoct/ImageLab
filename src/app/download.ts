@@ -1,11 +1,11 @@
 /** Save produced files: one at a time, or all together as a ZIP. */
 
-import { uniqueNames } from '../core/files';
-import { crc32, zipParts, type ZipEntry } from '../core/zip';
+import { uniqueNames } from "../core/files";
+import { crc32, zipParts, type ZipEntry } from "../core/zip";
 
 export function downloadBlob(blob: Blob, name: string): void {
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = name;
   link.click();
@@ -30,5 +30,5 @@ export async function downloadZip(
       crc,
     });
   }
-  downloadBlob(new Blob(zipParts(entries), { type: 'application/zip' }), name);
+  downloadBlob(new Blob(zipParts(entries), { type: "application/zip" }), name);
 }

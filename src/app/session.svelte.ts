@@ -9,13 +9,13 @@
  * between: see `Version`).
  */
 
-import { isImageFile } from '../core/files';
-import { defaults } from '../core/params';
-import { Cancelled, engine } from '../engine/client';
-import type { Output, Version } from '../engine/pipeline';
-import { getOp } from '../ops';
-import type { Action } from '../ops/op';
-import { downloadBlob, downloadZip } from './download';
+import { isImageFile } from "../core/files";
+import { defaults } from "../core/params";
+import { Cancelled, engine } from "../engine/client";
+import type { Output, Version } from "../engine/pipeline";
+import { getOp } from "../ops";
+import type { Action } from "../ops/op";
+import { downloadBlob, downloadZip } from "./download";
 
 /** One image, loaded or made by a tool. */
 export interface Item {
@@ -85,7 +85,7 @@ class Session {
     const opened = await Promise.all(
       images.map(async (file): Promise<Item | null> => {
         try {
-          const version = await engine.run('open', {
+          const version = await engine.run("open", {
             blob: file,
             name: file.name,
           });
@@ -152,7 +152,7 @@ class Session {
     const items = this.items;
     if (!op || !this.tool || this.running || items.length === 0) return;
     const action = $state.snapshot(this.tool);
-    const jobs = op.kind === 'combine' ? [items] : items.map((item) => [item]);
+    const jobs = op.kind === "combine" ? [items] : items.map((item) => [item]);
     const controller = new AbortController();
     const { signal } = controller;
 
@@ -170,14 +170,14 @@ class Session {
     const runJob = async (index: number) => {
       const job = jobs[index];
       try {
-        if (op.kind === 'final') {
+        if (op.kind === "final") {
           const input = job[0].version;
-          const output = await engine.run('finish', { input, action }, signal);
+          const output = await engine.run("finish", { input, action }, signal);
           outputs[index] = { id: uid(), output };
         } else {
           const inputs = job.map((item) => item.version);
           const versions = await engine.run(
-            'apply',
+            "apply",
             { inputs, action },
             signal,
           );
@@ -237,14 +237,14 @@ class Session {
     this.saving = true;
     try {
       const saved = await Promise.all(
-        items.map((item) => engine.run('save', { version: item.version })),
+        items.map((item) => engine.run("save", { version: item.version })),
       );
       if (saved.length === 1) downloadBlob(saved[0].blob, saved[0].name);
-      else await downloadZip(saved, 'imagelab.zip');
+      else await downloadZip(saved, "imagelab.zip");
     } catch (error) {
       this.failures = [
         ...this.failures,
-        { name: 'Download', message: messageOf(error) },
+        { name: "Download", message: messageOf(error) },
       ];
     } finally {
       this.saving = false;

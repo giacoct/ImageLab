@@ -10,15 +10,15 @@
  * unless Convert format or Compress already wrote it.
  */
 
-import { initialEncoding, type Encoding } from '../core/encoding';
-import { extensionFor, outputName, type ImageFormat } from '../core/files';
-import { downscaleFactor } from '../core/geometry';
-import { readMetadata } from '../core/metadata';
-import { getOp } from '../ops';
-import type { Action, Op, RunContext } from '../ops/op';
-import { downscaled, type Img } from './canvas';
-import { decode } from './decode';
-import { encodeImage, type Picture } from './encode';
+import { initialEncoding, type Encoding } from "../core/encoding";
+import { extensionFor, outputName, type ImageFormat } from "../core/files";
+import { downscaleFactor } from "../core/geometry";
+import { readMetadata } from "../core/metadata";
+import { getOp } from "../ops";
+import type { Action, Op, RunContext } from "../ops/op";
+import { downscaled, type Img } from "./canvas";
+import { decode } from "./decode";
+import { encodeImage, type Picture } from "./encode";
 
 /** One image as a tool left it. */
 export interface Version {
@@ -32,7 +32,7 @@ export interface Version {
   thumbnail: Blob;
   encoding: Encoding;
   /** The file it saves to, if already written (see `Picture`). */
-  file: Picture['file'];
+  file: Picture["file"];
   /** The last tool's suffix for the saved name, or null if no tool changed it. */
   suffix: string | null;
   /** The metadata the saved file carries, in words. */
@@ -59,15 +59,15 @@ export interface Saved {
 const THUMBNAIL_SIDE = 480;
 
 const EXTENSIONS: Record<string, string> = {
-  'image/svg+xml': 'svg',
-  'text/plain': 'txt',
+  "image/svg+xml": "svg",
+  "text/plain": "txt",
 };
 
 const WRITABLE = new Set<string>([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/avif',
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
 ]);
 
 /** Read a file: its pixels, size, format and metadata. */
@@ -99,10 +99,10 @@ export async function apply(
   context: RunContext,
 ): Promise<Version[]> {
   const op = getOp(action.op);
-  if (op.kind === 'final') throw new Error(`${op.title} doesn't make images.`);
-  if (inputs.length === 0) throw new Error('Add images first.');
+  if (op.kind === "final") throw new Error(`${op.title} doesn't make images.`);
+  if (inputs.length === 0) throw new Error("Add images first.");
 
-  if (op.kind === 'combine') {
+  if (op.kind === "combine") {
     const images: Img[] = [];
     for (const input of inputs) images.push(await pixelsOf(input));
     const image = await op.run(images, action.params, context);
@@ -117,7 +117,7 @@ export async function apply(
       encoding: input.encoding,
       file: input.file,
     };
-    if (op.kind === 'map') {
+    if (op.kind === "map") {
       // New pixels: no file holds them yet.
       const image = await op.run(picture.image, action.params, context);
       outputs.push(
@@ -146,7 +146,7 @@ async function store(
   return {
     name: from.name,
     pixels: changed
-      ? await image.convertToBlob({ type: 'image/png' })
+      ? await image.convertToBlob({ type: "image/png" })
       : from.pixels,
     width: image.width,
     height: image.height,
@@ -166,12 +166,12 @@ export async function finish(
   context: RunContext,
 ): Promise<Output> {
   const op = getOp(action.op);
-  if (op.kind !== 'final') throw new Error(`${op.title} makes images.`);
+  if (op.kind !== "final") throw new Error(`${op.title} makes images.`);
   const blob = await op.run(await pixelsOf(input), action.params, context);
-  const type = blob.type.split(';')[0];
-  const isText = type.startsWith('text/');
+  const type = blob.type.split(";")[0];
+  const isText = type.startsWith("text/");
   return {
-    name: outputName(input.name, op.suffix, EXTENSIONS[type] ?? 'bin'),
+    name: outputName(input.name, op.suffix, EXTENSIONS[type] ?? "bin"),
     blob,
     thumbnail: isText ? input.thumbnail : blob,
     text: isText ? await blob.text() : undefined,
@@ -198,7 +198,7 @@ export async function save(version: Version): Promise<Saved> {
 function thumbnailOf(image: Img): Promise<Blob> {
   const factor = downscaleFactor(image, THUMBNAIL_SIDE);
   const small = downscaled(image, image.width * factor, image.height * factor);
-  return small.convertToBlob({ type: 'image/webp', quality: 0.8 });
+  return small.convertToBlob({ type: "image/webp", quality: 0.8 });
 }
 
 // --- preview -------------------------------------------------------------------
@@ -261,7 +261,7 @@ function proxyFor(key: string, pixels: Blob): Promise<Proxy> {
  */
 export async function renderPreview(
   request: PreviewRequest,
-  asset: RunContext['asset'],
+  asset: RunContext["asset"],
 ): Promise<Preview> {
   const { image, scale } = await render(request, asset);
   return { image: await image, scale };
@@ -275,12 +275,12 @@ export interface Preview {
 
 async function render(
   request: PreviewRequest,
-  asset: RunContext['asset'],
+  asset: RunContext["asset"],
 ): Promise<{ image: Img | Promise<Img>; scale: number }> {
   const loaded = await Promise.all(
     request.images.map(({ key, version }) => proxyFor(key, version.pixels)),
   );
-  if (loaded.length === 0) throw new Error('Nothing to preview.');
+  if (loaded.length === 0) throw new Error("Nothing to preview.");
   const scale =
     Math.min(
       ...loaded.map(
@@ -298,15 +298,15 @@ async function render(
   });
 
   const op = request.action && getOp(request.action.op);
-  if (!op || op.kind === 'final') return { image: images[0], scale };
+  if (!op || op.kind === "final") return { image: images[0], scale };
   const values = request.action!.params;
   const context = { scale, asset };
   switch (op.kind) {
-    case 'map':
+    case "map":
       return { image: op.run(images[0], values, context), scale };
-    case 'combine':
+    case "combine":
       return { image: op.run(images, values, context), scale };
-    case 'file': {
+    case "file": {
       const picture = {
         image: images[0],
         encoding: request.images[0].version.encoding,

@@ -4,7 +4,7 @@
  * the browser tests.
  */
 
-import type { Pixels } from '../core/pixels';
+import type { Pixels } from "../core/pixels";
 
 /** The pipeline's image type. */
 export type Img = OffscreenCanvas;
@@ -12,11 +12,11 @@ export type Img = OffscreenCanvas;
 export function context2d(
   canvas: OffscreenCanvas,
 ): OffscreenCanvasRenderingContext2D {
-  const context = canvas.getContext('2d', { willReadFrequently: false });
+  const context = canvas.getContext("2d", { willReadFrequently: false });
   if (!context)
-    throw new Error('Canvas rendering is not available in this browser.');
+    throw new Error("Canvas rendering is not available in this browser.");
   context.imageSmoothingEnabled = true;
-  context.imageSmoothingQuality = 'high';
+  context.imageSmoothingQuality = "high";
   return context;
 }
 
@@ -97,7 +97,7 @@ export function editPixels(
 export function flattened(canvas: OffscreenCanvas): OffscreenCanvas {
   const out = createCanvas(canvas.width, canvas.height);
   const context = context2d(out);
-  context.fillStyle = '#ffffff';
+  context.fillStyle = "#ffffff";
   context.fillRect(0, 0, out.width, out.height);
   context.drawImage(canvas, 0, 0);
   return out;

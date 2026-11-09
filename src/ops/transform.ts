@@ -7,39 +7,39 @@ import {
   type AspectPreset,
   type Crop,
   type Rotation,
-} from '../core/geometry';
-import { p } from '../core/params';
-import { context2d, createCanvas } from '../engine/canvas';
-import { mapOp } from './op';
+} from "../core/geometry";
+import { p } from "../core/params";
+import { context2d, createCanvas } from "../engine/canvas";
+import { mapOp } from "./op";
 
 const PARAMS = {
   rotate: p.choice({
-    label: 'Rotate',
-    default: '0',
+    label: "Rotate",
+    default: "0",
     options: [
-      { value: '0', label: '0°' },
-      { value: '90', label: '90°' },
-      { value: '180', label: '180°' },
-      { value: '270', label: '270°' },
+      { value: "0", label: "0°" },
+      { value: "90", label: "90°" },
+      { value: "180", label: "180°" },
+      { value: "270", label: "270°" },
     ],
   }),
-  flipH: p.boolean({ label: 'Flip horizontally', default: false }),
-  flipV: p.boolean({ label: 'Flip vertically', default: false }),
+  flipH: p.boolean({ label: "Flip horizontally", default: false }),
+  flipV: p.boolean({ label: "Flip vertically", default: false }),
   aspect: p.choice({
-    label: 'Crop ratio',
-    default: 'free',
-    display: 'select',
+    label: "Crop ratio",
+    default: "free",
+    display: "select",
     options: [
-      { value: 'free', label: 'Free' },
-      { value: 'original', label: 'Original' },
-      { value: '1:1', label: 'Square (1:1)' },
-      { value: '4:3', label: '4:3' },
-      { value: '3:2', label: '3:2' },
-      { value: '16:9', label: '16:9' },
+      { value: "free", label: "Free" },
+      { value: "original", label: "Original" },
+      { value: "1:1", label: "Square (1:1)" },
+      { value: "4:3", label: "4:3" },
+      { value: "3:2", label: "3:2" },
+      { value: "16:9", label: "16:9" },
     ],
   }),
   // Edited on the image by the crop editor (ui/CropEditor.svelte).
-  crop: p.custom<Crop>({ label: 'Crop', default: FULL_CROP }),
+  crop: p.custom<Crop>({ label: "Crop", default: FULL_CROP }),
 };
 
 /**
@@ -70,11 +70,11 @@ export function cropForImage(
 }
 
 export const transform = mapOp({
-  id: 'transform',
-  kind: 'map',
-  title: 'Rotate, flip & crop',
-  description: 'Turn or mirror the image and cut it to a region or ratio.',
-  suffix: 'edited',
+  id: "transform",
+  kind: "map",
+  title: "Rotate, flip & crop",
+  description: "Turn or mirror the image and cut it to a region or ratio.",
+  suffix: "edited",
   params: PARAMS,
   run(image, values) {
     const rotate = Number(values.rotate) as Rotation;

@@ -5,16 +5,16 @@
  * never carries metadata.
  */
 
-import { stripMetadata as strip } from '../core/metadata';
-import { fileOp } from './op';
+import { stripMetadata as strip } from "../core/metadata";
+import { fileOp } from "./op";
 
 export const stripMetadata = fileOp({
-  id: 'strip-metadata',
-  kind: 'file',
-  title: 'Strip metadata',
+  id: "strip-metadata",
+  kind: "file",
+  title: "Strip metadata",
   description:
-    'Remove camera, date and GPS details, without re-encoding the image.',
-  suffix: 'clean',
+    "Remove camera, date and GPS details, without re-encoding the image.",
+  suffix: "clean",
   params: {},
   async run(picture) {
     if (!picture.file?.original) return picture;

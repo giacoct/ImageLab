@@ -5,8 +5,8 @@
  * loaded only the first time it's needed.
  */
 
-import { sniffType } from '../core/files';
-import { context2d, createCanvas, type Img } from './canvas';
+import { sniffType } from "../core/files";
+import { context2d, createCanvas, type Img } from "./canvas";
 
 export interface Decoded {
   image: Img;
@@ -25,11 +25,11 @@ export async function decode(blob: Blob): Promise<Decoded> {
   let bitmap: ImageBitmap | null = null;
   try {
     bitmap = await createImageBitmap(new Blob([bytes], { type }), {
-      imageOrientation: 'from-image',
+      imageOrientation: "from-image",
     });
   } catch {
-    if (type !== 'image/heic')
-      throw new Error('This file is not an image the browser can open.');
+    if (type !== "image/heic")
+      throw new Error("This file is not an image the browser can open.");
   }
 
   if (bitmap) {
@@ -66,7 +66,7 @@ interface LibHeif {
 let libheif: Promise<LibHeif> | undefined;
 
 function loadLibheif(): Promise<LibHeif> {
-  libheif ??= import('libheif-js/libheif-wasm/libheif-bundle.mjs').then(
+  libheif ??= import("libheif-js/libheif-wasm/libheif-bundle.mjs").then(
     async (module) => (await module.default()) as LibHeif,
   );
   return libheif;
@@ -75,7 +75,7 @@ function loadLibheif(): Promise<LibHeif> {
 async function decodeHeic(bytes: Uint8Array): Promise<Img> {
   const heif = await loadLibheif();
   const images = new heif.HeifDecoder().decode(bytes);
-  if (images.length === 0) throw new Error('This HEIC file contains no image.');
+  if (images.length === 0) throw new Error("This HEIC file contains no image.");
   // The primary image is first; the rest are thumbnails/depth maps.
   const [primary] = images;
   try {
@@ -86,7 +86,7 @@ async function decodeHeic(bytes: Uint8Array): Promise<Img> {
     const result = await new Promise<ImageData | null>((resolve) =>
       primary.display(data, resolve),
     );
-    if (!result) throw new Error('This HEIC photo could not be decoded.');
+    if (!result) throw new Error("This HEIC photo could not be decoded.");
     const image = createCanvas(width, height);
     context2d(image).putImageData(result, 0, 0);
     return image;

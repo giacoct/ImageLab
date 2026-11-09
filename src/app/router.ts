@@ -6,8 +6,8 @@
  * replacing the address when the page was opened on a tool directly.
  */
 
-import { OPS } from '../ops';
-import { session } from './session.svelte';
+import { OPS } from "../ops";
+import { session } from "./session.svelte";
 
 const TOOL_IDS = new Set(OPS.map((op) => op.id));
 
@@ -22,7 +22,7 @@ export function toolHref(id: string): string {
 }
 
 function toolInAddress(): string | null {
-  const id = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+  const id = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
   return TOOL_IDS.has(id) ? id : null;
 }
 
@@ -39,8 +39,8 @@ function sync(): void {
 export function startRouter(): void {
   // Back/forward fire popstate; a typed or linked hash fires hashchange.
   // `sync` does nothing when the page is already the right one.
-  addEventListener('popstate', sync);
-  addEventListener('hashchange', sync);
+  addEventListener("popstate", sync);
+  addEventListener("hashchange", sync);
   sync();
   started = true;
 }
@@ -50,7 +50,7 @@ export function goHome(): void {
   if (backGoesHome) {
     history.back();
   } else {
-    history.replaceState(null, '', location.pathname + location.search);
+    history.replaceState(null, "", location.pathname + location.search);
     sync();
   }
 }

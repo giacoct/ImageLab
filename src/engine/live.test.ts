@@ -4,15 +4,15 @@
  * few levels of rounding.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
-import { defaults } from '../core/params';
-import { getOp } from '../ops';
-import type { MapOp } from '../ops/op';
-import { context2d, createCanvas, readPixels, type Img } from './canvas';
-import { LiveAdjust, type LiveSettings } from './live';
+import { defaults } from "../core/params";
+import { getOp } from "../ops";
+import type { MapOp } from "../ops/op";
+import { context2d, createCanvas, readPixels, type Img } from "./canvas";
+import { LiveAdjust, type LiveSettings } from "./live";
 
-const adjust = getOp('adjust') as MapOp;
+const adjust = getOp("adjust") as MapOp;
 
 /** Color gradients, with a transparent corner and a half-transparent band. */
 function sample(): Img {
@@ -75,14 +75,14 @@ function difference(a: Uint8ClampedArray, b: Uint8ClampedArray) {
 
 const base = defaults(adjust.params) as unknown as LiveSettings;
 
-describe('live preview of Adjust & filters', () => {
+describe("live preview of Adjust & filters", () => {
   const cases: [string, Partial<LiveSettings>, number][] = [
-    ['unchanged', {}, 1],
-    ['brightness and contrast', { brightness: 140, contrast: 70 }, 1],
-    ['color', { saturation: 180, grayscale: 30, sepia: 40, invert: true }, 1],
-    ['blur, scaled to the preview', { blur: 12 }, 0.5],
-    ['sharpen', { sharpen: 60 }, 1],
-    ['everything', { brightness: 80, contrast: 130, blur: 4, sharpen: 30 }, 1],
+    ["unchanged", {}, 1],
+    ["brightness and contrast", { brightness: 140, contrast: 70 }, 1],
+    ["color", { saturation: 180, grayscale: 30, sepia: 40, invert: true }, 1],
+    ["blur, scaled to the preview", { blur: 12 }, 0.5],
+    ["sharpen", { sharpen: 60 }, 1],
+    ["everything", { brightness: 80, contrast: 130, blur: 4, sharpen: 30 }, 1],
   ];
 
   for (const [name, settings, scale] of cases) {
@@ -98,12 +98,12 @@ describe('live preview of Adjust & filters', () => {
     });
   }
 
-  it('keeps the image upright and takes a new source at its size', () => {
+  it("keeps the image upright and takes a new source at its size", () => {
     const canvas = new OffscreenCanvas(1, 1);
     const renderer = LiveAdjust.create(canvas)!;
     const tall = createCanvas(10, 30);
     const ctx = context2d(tall);
-    ctx.fillStyle = '#ff0000';
+    ctx.fillStyle = "#ff0000";
     ctx.fillRect(0, 0, 10, 10); // red on top
     renderer.draw(sample(), base, 1);
     renderer.draw(tall, base, 1);

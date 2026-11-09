@@ -4,7 +4,7 @@
  * change it.
  */
 
-import { savedFormat, type ImageFormat } from './files';
+import { savedFormat, type ImageFormat } from "./files";
 
 export interface Encoding {
   format: ImageFormat;
@@ -34,7 +34,7 @@ export function formatToWrite(
   encoding: Encoding,
   transparent: () => boolean,
 ): ImageFormat {
-  if (!encoding.chosen && encoding.format === 'image/jpeg' && transparent())
-    return 'image/png';
+  if (!encoding.chosen && encoding.format === "image/jpeg" && transparent())
+    return "image/png";
   return encoding.format;
 }

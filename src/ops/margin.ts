@@ -1,9 +1,9 @@
 /** Add margin: surround the image with a colored or transparent border. */
 
-import { marginPixels } from '../core/geometry';
-import { p } from '../core/params';
-import { context2d, createCanvas } from '../engine/canvas';
-import { mapOp } from './op';
+import { marginPixels } from "../core/geometry";
+import { p } from "../core/params";
+import { context2d, createCanvas } from "../engine/canvas";
+import { mapOp } from "./op";
 
 const side = (label: string) =>
   p.number({
@@ -16,37 +16,37 @@ const side = (label: string) =>
   });
 
 export const margin = mapOp({
-  id: 'margin',
-  kind: 'map',
-  title: 'Add margin',
-  description: 'Surround the image with a colored or transparent border.',
-  suffix: 'margin',
+  id: "margin",
+  kind: "map",
+  title: "Add margin",
+  description: "Surround the image with a colored or transparent border.",
+  suffix: "margin",
   params: {
     unit: p.choice({
-      label: 'Measured in',
-      default: 'px',
+      label: "Measured in",
+      default: "px",
       options: [
-        { value: 'px', label: 'Pixels' },
-        { value: 'percent', label: '% of the shorter side' },
+        { value: "px", label: "Pixels" },
+        { value: "percent", label: "% of the shorter side" },
       ],
     }),
-    same: p.boolean({ label: 'Same on every side', default: true }),
+    same: p.boolean({ label: "Same on every side", default: true }),
     size: p.number({
-      label: 'Margin',
+      label: "Margin",
       default: 40,
       min: 0,
       max: 5000,
       slider: false,
       when: (v) => Boolean(v.same),
     }),
-    top: side('Top'),
-    right: side('Right'),
-    bottom: side('Bottom'),
-    left: side('Left'),
-    transparent: p.boolean({ label: 'Transparent', default: false }),
+    top: side("Top"),
+    right: side("Right"),
+    bottom: side("Bottom"),
+    left: side("Left"),
+    transparent: p.boolean({ label: "Transparent", default: false }),
     color: p.color({
-      label: 'Color',
-      default: '#ffffff',
+      label: "Color",
+      default: "#ffffff",
       when: (v) => !v.transparent,
     }),
   },

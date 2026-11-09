@@ -50,9 +50,9 @@ export type Crop = Rect;
 
 export const FULL_CROP: Crop = { x: 0, y: 0, width: 1, height: 1 };
 
-export type AspectPreset = 'free' | 'original' | '1:1' | '4:3' | '3:2' | '16:9';
+export type AspectPreset = "free" | "original" | "1:1" | "4:3" | "3:2" | "16:9";
 export type DragMode =
-  'move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+  "move" | "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
 /** Smallest crop side, as a fraction of the image. */
 const MIN_CROP = 0.05;
@@ -65,11 +65,11 @@ export function aspectFactor(
   preset: AspectPreset,
   oriented: Size,
 ): number | null {
-  if (preset === 'free') return null;
+  if (preset === "free") return null;
   const [rw, rh] =
-    preset === 'original'
+    preset === "original"
       ? [oriented.width, oriented.height]
-      : preset.split(':').map(Number);
+      : preset.split(":").map(Number);
   return (oriented.width / oriented.height) * (rh / rw);
 }
 
@@ -93,7 +93,7 @@ export function applyDrag(
   dy: number,
   k: number | null,
 ): Crop {
-  if (mode === 'move') {
+  if (mode === "move") {
     return {
       ...crop,
       x: clamp(crop.x + dx, 0, 1 - crop.width),
@@ -104,10 +104,10 @@ export function applyDrag(
   let { x, y, width, height } = crop;
   const right = x + width;
   const bottom = y + height;
-  const east = mode.includes('e');
-  const west = mode.includes('w');
-  const south = mode.includes('s');
-  const north = mode.includes('n');
+  const east = mode.includes("e");
+  const west = mode.includes("w");
+  const south = mode.includes("s");
+  const north = mode.includes("n");
 
   if (east) width = clamp(width + dx, 0, 1);
   if (west) {
@@ -151,9 +151,9 @@ export function cropPixels(crop: Crop, size: Size): Rect {
 // --- merge -----------------------------------------------------------------
 
 export interface MergeOptions {
-  direction: 'vertical' | 'horizontal';
+  direction: "vertical" | "horizontal";
   /** Placement across the direction: left/top, center, or right/bottom. */
-  align: 'start' | 'center' | 'end';
+  align: "start" | "center" | "end";
   /** Scale each image to the widest (stacked) or tallest (side by side) one. */
   match: boolean;
   /** Space between images, in pixels. */
@@ -169,7 +169,7 @@ export function mergeLayout(
   sizes: readonly Size[],
   options: MergeOptions,
 ): MergeLayout {
-  const vertical = options.direction === 'vertical';
+  const vertical = options.direction === "vertical";
   const across = (s: Size) => (vertical ? s.width : s.height);
   const along = (s: Size) => (vertical ? s.height : s.width);
   const target = Math.max(...sizes.map(across));
@@ -188,9 +188,9 @@ export function mergeLayout(
   const places = drawn.map((s) => {
     const free = thickness - across(s);
     const offset =
-      options.align === 'start'
+      options.align === "start"
         ? 0
-        : options.align === 'center'
+        : options.align === "center"
           ? Math.round(free / 2)
           : free;
     const place = vertical
@@ -220,12 +220,12 @@ export interface Sides {
  */
 export function marginPixels(
   sides: Sides,
-  unit: 'px' | 'percent',
+  unit: "px" | "percent",
   size: Size,
 ): Sides {
   const base = Math.min(size.width, size.height);
   const px = (value: number) =>
-    Math.max(0, Math.round(unit === 'percent' ? (base * value) / 100 : value));
+    Math.max(0, Math.round(unit === "percent" ? (base * value) / 100 : value));
   return {
     top: px(sides.top),
     right: px(sides.right),

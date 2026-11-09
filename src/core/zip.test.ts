@@ -1,12 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
-import { crc32, zipParts } from './zip';
+import { crc32, zipParts } from "./zip";
 
-describe('zipParts', () => {
-  it('writes a stored archive with UTF-8 names', async () => {
-    const data = new TextEncoder().encode('hello');
+describe("zipParts", () => {
+  it("writes a stored archive with UTF-8 names", async () => {
+    const data = new TextEncoder().encode("hello");
     const parts = zipParts([
-      { name: 'città.txt', data, size: data.length, crc: crc32(data) },
+      { name: "città.txt", data, size: data.length, crc: crc32(data) },
     ]);
     expect(parts[1]).toBe(data); // the content is passed through, not copied
     const zip = new Uint8Array(await new Blob(parts).arrayBuffer());
@@ -20,7 +20,7 @@ describe('zipParts', () => {
     expect(view.getUint16(end + 10, true)).toBe(1);
   });
 
-  it('computes the standard CRC-32', () => {
-    expect(crc32(new TextEncoder().encode('123456789'))).toBe(0xcbf43926);
+  it("computes the standard CRC-32", () => {
+    expect(crc32(new TextEncoder().encode("123456789"))).toBe(0xcbf43926);
   });
 });

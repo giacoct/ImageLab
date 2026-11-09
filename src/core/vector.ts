@@ -5,13 +5,13 @@
  */
 
 export interface TraceSettings {
-  colors: 'color' | 'bw';
+  colors: "color" | "bw";
   /** 1–8: significant bits kept per color channel; more keeps more colors apart. */
   detail: number;
   /** Patches smaller than this many pixels per side are dropped. */
   speckle: number;
-  corners: 'sharp' | 'balanced' | 'round';
-  curves: 'spline' | 'polygon';
+  corners: "sharp" | "balanced" | "round";
+  curves: "spline" | "polygon";
 }
 
 /** Corner angle threshold in degrees, and minimum segment length, per style. */
@@ -27,9 +27,9 @@ const radians = (degrees: number) => (degrees * Math.PI) / 180;
 export function tracerConfig(settings: TraceSettings) {
   const corners = CORNERS[settings.corners];
   return {
-    binary: settings.colors === 'bw',
+    binary: settings.colors === "bw",
     mode: settings.curves,
-    hierarchical: 'stacked',
+    hierarchical: "stacked",
     cornerThreshold: radians(corners.angle),
     lengthThreshold: corners.length,
     maxIterations: 10,

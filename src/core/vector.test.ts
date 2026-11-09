@@ -1,15 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
-import { restoreSize, tracerConfig } from './vector';
+import { restoreSize, tracerConfig } from "./vector";
 
-describe('vector', () => {
-  it('converts settings to the converter units', () => {
+describe("vector", () => {
+  it("converts settings to the converter units", () => {
     const config = tracerConfig({
-      colors: 'color',
+      colors: "color",
       detail: 6,
       speckle: 4,
-      corners: 'balanced',
-      curves: 'spline',
+      corners: "balanced",
+      curves: "spline",
     });
     expect(config).toMatchObject({
       binary: false,
@@ -19,16 +19,16 @@ describe('vector', () => {
     expect(config.cornerThreshold).toBeCloseTo(Math.PI / 3);
     expect(
       tracerConfig({
-        colors: 'bw',
+        colors: "bw",
         detail: 1,
         speckle: 0,
-        corners: 'sharp',
-        curves: 'polygon',
+        corners: "sharp",
+        curves: "polygon",
       }).binary,
     ).toBe(true);
   });
 
-  it('restores the original size with a viewBox', () => {
+  it("restores the original size with a viewBox", () => {
     const svg = '<svg width="200" height="100"><path/></svg>';
     expect(
       restoreSize(svg, { width: 100, height: 50 }, { width: 200, height: 100 }),

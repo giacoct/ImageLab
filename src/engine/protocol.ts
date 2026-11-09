@@ -1,7 +1,7 @@
 /** Messages between the main thread (`client.ts`) and the engine worker (`worker.ts`). */
 
-import type { Action } from '../ops/op';
-import type { Output, PreviewRequest, Saved, Version } from './pipeline';
+import type { Action } from "../ops/op";
+import type { Output, PreviewRequest, Saved, Version } from "./pipeline";
 
 /** A rendered preview, and its size relative to the full-size result. */
 export interface PreviewImage {
@@ -25,7 +25,7 @@ export type RequestMessage = {
     type: K;
     /** Where the app is served from, to locate the files it serves (the OCR engine). */
     appUrl: string;
-    args: Requests[K]['args'];
+    args: Requests[K]["args"];
   };
 }[RequestType];
 

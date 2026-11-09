@@ -1,8 +1,8 @@
 /// <reference lib="webworker" />
 /** The engine worker: decodes, applies tools and encodes, off the main thread. */
 
-import { apply, finish, open, renderPreview, save } from './pipeline';
-import type { RequestMessage, ResponseMessage } from './protocol';
+import { apply, finish, open, renderPreview, save } from "./pipeline";
+import type { RequestMessage, ResponseMessage } from "./protocol";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -14,19 +14,19 @@ self.onmessage = async (event: MessageEvent<RequestMessage>) => {
     let result: unknown;
     const transfer: Transferable[] = [];
     switch (message.type) {
-      case 'open':
+      case "open":
         result = await open(message.args.blob, message.args.name);
         break;
-      case 'apply':
+      case "apply":
         result = await apply(message.args.inputs, message.args.action, context);
         break;
-      case 'finish':
+      case "finish":
         result = await finish(message.args.input, message.args.action, context);
         break;
-      case 'save':
+      case "save":
         result = await save(message.args.version);
         break;
-      case 'preview': {
+      case "preview": {
         const { image, scale } = await renderPreview(message.args, asset);
         const bitmap = image.transferToImageBitmap();
         transfer.push(bitmap);
@@ -44,7 +44,7 @@ self.onmessage = async (event: MessageEvent<RequestMessage>) => {
     self.postMessage({
       id: message.id,
       ok: false,
-      error: text || 'Processing failed.',
+      error: text || "Processing failed.",
     } satisfies ResponseMessage);
   }
 };

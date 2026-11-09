@@ -4,10 +4,10 @@
  * dragging a slider never queues up stale renders.
  */
 
-import { engine } from '../engine/client';
-import type { PreviewImage, Requests } from '../engine/protocol';
+import { engine } from "../engine/client";
+import type { PreviewImage, Requests } from "../engine/protocol";
 
-type Args = Requests['preview']['args'];
+type Args = Requests["preview"]["args"];
 
 export class Previewer {
   private inFlight = false;
@@ -52,7 +52,7 @@ export function drawBitmap(
 ): void {
   canvas.width = bitmap.width;
   canvas.height = bitmap.height;
-  const context = canvas.getContext('2d');
+  const context = canvas.getContext("2d");
   context?.clearRect(0, 0, canvas.width, canvas.height);
   context?.drawImage(bitmap, 0, 0);
   bitmap.close();

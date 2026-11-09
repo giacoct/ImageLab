@@ -5,11 +5,11 @@
  * lossless encoder.
  */
 
-import { formatToWrite, type Encoding } from '../core/encoding';
-import type { ImageFormat } from '../core/files';
-import { hasTransparency } from '../core/pixels';
-import { largestThatFits } from '../core/search';
-import { flattened, readPixels, resized, type Img } from './canvas';
+import { formatToWrite, type Encoding } from "../core/encoding";
+import type { ImageFormat } from "../core/files";
+import { hasTransparency } from "../core/pixels";
+import { largestThatFits } from "../core/search";
+import { flattened, readPixels, resized, type Img } from "./canvas";
 
 export interface Encoded {
   blob: Blob;
@@ -65,27 +65,27 @@ async function encodeRaster(
   format: ImageFormat,
   quality: number,
 ): Promise<Blob> {
-  if (format === 'image/png') return image.convertToBlob({ type: 'image/png' });
+  if (format === "image/png") return image.convertToBlob({ type: "image/png" });
 
   // JPEG has no alpha channel: flatten onto white instead of letting
   // transparent pixels turn black.
-  const source = format === 'image/jpeg' ? flattened(image) : image;
+  const source = format === "image/jpeg" ? flattened(image) : image;
   const { image: data } = readPixels(source);
   const q = Math.round(Math.min(100, Math.max(1, quality)));
   let buffer: ArrayBuffer;
   switch (format) {
-    case 'image/jpeg': {
-      const { default: encode } = await import('@jsquash/jpeg/encode');
+    case "image/jpeg": {
+      const { default: encode } = await import("@jsquash/jpeg/encode");
       buffer = await encode(data, { quality: q });
       break;
     }
-    case 'image/webp': {
-      const { default: encode } = await import('@jsquash/webp/encode');
+    case "image/webp": {
+      const { default: encode } = await import("@jsquash/webp/encode");
       buffer = await encode(data, { quality: q, lossless: q === 100 ? 1 : 0 });
       break;
     }
-    case 'image/avif': {
-      const { default: encode } = await import('@jsquash/avif/encode');
+    case "image/avif": {
+      const { default: encode } = await import("@jsquash/avif/encode");
       buffer = await encode(data, {
         quality: q,
         lossless: q === 100,
@@ -106,7 +106,7 @@ function encodeToSize(
   format: ImageFormat,
   targetBytes: number,
 ): Promise<Encoded> {
-  if (format === 'image/png') {
+  if (format === "image/png") {
     return largestThatFits(
       async (scale) => {
         const scaled =

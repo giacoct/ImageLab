@@ -16,7 +16,7 @@ interface BaseParam<T> {
 }
 
 export interface NumberParam extends BaseParam<number> {
-  kind: 'number';
+  kind: "number";
   min: number;
   max: number;
   step: number;
@@ -26,24 +26,24 @@ export interface NumberParam extends BaseParam<number> {
 }
 
 export interface ChoiceParam<V extends string = string> extends BaseParam<V> {
-  kind: 'choice';
+  kind: "choice";
   options: readonly { value: V; label: string }[];
   /** Buttons side by side, or a drop-down for long lists. */
-  display: 'segmented' | 'select';
+  display: "segmented" | "select";
 }
 
 export interface BooleanParam extends BaseParam<boolean> {
-  kind: 'boolean';
+  kind: "boolean";
 }
 
 /** A `#rrggbb` color. */
 export interface ColorParam extends BaseParam<string> {
-  kind: 'color';
+  kind: "color";
 }
 
 /** A value edited by a custom editor (e.g. the crop box), never by the generated form. */
 export interface CustomParam<T> extends BaseParam<T> {
-  kind: 'custom';
+  kind: "custom";
 }
 
 export type Param =
@@ -58,7 +58,7 @@ export type Values<S extends Schema> = {
   -readonly [K in keyof S]: ValueOf<S[K]>;
 };
 
-type Common<T> = Pick<BaseParam<T>, 'label' | 'default' | 'hint' | 'when'>;
+type Common<T> = Pick<BaseParam<T>, "label" | "default" | "hint" | "when">;
 
 export const p = {
   number(
@@ -70,32 +70,32 @@ export const p = {
       slider?: boolean;
     },
   ): NumberParam {
-    return { kind: 'number', slider: true, step: 1, ...options };
+    return { kind: "number", slider: true, step: 1, ...options };
   },
 
   choice<const V extends string>(
     options: Common<V> & {
       options: readonly { value: V; label: string }[];
-      display?: 'segmented' | 'select';
+      display?: "segmented" | "select";
     },
   ): ChoiceParam<V> {
     return {
-      kind: 'choice',
-      display: options.options.length > 4 ? 'select' : 'segmented',
+      kind: "choice",
+      display: options.options.length > 4 ? "select" : "segmented",
       ...options,
     };
   },
 
   boolean(options: Common<boolean>): BooleanParam {
-    return { kind: 'boolean', ...options };
+    return { kind: "boolean", ...options };
   },
 
   color(options: Common<string>): ColorParam {
-    return { kind: 'color', ...options };
+    return { kind: "color", ...options };
   },
 
   custom<T>(options: Common<T>): CustomParam<T> {
-    return { kind: 'custom', ...options };
+    return { kind: "custom", ...options };
   },
 };
 

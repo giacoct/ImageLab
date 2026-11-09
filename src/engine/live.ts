@@ -7,10 +7,10 @@
  * worker, to a level or two of rounding.
  */
 
-import { blurBox, colorMatrix, type Adjustments } from '../core/pixels';
+import { blurBox, colorMatrix, type Adjustments } from "../core/pixels";
 
 /** The tools previewed here: only Adjust & filters. */
-export const isLive = (opId: string): boolean => opId === 'adjust';
+export const isLive = (opId: string): boolean => opId === "adjust";
 
 /** Adjust & filters' settings. */
 export interface LiveSettings extends Adjustments {
@@ -113,7 +113,7 @@ export class LiveAdjust {
     canvas: HTMLCanvasElement | OffscreenCanvas,
     lost: () => void = () => {},
   ): LiveAdjust | null {
-    const gl = canvas.getContext('webgl2', {
+    const gl = canvas.getContext("webgl2", {
       antialias: false,
       depth: false,
       stencil: false,
@@ -133,24 +133,24 @@ export class LiveAdjust {
     lost: () => void,
   ) {
     this.adjust = this.compile(ADJUST, [
-      'brightness',
-      'contrast',
-      'matrix',
-      'invert',
+      "brightness",
+      "contrast",
+      "matrix",
+      "invert",
     ]);
-    this.blur = this.compile(BLUR, ['direction', 'radius']);
-    this.output = this.compile(OUTPUT, ['sharpen']);
+    this.blur = this.compile(BLUR, ["direction", "radius"]);
+    this.output = this.compile(OUTPUT, ["sharpen"]);
     this.source = this.texture();
     this.precise =
-      !!gl.getExtension('EXT_color_buffer_float') ||
-      !!gl.getExtension('EXT_color_buffer_half_float');
+      !!gl.getExtension("EXT_color_buffer_float") ||
+      !!gl.getExtension("EXT_color_buffer_half_float");
     // Drawing without vertex data still needs a vertex array bound.
     gl.bindVertexArray(gl.createVertexArray());
     this.onLost = (event) => {
       event.preventDefault();
       lost();
     };
-    canvas.addEventListener('webglcontextlost', this.onLost);
+    canvas.addEventListener("webglcontextlost", this.onLost);
   }
 
   /**
@@ -196,8 +196,8 @@ export class LiveAdjust {
 
   /** Free the GPU memory now, rather than whenever the canvas is collected. */
   dispose(): void {
-    this.canvas.removeEventListener('webglcontextlost', this.onLost);
-    this.gl.getExtension('WEBGL_lose_context')?.loseContext();
+    this.canvas.removeEventListener("webglcontextlost", this.onLost);
+    this.gl.getExtension("WEBGL_lose_context")?.loseContext();
   }
 
   private upload(source: Source): void {
@@ -223,7 +223,7 @@ export class LiveAdjust {
     program: Program,
     input: WebGLTexture,
     framebuffer: WebGLFramebuffer | null,
-    setUniforms: (uniforms: Program['uniforms']) => void,
+    setUniforms: (uniforms: Program["uniforms"]) => void,
   ): void {
     const { gl } = this;
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -290,7 +290,7 @@ export class LiveAdjust {
       );
     };
     if (!attach(this.precise) && !attach(false))
-      throw new Error('This GPU cannot render the preview.');
+      throw new Error("This GPU cannot render the preview.");
     return { texture, framebuffer };
   }
 
@@ -309,8 +309,8 @@ export class LiveAdjust {
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS))
       throw new Error(`Preview shader: ${gl.getProgramInfoLog(program)}`);
-    const uniforms: Program['uniforms'] = {
-      image: gl.getUniformLocation(program, 'image'),
+    const uniforms: Program["uniforms"] = {
+      image: gl.getUniformLocation(program, "image"),
     };
     for (const name of names)
       uniforms[name] = gl.getUniformLocation(program, name);

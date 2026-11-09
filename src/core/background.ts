@@ -5,7 +5,7 @@
  * everywhere.
  */
 
-import type { Pixels } from './pixels';
+import type { Pixels } from "./pixels";
 
 export interface BackgroundOptions {
   /** `#rrggbb`. */
@@ -27,7 +27,7 @@ export function hexToRgb(hex: string): [number, number, number] {
 }
 
 export function rgbToHex(r: number, g: number, b: number): string {
-  return `#${[r, g, b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+  return `#${[r, g, b].map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`;
 }
 
 /**
@@ -65,7 +65,7 @@ export function edgeColor({ data, width, height }: Pixels): string {
     if (!best || bucket.count > best.count) best = bucket;
   return best
     ? rgbToHex(best.r / best.count, best.g / best.count, best.b / best.count)
-    : '#ffffff';
+    : "#ffffff";
 }
 
 /** Make the background transparent, in place. */

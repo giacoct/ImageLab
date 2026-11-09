@@ -42,7 +42,7 @@ export function isImageFile(file: { name: string; type: string }): boolean {
   return file.type.startsWith('image/') || IMAGE_EXTENSION.test(file.name);
 }
 
-/** The format an image read from a `sourceType` file is saved in, unless a step changes it. */
+/** The format an image read from a `sourceType` file is saved in, unless a tool changes it. */
 export function savedFormat(sourceType: string): ImageFormat {
   switch (sourceType) {
     case 'image/png':

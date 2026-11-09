@@ -1,6 +1,6 @@
 /**
- * How an image will be saved. Every image carries one through the chain: it
- * starts as the input's format, and the Convert format and Compress steps
+ * How an image will be saved. Every image carries one from tool to tool: it
+ * starts as the input's format, and the Convert format and Compress tools
  * change it.
  */
 
@@ -9,7 +9,7 @@ import { savedFormat, type ImageFormat } from './files';
 export interface Encoding {
   format: ImageFormat;
   /**
-   * Picked by a Convert format step. Otherwise it's the input's format, and
+   * Picked by Convert format. Otherwise it's the input's format, and
    * a JPEG becomes PNG when the image has transparency (e.g. a GIF's).
    */
   chosen: boolean;
@@ -19,7 +19,7 @@ export interface Encoding {
   targetBytes: number | null;
 }
 
-/** How an image decoded from a file of `sourceType` is saved unless a step says otherwise. */
+/** How an image decoded from a file of `sourceType` is saved unless a tool says otherwise. */
 export function initialEncoding(sourceType: string): Encoding {
   return {
     format: savedFormat(sourceType),

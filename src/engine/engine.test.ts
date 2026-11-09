@@ -55,7 +55,7 @@ function action(op: string, params: Record<string, unknown> = {}): Action {
   return { op, params: { ...defaults(getOp(op).params), ...params } };
 }
 
-/** Save as `format`, as a Convert format step would. */
+/** Save as `format`, as Convert format would. */
 const as = (
   format: ImageFormat,
   settings: Partial<Encoding> = {},

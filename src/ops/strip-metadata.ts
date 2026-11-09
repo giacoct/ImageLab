@@ -1,7 +1,7 @@
 /**
  * Strip metadata: remove camera, date, GPS and other details from the file.
  * An untouched JPEG, PNG or WebP is cleaned without re-encoding; any file the
- * app writes itself (after a step that changes the pixels, or Convert format)
+ * app writes itself (after a tool that changes the pixels, or Convert format)
  * never carries metadata.
  */
 

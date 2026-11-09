@@ -1,4 +1,4 @@
-/** Every tool (one operation each), in the order "Add a step" lists them. */
+/** Every tool (one operation each), in the order the home page lists them. */
 
 import { adjust } from './adjust';
 import { compress } from './compress';

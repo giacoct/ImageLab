@@ -29,7 +29,8 @@ away.
   detected or picked on the image, and only the background around the
   subject goes.
 - **Add margin**: colored (pick the color on the image) or transparent, in
-  pixels or percent, the same on every side or each its own.
+  pixels or percent, the same on every side or each its own; drag the edges
+  of the preview, or type the sizes.
 - **Merge images**: combine all the images into one, stacked or side by side.
 - **Convert format**: JPEG, PNG, WebP or AVIF.
 - **Compress**: to a chosen quality, or to fit a file size.

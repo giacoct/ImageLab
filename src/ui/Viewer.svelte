@@ -10,7 +10,8 @@
   or if the GPU drops it, the engine renders it like every other tool.
 
   While a color setting is being picked (`session.picking`), it shows the
-  image as it is, and a tap or click on it sets that color.
+  image as it is, and a tap or click on it sets that color. For Add margin,
+  handles on the edges set the margins (`MarginHandles`).
 -->
 <script lang="ts">
   import Minus from "@lucide/svelte/icons/minus";
@@ -21,6 +22,7 @@
   import { session } from "../app/session.svelte";
   import { colorAt } from "../core/background";
   import { isLive, LiveAdjust, type LiveSettings } from "../engine/live";
+  import MarginHandles, { type Side } from "./MarginHandles.svelte";
 
   let canvas = $state<HTMLCanvasElement>();
   let stage = $state<HTMLDivElement>();
@@ -34,6 +36,17 @@
   /** Zoom relative to fitting the stage (≥ 1), and the pan from the center, in CSS px. */
   let zoom = $state(1);
   let pan = $state({ x: 0, y: 0 });
+
+  /**
+   * While a margin handle is dragged: the scale and the size of the image
+   * when it was grabbed, so the zoom holds and the image stays in place.
+   */
+  let held = $state<{
+    side: Side;
+    fit: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   /** The GPU renderer, while the open tool is live. */
   let renderer = $state.raw<LiveAdjust | null>(null);
@@ -70,13 +83,15 @@
   );
   /** Scale (CSS px per image pixel) at which the image fits the stage; never enlarged. */
   const fit = $derived(
-    real && stageWidth
-      ? Math.min(
-          1,
-          (stageWidth - PADDING * 2) / real.width,
-          (stageHeight - PADDING * 2) / real.height,
-        )
-      : 1,
+    held
+      ? held.fit
+      : real && stageWidth
+        ? Math.min(
+            1,
+            (stageWidth - PADDING * 2) / real.width,
+            (stageHeight - PADDING * 2) / real.height,
+          )
+        : 1,
   );
   const maxZoom = $derived(Math.max(1, MAX_SCALE / fit));
   const scale = $derived(fit * zoom);
@@ -85,6 +100,29 @@
       ? { width: real.width * scale, height: real.height * scale }
       : { width: 0, height: 0 },
   );
+  /**
+   * While a margin handle is held, how far the image moves so that only the
+   * dragged edge does: it would grow on both sides, being centered. (Not
+   * when every side's margin is the same: they all move.)
+   */
+  const shift = $derived.by(() => {
+    if (!held || !real || session.tool?.params.same) return { x: 0, y: 0 };
+    const x = ((real.width - held.width) / 2) * scale;
+    const y = ((real.height - held.height) / 2) * scale;
+    return {
+      top: { x: 0, y: -y },
+      right: { x, y: 0 },
+      bottom: { x: 0, y },
+      left: { x: -x, y: 0 },
+    }[held.side];
+  });
+  const placement = $derived(
+    `translate(calc(-50% + ${pan.x + shift.x}px), calc(-50% + ${pan.y + shift.y}px))`,
+  );
+
+  function hold(side: Side | null): void {
+    held = side && real ? { side, fit, ...real } : null;
+  }
 
   // Back to fitting the image when another one is shown or the tool changes.
   $effect(() => {
@@ -306,9 +344,20 @@
       class:pixels={scale >= 2}
       style:width="{size.width}px"
       style:height="{size.height}px"
-      style:transform="translate(calc(-50% + {pan.x}px), calc(-50% + {pan.y}px))"
+      style:transform={placement}
     ></canvas>
   {/key}
+
+  {#if op?.id === "margin" && real && shown.length && !session.picking}
+    <div
+      class="overlay"
+      style:width="{size.width}px"
+      style:height="{size.height}px"
+      style:transform={placement}
+    >
+      <MarginHandles {scale} onhold={hold} />
+    </div>
+  {/if}
 
   {#if error && shown.length}
     <p class="notice error message">{error}</p>
@@ -378,11 +427,19 @@
     cursor: crosshair;
   }
 
-  canvas {
-    box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  canvas,
+  .overlay {
     left: 50%;
     position: absolute;
     top: 50%;
+  }
+
+  canvas {
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  }
+
+  .overlay {
+    pointer-events: none;
   }
 
   /* Enlarged, show the pixels as squares: that's what zooming in is for. */

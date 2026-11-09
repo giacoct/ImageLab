@@ -49,7 +49,7 @@
 
     <section class="tools" aria-labelledby="tools-title">
       <h2 id="tools-title">
-        {count ? "Pick a tool" : "Or pick a tool first"}
+        {count ? "Pick a tool" : "Then pick a tool"}
       </h2>
       <ul>
         {#each OPS as op (op.id)}

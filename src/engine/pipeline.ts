@@ -1,7 +1,8 @@
 /**
  * The engine's work, inside a worker: open a file, apply a tool to images,
  * turn an image into text or SVG (`finish`), save an image to its file, and
- * render live previews on downscaled copies with the same operations.
+ * render live previews on downscaled copies with the same operations (and,
+ * zoomed in, parts of the result at full size: `renderDetail`).
  *
  * An image is a `Version`: plain data the main thread keeps and sends back,
  * e.g. when a result is used as the input of another tool. Its pixels are
@@ -19,7 +20,14 @@ import { downscaleFactor } from "../core/geometry";
 import { describeExif, exifOf, readMetadata } from "../core/metadata";
 import { getOp } from "../ops";
 import type { Action, Op, RunContext } from "../ops/op";
-import { downscaled, readPixels, type Img } from "./canvas";
+import {
+  context2d,
+  createCanvas,
+  downscaled,
+  readPixels,
+  resized,
+  type Img,
+} from "./canvas";
 import { decode } from "./decode";
 import { encodeImage, type Picture } from "./encode";
 
@@ -285,28 +293,12 @@ function proxyFor(key: string, pixels: Blob): Promise<Proxy> {
 /**
  * Render the tool on downscaled copies of the images. All of them share one
  * scale, so a merge keeps their relative sizes; it's smaller with many
- * images, so a merged preview stays light. A final tool (OCR, SVG) or a
- * heavy one (Upscale) shows the image it starts from; a file tool, the file
- * it writes.
+ * images, so a merged preview stays light.
  */
 export async function renderPreview(
   request: PreviewRequest,
   asset: RunContext["asset"],
 ): Promise<Preview> {
-  const { image, scale } = await render(request, asset);
-  return { image: await image, scale };
-}
-
-export interface Preview {
-  image: Img;
-  /** Preview size / full size, to show the zoom of the real image. */
-  scale: number;
-}
-
-async function render(
-  request: PreviewRequest,
-  asset: RunContext["asset"],
-): Promise<{ image: Img | Promise<Img>; scale: number }> {
   const loaded = await Promise.all(
     request.images.map(({ key, version }) => proxyFor(key, version.pixels)),
   );
@@ -317,7 +309,6 @@ async function render(
         (proxy) => proxy.scale * downscaleFactor(proxy.image, request.maxSide),
       ),
     ) / Math.max(1, Math.sqrt(loaded.length));
-  // Operations may edit their input in place: each render starts from fresh copies.
   const images = loaded.map((proxy) => {
     const factor = scale / proxy.scale;
     return downscaled(
@@ -326,25 +317,168 @@ async function render(
       proxy.image.height * factor,
     );
   });
+  return { image: await renderOn(images, scale, request, asset), scale };
+}
 
+export interface Preview {
+  image: Img;
+  /** Preview size / full size, to show the zoom of the real image. */
+  scale: number;
+}
+
+/**
+ * The tool rendered on `images`, copies of the request's images at `scale`
+ * (which it may draw on). A final tool (OCR, SVG) or a heavy one (Upscale)
+ * shows the image it starts from; a file tool, the file it writes.
+ */
+async function renderOn(
+  images: Img[],
+  scale: number,
+  request: Pick<PreviewRequest, "images" | "action">,
+  asset: RunContext["asset"],
+): Promise<Img> {
   const op = request.action && getOp(request.action.op);
-  if (!op || op.kind === "final" || op.heavy)
-    return { image: images[0], scale };
+  if (!op || op.kind === "final" || op.heavy) return images[0];
   const values = request.action!.params;
   const context = { scale, asset };
   switch (op.kind) {
     case "map":
-      return { image: op.run(images[0], values, context), scale };
+      return op.run(images[0], values, context);
     case "combine":
-      return { image: op.run(images, values, context), scale };
+      return op.run(images, values, context);
     case "file": {
       const { encoding, exif } = request.images[0].version;
       const picture = { image: images[0], encoding, exif, file: null };
       const written = await op.run(picture, values, context);
-      const image = written.file
-        ? (await decode(written.file.blob)).image
-        : images[0];
-      return { image, scale };
+      return written.file ? (await decode(written.file.blob)).image : images[0];
     }
   }
+}
+
+// --- detail --------------------------------------------------------------------
+
+/** A part of an image, in fractions of its width and height. */
+export interface Region {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Zoomed in past what a preview holds: a part of the result rendered from
+ * the full-size images, so it's as sharp as the result will be.
+ */
+export interface DetailRequest {
+  images: PreviewRequest["images"];
+  action: Action | null;
+  /** The part of the result to show. */
+  region: Region;
+  /** Pixels wanted per pixel of the full-size result (at most 1 is rendered). */
+  density: number;
+}
+
+export interface Detail {
+  image: Img;
+  /** The part it shows: the one asked, on whole pixels. */
+  region: Region;
+  /** Its pixels per pixel of the full-size result. */
+  density: number;
+}
+
+/**
+ * The most pixels a detail is rendered from (a merge's images together):
+ * an image larger than that is rendered smaller, keeping memory in bounds.
+ */
+const DETAIL_PIXELS = 24_000_000;
+
+/** The images at the scale of the last detail, and what it rendered. */
+let detailSources: { key: string; scale: number; image: Img }[] = [];
+let detailRendered: { signature: string; image: Img } | null = null;
+
+/**
+ * Render the tool on the images at the density asked (rounded up to a power
+ * of two, so zooming a little doesn't render it all again), then cut out the
+ * region. The whole render is kept: moving around a zoomed image only cuts
+ * out another part of it.
+ */
+export async function renderDetail(
+  request: DetailRequest,
+  asset: RunContext["asset"],
+): Promise<Detail> {
+  if (request.images.length === 0) throw new Error("Nothing to preview.");
+  const pixels = request.images.reduce(
+    (sum, { version }) => sum + version.width * version.height,
+    0,
+  );
+  const scale = Math.min(
+    1,
+    Math.sqrt(DETAIL_PIXELS / pixels),
+    2 ** Math.ceil(Math.log2(Math.max(request.density, 1 / 64))),
+  );
+  const signature = JSON.stringify([
+    request.images.map(({ key }) => key),
+    request.action,
+    scale,
+  ]);
+  if (detailRendered?.signature !== signature) {
+    detailRendered = null; // let it go before rendering the next
+    const sources = await sourcesAt(request.images, scale);
+    const copies = sources.map((source) =>
+      resized(source, source.width, source.height),
+    );
+    const image = await renderOn(copies, scale, request, asset);
+    detailRendered = { signature, image };
+  }
+
+  const { image } = detailRendered;
+  const { region } = request;
+  const left = Math.max(0, Math.floor(region.x * image.width));
+  const top = Math.max(0, Math.floor(region.y * image.height));
+  const right = Math.min(
+    image.width,
+    Math.ceil((region.x + region.width) * image.width),
+  );
+  const bottom = Math.min(
+    image.height,
+    Math.ceil((region.y + region.height) * image.height),
+  );
+  const part = createCanvas(right - left, bottom - top);
+  context2d(part).drawImage(image, -left, -top);
+  return {
+    image: part,
+    region: {
+      x: left / image.width,
+      y: top / image.height,
+      width: part.width / image.width,
+      height: part.height / image.height,
+    },
+    density: scale,
+  };
+}
+
+/** The request's images at `scale`, decoded once; other images are let go. */
+async function sourcesAt(
+  images: DetailRequest["images"],
+  scale: number,
+): Promise<Img[]> {
+  const kept = detailSources.filter((source) =>
+    images.some(({ key }) => key === source.key && source.scale === scale),
+  );
+  detailSources = kept;
+  const out: Img[] = [];
+  for (const { key, version } of images) {
+    let source = kept.find((candidate) => candidate.key === key);
+    if (!source) {
+      const full = await pixelsOf(version);
+      const image =
+        scale < 1
+          ? downscaled(full, full.width * scale, full.height * scale)
+          : full;
+      source = { key, scale, image };
+      detailSources.push(source);
+    }
+    out.push(source.image);
+  }
+  return out;
 }

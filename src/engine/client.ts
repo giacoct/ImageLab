@@ -1,6 +1,7 @@
 /**
  * Main-thread access to the engine: a small pool of engine workers for
- * reading and processing files, plus one dedicated worker for live previews.
+ * reading and processing files, plus dedicated workers for live previews,
+ * for their zoomed-in details and for file size estimates.
  * Cancelling a request terminates its worker, which is the only way to stop
  * WASM code mid-run.
  */
@@ -120,6 +121,7 @@ class Engine {
   );
   private waiting: (() => void)[] = [];
   private readonly previewWorker = new EngineWorker();
+  private readonly detailWorker = new EngineWorker();
   private readonly estimateWorker = new EngineWorker();
 
   /**
@@ -166,6 +168,21 @@ class Engine {
     args: Requests["preview"]["args"],
   ): Promise<Requests["preview"]["result"]> {
     return this.previewWorker.call("preview", args);
+  }
+
+  /**
+   * On a worker of its own: a detail renders the full-size image, which
+   * takes a while, and previews shouldn't wait behind it.
+   */
+  detail(
+    args: Requests["detail"]["args"],
+  ): Promise<Requests["detail"]["result"]> {
+    return this.detailWorker.call("detail", args);
+  }
+
+  /** Let go of the full-size images the details were rendered from. */
+  dropDetails(): void {
+    this.detailWorker.restart();
   }
 }
 

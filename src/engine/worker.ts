@@ -6,6 +6,7 @@ import {
   backgroundOf,
   finish,
   open,
+  renderDetail,
   renderPreview,
   save,
 } from "./pipeline";
@@ -46,6 +47,16 @@ self.onmessage = async (event: MessageEvent<RequestMessage>) => {
         const bitmap = image.transferToImageBitmap();
         transfer.push(bitmap);
         result = { bitmap, scale };
+        break;
+      }
+      case "detail": {
+        const { image, region, density } = await renderDetail(
+          message.args,
+          asset,
+        );
+        const bitmap = image.transferToImageBitmap();
+        transfer.push(bitmap);
+        result = { bitmap, region, density };
         break;
       }
     }

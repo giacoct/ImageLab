@@ -1,12 +1,26 @@
 /** Messages between the main thread (`client.ts`) and the engine worker (`worker.ts`). */
 
 import type { Action } from "../ops/op";
-import type { Output, PreviewRequest, Saved, Version } from "./pipeline";
+import type {
+  DetailRequest,
+  Output,
+  PreviewRequest,
+  Region,
+  Saved,
+  Version,
+} from "./pipeline";
 
 /** A rendered preview, and its size relative to the full-size result. */
 export interface PreviewImage {
   bitmap: ImageBitmap;
   scale: number;
+}
+
+/** A part of the full-size result, for a zoomed-in preview (see `renderDetail`). */
+export interface DetailImage {
+  bitmap: ImageBitmap;
+  region: Region;
+  density: number;
 }
 
 export interface Requests {
@@ -16,6 +30,7 @@ export interface Requests {
   save: { args: { version: Version }; result: Saved };
   background: { args: { version: Version }; result: string };
   preview: { args: PreviewRequest; result: PreviewImage };
+  detail: { args: DetailRequest; result: DetailImage };
 }
 
 export type RequestType = keyof Requests;

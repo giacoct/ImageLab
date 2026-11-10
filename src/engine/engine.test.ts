@@ -25,6 +25,7 @@ import {
   backgroundOf,
   finish,
   open,
+  renderDetail,
   renderPreview,
   save,
   type Version,
@@ -544,6 +545,37 @@ describe("preview", () => {
       );
       expect([preview.width, preview.height]).toEqual([40, 20]);
     }
+  });
+
+  it("renders a part of the result at full size when zoomed in", async () => {
+    // 2400×200, past what a preview holds (1600 px): the right half is blue.
+    const images = [await shown("wide", twoTone(2400, 200))];
+    const margin = action("margin", { same: true, size: 100 });
+    const region = { x: 0.75, y: 0.5, width: 0.5, height: 0.5 };
+    const detail = await renderDetail(
+      { images, action: margin, region, density: 1 },
+      context.asset,
+    );
+    // The margin makes it 2600×400: the part asked, cut at its edge.
+    expect(detail.density).toBe(1);
+    expect([detail.image.width, detail.image.height]).toEqual([650, 200]);
+    expect(detail.region).toEqual({
+      x: 0.75,
+      y: 0.5,
+      width: 0.25,
+      height: 0.5,
+    });
+    expect(pixel(detail.image, 10, 10)).toEqual([0, 0, 255, 255]);
+    // Below the image (300 px down), the margin: white.
+    expect(pixel(detail.image, 10, 150)).toEqual([255, 255, 255, 255]);
+
+    // A lower density is rounded up to a power of two.
+    const half = await renderDetail(
+      { images, action: margin, region, density: 0.3 },
+      context.asset,
+    );
+    expect(half.density).toBe(0.5);
+    expect(half.image.width).toBe(325);
   });
 
   it("shows the file a file tool writes", async () => {

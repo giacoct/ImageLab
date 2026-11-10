@@ -4,6 +4,8 @@
   that applying uses. It fits the stage; zoom with the wheel, a pinch, a
   double click or the buttons, and drag to move around. The zoom is shown
   relative to the real image (100% = one image pixel per screen point).
+  Zoomed in further than the preview's pixels go, the part in view is
+  rendered again from the full-size image (`renderDetail`), over it.
 
   Adjust & filters is live: the engine renders the plain image, and the GPU
   redraws it at every move of a slider (`engine/live.ts`). Without WebGL2,
@@ -16,9 +18,11 @@
 <script lang="ts">
   import Minus from "@lucide/svelte/icons/minus";
   import Plus from "@lucide/svelte/icons/plus";
-  import { untrack } from "svelte";
+  import { onDestroy, untrack } from "svelte";
 
   import { drawBitmap, Previewer } from "../app/previewer";
+  import { engine } from "../engine/client";
+  import type { Region } from "../engine/pipeline";
   import { session } from "../app/session.svelte";
   import { colorAt } from "../core/background";
   import { isLive, LiveAdjust, type LiveSettings } from "../engine/live";
@@ -32,6 +36,18 @@
   let busy = $state(false);
   /** Size of the result the preview stands for, once a render arrived. */
   let real = $state<{ width: number; height: number } | null>(null);
+  /** The preview's pixels per pixel of that result. */
+  let density = $state(1);
+  /** The part shown sharper, over the preview, and what it was rendered for. */
+  let detailCanvas = $state<HTMLCanvasElement>();
+  let detail = $state.raw<{
+    region: Region;
+    density: number;
+    /** The density asked: more than it has if the image was too large for it. */
+    asked: number;
+    signature: string;
+  } | null>(null);
+  let detailBusy = $state(false);
 
   /** Zoom relative to fitting the stage (≥ 1), and the pan from the center, in CSS px. */
   let zoom = $state(1);
@@ -57,6 +73,7 @@
   const previewer = new Previewer(
     ({ bitmap, scale }) => {
       real = { width: bitmap.width / scale, height: bitmap.height / scale };
+      density = scale;
       if (live) {
         source?.bitmap.close();
         source = { bitmap, scale };
@@ -66,6 +83,28 @@
     },
     (message) => (error = message),
     (value) => (busy = value),
+  );
+
+  // The full-size images held for details take a lot of memory.
+  onDestroy(() => engine.dropDetails());
+
+  /** What the next detail is asked for, to label the one that comes back. */
+  let asking = { signature: "", density: 0 };
+  const detailer = new Previewer(
+    ({ bitmap, region, density }) => {
+      if (!detailCanvas) return bitmap.close();
+      drawBitmap(detailCanvas, bitmap);
+      detail = {
+        region,
+        density,
+        asked: asking.density,
+        signature: asking.signature,
+      };
+    },
+    // The preview stays as it is: only less sharp.
+    () => {},
+    (value) => (detailBusy = value),
+    "detail",
   );
 
   const PADDING = 24;
@@ -119,6 +158,69 @@
   const placement = $derived(
     `translate(calc(-50% + ${pan.x + shift.x}px), calc(-50% + ${pan.y + shift.y}px))`,
   );
+
+  /** The tool as a detail renders it: live tools too (it's the engine that does). */
+  const detailAction = $derived(
+    !session.picking && session.tool && op?.kind !== "final"
+      ? session.tool
+      : null,
+  );
+  /** What a detail shows: when this changes, the one there is out of date. */
+  const signature = $derived(
+    JSON.stringify([shown.map((item) => item.id), detailAction]),
+  );
+  const sharp = $derived(detail?.signature === signature ? detail : null);
+  /** Pixels on the screen per pixel of the result. */
+  const wanted = $derived(scale * devicePixelRatio);
+
+  /**
+   * The part of the result in view, in fractions of its size, `margin`
+   * screens wider on each side, or null if nothing is shown.
+   */
+  function inView(margin: number): Region | null {
+    if (!real || !size.width || !size.height) return null;
+    const left = stageWidth / 2 + pan.x + shift.x - size.width / 2;
+    const top = stageHeight / 2 + pan.y + shift.y - size.height / 2;
+    const x0 = Math.max(0, (-stageWidth * margin - left) / size.width);
+    const y0 = Math.max(0, (-stageHeight * margin - top) / size.height);
+    const x1 = Math.min(1, (stageWidth * (1 + margin) - left) / size.width);
+    const y1 = Math.min(1, (stageHeight * (1 + margin) - top) / size.height);
+    if (x1 <= x0 || y1 <= y0) return null;
+    return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+  }
+
+  const covers = (outer: Region, inner: Region) =>
+    outer.x <= inner.x + 1e-6 &&
+    outer.y <= inner.y + 1e-6 &&
+    outer.x + outer.width >= inner.x + inner.width - 1e-6 &&
+    outer.y + outer.height >= inner.y + inner.height - 1e-6;
+
+  // Zoomed in past the preview's pixels, once the view rests a moment:
+  // render the part in view (and some around it) at full size, unless the
+  // detail there already covers it as sharp as it gets.
+  $effect(() => {
+    const view = inView(0);
+    const needed = Math.min(1, wanted);
+    if (!view || zoom <= 1 || needed <= density * 1.25 || held) {
+      detailer.forget();
+      return;
+    }
+    if (
+      sharp &&
+      covers(sharp.region, view) &&
+      (sharp.density >= needed || sharp.density < Math.min(1, sharp.asked))
+    )
+      return;
+    const region = inView(0.5)!;
+    const images = shown.map(({ id, version }) => ({ key: id, version }));
+    const action = $state.snapshot(detailAction);
+    const current = signature;
+    const timer = setTimeout(() => {
+      asking = { signature: current, density: wanted };
+      detailer.request({ images, action, region, density: wanted });
+    }, 150);
+    return () => clearTimeout(timer);
+  });
 
   function hold(side: Side | null): void {
     held = side && real ? { side, fit, ...real } : null;
@@ -277,17 +379,30 @@
     tap = null;
   }
 
-  /** Set the color being picked to the image's at `point` (from the stage's center). */
+  /**
+   * Set the color being picked to the image's at `point` (from the stage's
+   * center): from the sharper detail where there's one.
+   */
   function pickAt(point: { x: number; y: number }): void {
     const key = session.picking;
     if (!key || !canvas || !size.width) return;
-    const x = Math.floor(((point.x - pan.x) / size.width + 0.5) * canvas.width);
-    const y = Math.floor(
-      ((point.y - pan.y) / size.height + 0.5) * canvas.height,
-    );
-    if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
+    // Where in the result, in fractions of its size.
+    let fx = (point.x - pan.x) / size.width + 0.5;
+    let fy = (point.y - pan.y) / size.height + 0.5;
+    let source = canvas;
+    if (sharp && detailCanvas) {
+      const { region } = sharp;
+      const dx = (fx - region.x) / region.width;
+      const dy = (fy - region.y) / region.height;
+      if (dx >= 0 && dy >= 0 && dx < 1 && dy < 1) {
+        [fx, fy, source] = [dx, dy, detailCanvas];
+      }
+    }
+    const x = Math.floor(fx * source.width);
+    const y = Math.floor(fy * source.height);
+    if (x < 0 || y < 0 || x >= source.width || y >= source.height) return;
     // The pixel and its neighbors (outside the canvas, they read as transparent).
-    const area = canvas.getContext("2d")?.getImageData(x - 1, y - 1, 3, 3);
+    const area = source.getContext("2d")?.getImageData(x - 1, y - 1, 3, 3);
     const color = area && colorAt(area, 1, 1);
     if (!color) return;
     session.setParam(key, color);
@@ -333,19 +448,32 @@
   ondblclick={onDoubleClick}
   onkeydown={onKeyDown}
 >
-  <!-- A new canvas when that changes: one drawn by the GPU can't take 2D drawing. -->
-  {#key live}
+  <div
+    class="picture checker"
+    class:hidden={!real || shown.length === 0}
+    style:width="{size.width}px"
+    style:height="{size.height}px"
+    style:transform={placement}
+  >
+    <!-- A new canvas when that changes: one drawn by the GPU can't take 2D drawing. -->
+    {#key live}
+      <canvas
+        bind:this={canvas}
+        {@attach live && startGpu}
+        class:pixels={scale >= 2 && density >= 0.999}
+      ></canvas>
+    {/key}
     <canvas
-      bind:this={canvas}
-      {@attach live && startGpu}
-      class="checker"
-      class:hidden={!real || shown.length === 0}
-      class:pixels={scale >= 2}
-      style:width="{size.width}px"
-      style:height="{size.height}px"
-      style:transform={placement}
+      bind:this={detailCanvas}
+      class="detail"
+      class:hidden={!sharp}
+      class:pixels={sharp && scale >= 2 * sharp.density}
+      style:left="{(sharp?.region.x ?? 0) * 100}%"
+      style:top="{(sharp?.region.y ?? 0) * 100}%"
+      style:width="{(sharp?.region.width ?? 0) * 100}%"
+      style:height="{(sharp?.region.height ?? 0) * 100}%"
     ></canvas>
-  {/key}
+  </div>
 
   {#if op?.id === "margin" && real && shown.length && !session.picking}
     <div
@@ -362,7 +490,8 @@
     <p class="notice error message">{error}</p>
   {/if}
 
-  {#if busy && real}<span class="busy hint">Updating…</span>{/if}
+  {#if (busy || detailBusy) && real}<span class="busy hint">Updating…</span
+    >{/if}
 
   {#if session.picking && real && shown.length}
     <div class="pick-hint">
@@ -431,15 +560,25 @@
     cursor: crosshair;
   }
 
-  canvas,
+  .picture,
   .overlay {
     left: 50%;
     position: absolute;
     top: 50%;
   }
 
-  canvas {
+  .picture {
     box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  }
+
+  .picture canvas {
+    display: block;
+    height: 100%;
+    width: 100%;
+  }
+
+  .picture .detail {
+    position: absolute;
   }
 
   .overlay {

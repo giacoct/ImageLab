@@ -15,7 +15,3 @@ takeShared().then(
   (files) => session.addFiles(files),
   () => {},
 );
-
-// Earlier versions cached the app for offline use; their service worker is
-// replaced by the share target's (same scope). Drop what it cached.
-if ("caches" in globalThis) caches.delete("imagelab").catch(() => {});

@@ -36,6 +36,18 @@ const uid = () => `id${++nextId}`;
 const messageOf = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 
+/**
+ * Why a tool failed. Offline, one whose files were never used online (the
+ * upscaler, OCR, AVIF, HEIC: see public/service-worker.js) fails to load
+ * them, with an error only its code would understand.
+ */
+function failureOf(error: unknown): string {
+  const message = messageOf(error);
+  return !navigator.onLine && /fetch|network|failed to load/i.test(message)
+    ? "Not available offline yet: use it once while online, and it will be."
+    : message;
+}
+
 class Session {
   /** Bumped by "Clear", so files still being read are dropped. */
   private generation = 0;
@@ -127,7 +139,7 @@ class Session {
           });
           return { id: uid(), version };
         } catch (error) {
-          failures.push({ name: file.name, message: messageOf(error) });
+          failures.push({ name: file.name, message: failureOf(error) });
           return null;
         }
       }),
@@ -303,7 +315,7 @@ class Session {
         if (error instanceof Cancelled) return;
         const name =
           job.length === 1 ? job[0].version.name : `${job.length} images`;
-        failures.push({ name, message: messageOf(error) });
+        failures.push({ name, message: failureOf(error) });
       }
       // After a cancel, the state belongs to whatever came next.
       if (signal.aborted) return;

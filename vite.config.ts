@@ -1,4 +1,6 @@
-import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { playwright } from "@vitest/browser-playwright";
@@ -14,7 +16,7 @@ const ISOLATION = {
 // and at the root of any other static host.
 export default defineConfig({
   base: "./",
-  plugins: [svelte(), ocrFiles()],
+  plugins: [svelte(), ocrFiles(), offlineFiles()],
   // Cross-origin isolation, for threads; on GitHub Pages the service worker
   // adds these headers (public/service-worker.js).
   server: { port: 4200, headers: ISOLATION },
@@ -107,6 +109,47 @@ function ocrFiles(): Plugin {
           source: read(name),
         });
       }
+    },
+  };
+}
+
+/**
+ * The build's files, written into the service worker (`FILES`), which keeps
+ * them for offline use: each with a hash of its content, so it knows which
+ * changed, and its size, as it keeps the small ones up front.
+ */
+function offlineFiles(): Plugin {
+  let outDir = "dist";
+  return {
+    name: "imagelab:offline-files",
+    apply: "build",
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+    },
+    closeBundle() {
+      const worker = join(outDir, "service-worker.js");
+      const files = readdirSync(outDir, {
+        recursive: true,
+        withFileTypes: true,
+      })
+        .filter((entry) => entry.isFile())
+        .map((entry) => join(entry.parentPath, entry.name))
+        .filter((path) => path !== worker)
+        .map((path) => {
+          const bytes = readFileSync(path);
+          const hash = createHash("sha256").update(bytes).digest("hex");
+          const name = relative(outDir, path).split("\\").join("/");
+          return [name, hash.slice(0, 16), bytes.length];
+        })
+        .sort(([a], [b]) => String(a).localeCompare(String(b)));
+      const placeholder = "/* filled in by the build */ [];";
+      const source = readFileSync(worker, "utf8");
+      if (!source.includes(placeholder))
+        throw new Error("service-worker.js: no FILES to fill in");
+      writeFileSync(
+        worker,
+        source.replace(placeholder, `${JSON.stringify(files)};`),
+      );
     },
   };
 }

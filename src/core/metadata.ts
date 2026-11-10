@@ -5,7 +5,11 @@
  * compressed image data included, is copied byte for byte.
  */
 
-/** What the file embeds, in words, e.g. `Camera: Apple iPhone 15`, `GPS location`. */
+/**
+ * What the file embeds, in words: `Label: value` (e.g. `Camera: Apple
+ * iPhone 15`, `Location: 45.46431° N, 9.19123° E`) or just a label (`XMP…`).
+ * The orientation and the color profile aren't listed: they're kept.
+ */
 export interface Metadata {
   found: string[];
   /** EXIF orientation, 1–8 (1 = upright, also when absent). */
@@ -211,15 +215,62 @@ function summarize(blocks: readonly Block[]): Metadata {
 }
 
 const TAG = {
+  description: 0x010e,
   make: 0x010f,
   model: 0x0110,
   orientation: 0x0112,
   software: 0x0131,
   dateTime: 0x0132,
+  artist: 0x013b,
+  copyright: 0x8298,
   exifIfd: 0x8769,
   gpsIfd: 0x8825,
   dateTimeOriginal: 0x9003,
+  serialNumber: 0xa431,
+  lensModel: 0xa434,
+  latitudeRef: 0x0001,
+  latitude: 0x0002,
+  longitudeRef: 0x0003,
+  longitude: 0x0004,
 };
+
+/** IFD0 tags about the image's layout, not about who, where or how: not worth listing. */
+const LAYOUT_TAGS = new Set([
+  TAG.orientation,
+  TAG.exifIfd,
+  TAG.gpsIfd,
+  0x011a, // XResolution
+  0x011b, // YResolution
+  0x0128, // ResolutionUnit
+  0x0213, // YCbCrPositioning
+]);
+
+/** EXIF IFD tags about the file's format, not the photo: not worth listing either. */
+const FORMAT_TAGS = new Set([
+  0x9000, // ExifVersion
+  0x9101, // ComponentsConfiguration
+  0xa000, // FlashpixVersion
+  0xa001, // ColorSpace
+  0xa002, // PixelXDimension
+  0xa003, // PixelYDimension
+]);
+
+type TagValue = string | number | number[] | true;
+
+/** `2026:08:14 18:42:07` → `2026-08-14 18:42`. */
+function formatDate(date: string): string {
+  const match = /^(\d{4}):(\d\d):(\d\d) (\d\d:\d\d)/.exec(date);
+  return match ? `${match[1]}-${match[2]}-${match[3]} ${match[4]}` : date;
+}
+
+/** Degrees, minutes, seconds and N/S/E/W → `45.46431° N`, or null. */
+function coordinate(value: TagValue | undefined, ref: TagValue | undefined) {
+  if (!Array.isArray(value) || value.length !== 3 || typeof ref !== "string")
+    return null;
+  const [d, m, s] = value;
+  const degrees = d + m / 60 + s / 3600;
+  return Number.isFinite(degrees) ? `${degrees.toFixed(5)}° ${ref}` : null;
+}
 
 /** The interesting parts of an EXIF (TIFF) payload. */
 function readExif(tiff: Uint8Array): Metadata {
@@ -241,35 +292,81 @@ function readExif(tiff: Uint8Array): Metadata {
     const text = (value: unknown) =>
       typeof value === "string" && value ? value : undefined;
     const found: string[] = [];
-    const camera = [text(ifd0.get(TAG.make)), text(ifd0.get(TAG.model))]
-      .filter(Boolean)
-      .join(" ");
-    if (camera) found.push(`Camera: ${camera}`);
+    const add = (label: string, value: string | undefined) => {
+      if (value) found.push(`${label}: ${value}`);
+    };
+    // The model often repeats the make ("Canon" + "Canon EOS R6").
+    const make = text(ifd0.get(TAG.make));
+    const model = text(ifd0.get(TAG.model));
+    add(
+      "Camera",
+      make && model?.startsWith(make)
+        ? model
+        : [make, model].filter(Boolean).join(" "),
+    );
+    add("Lens", text(exif.get(TAG.lensModel)));
+    add("Serial number", text(exif.get(TAG.serialNumber)));
     const date =
       text(exif.get(TAG.dateTimeOriginal)) ?? text(ifd0.get(TAG.dateTime));
-    if (date) found.push(`Date: ${date}`);
-    const software = text(ifd0.get(TAG.software));
-    if (software) found.push(`Software: ${software}`);
-    if (gps.size > 0) found.push("GPS location");
-    if (found.length === 0) found.push("EXIF data");
+    add("Taken", date && formatDate(date));
+    const latitude = coordinate(
+      gps.get(TAG.latitude),
+      gps.get(TAG.latitudeRef),
+    );
+    const longitude = coordinate(
+      gps.get(TAG.longitude),
+      gps.get(TAG.longitudeRef),
+    );
+    if (latitude && longitude) add("Location", `${latitude}, ${longitude}`);
+    else if (gps.size > 0) found.push("GPS location");
+    add("Author", text(ifd0.get(TAG.artist)));
+    add("Copyright", text(ifd0.get(TAG.copyright)));
+    add("Description", text(ifd0.get(TAG.description)));
+    add("Software", text(ifd0.get(TAG.software)));
+    // Exposure, settings and the like: listed once, together. An EXIF block
+    // with only the orientation (what stripping keeps) isn't listed at all.
+    const listed = new Set<number>([
+      TAG.make,
+      TAG.model,
+      TAG.dateTime,
+      TAG.artist,
+      TAG.copyright,
+      TAG.description,
+      TAG.software,
+    ]);
+    const more =
+      [...ifd0.keys()].some(
+        (tag) => !LAYOUT_TAGS.has(tag) && !listed.has(tag),
+      ) ||
+      [...exif.keys()].some(
+        (tag) =>
+          !FORMAT_TAGS.has(tag) &&
+          tag !== TAG.dateTimeOriginal &&
+          tag !== TAG.lensModel &&
+          tag !== TAG.serialNumber,
+      );
+    if (more) found.push("Camera settings (exposure, flash…)");
 
     const raw = ifd0.get(TAG.orientation);
     const orientation =
       typeof raw === "number" && raw >= 1 && raw <= 8 ? raw : 1;
     return { found, orientation };
   } catch {
-    return { found: ["EXIF data"], orientation: 1 };
+    return { found: ["Camera details (EXIF)"], orientation: 1 };
   }
 }
 
-/** An IFD's tags: ASCII as text, single SHORT/LONG as numbers, anything else as `true`. */
+/**
+ * An IFD's tags: ASCII as text, single SHORT/LONG as numbers, RATIONALs as
+ * a list of numbers, anything else as `true`.
+ */
 function readIfd(
   tiff: Uint8Array,
   view: DataView,
   offset: number,
   little: boolean,
-): Map<number, string | number | true> {
-  const tags = new Map<number, string | number | true>();
+): Map<number, TagValue> {
+  const tags = new Map<number, TagValue>();
   const count = view.getUint16(offset, little);
   for (let i = 0; i < count; i++) {
     const entry = offset + 2 + i * 12;
@@ -283,7 +380,18 @@ function readIfd(
       tags.set(tag, view.getUint16(entry + 8, little));
     else if (type === 4 && length === 1)
       tags.set(tag, view.getUint32(entry + 8, little));
-    else tags.set(tag, true);
+    else if (type === 5 && length <= 16) {
+      const at = view.getUint32(entry + 8, little);
+      tags.set(
+        tag,
+        Array.from(
+          { length },
+          (_, k) =>
+            view.getUint32(at + k * 8, little) /
+            view.getUint32(at + k * 8 + 4, little),
+        ),
+      );
+    } else tags.set(tag, true);
   }
   return tags;
 }

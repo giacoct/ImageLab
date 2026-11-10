@@ -18,6 +18,7 @@
   import CropEditor from "./CropEditor.svelte";
   import Failures from "./Failures.svelte";
   import Filmstrip from "./Filmstrip.svelte";
+  import MetadataList from "./MetadataList.svelte";
   import { TOOL_LOOKS } from "./tools";
   import ParamForm from "./ParamForm.svelte";
   import Results from "./Results.svelte";
@@ -115,18 +116,8 @@
     <div class="settings">
       <p class="muted">{op.description}</p>
 
-      {#if op.id === "strip-metadata" && session.selected}
-        {@const { version } = session.selected}
-        {#if version.metadata.length}
-          <div class="hint">
-            In {version.name}:
-            <ul class="bullets">
-              {#each version.metadata as entry (entry)}<li>{entry}</li>{/each}
-            </ul>
-          </div>
-        {:else}
-          <p class="hint">No metadata in {version.name}.</p>
-        {/if}
+      {#if op.id === "strip-metadata" && count}
+        <MetadataList />
       {/if}
       {#if session.tool}
         <ParamForm
@@ -304,11 +295,6 @@
   /* Being worked out again: the last figures, faded. */
   .estimate.pending {
     opacity: 0.55;
-  }
-
-  .bullets {
-    margin: 0.25rem 0 0;
-    padding-left: 1.1rem;
   }
 
   .apply {

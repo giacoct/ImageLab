@@ -44,8 +44,8 @@ away.
 - **Convert format**: JPEG, PNG, WebP or AVIF.
 - **Compress**: to a chosen quality, showing the file's size, or to fit a
   file size, showing the quality it takes.
-- **Strip metadata**: remove camera, date and GPS details without
-  re-encoding the image.
+- **Strip metadata**: remove camera, lens, date, location, author and other
+  details without re-encoding the image, listing what each image carries.
 - **Convert to SVG**: trace the image into vector shapes, saved as SVG.
 - **Extract text (OCR)**: read the text in the image, in English and/or
   Italian, saved as text.

@@ -15,10 +15,11 @@
   import { goHome } from "../app/router";
   import { session } from "../app/session.svelte";
   import { canShareFiles, shareFiles } from "../app/share";
-  import { formatBytes } from "../core/files";
+  import { extensionFor, formatBytes, outputName, stemOf } from "../core/files";
   import type { Output } from "../engine/pipeline";
   import type { Item } from "../app/session.svelte";
   import BlobImage from "./BlobImage.svelte";
+  import FileName from "./FileName.svelte";
 
   const FORMAT_NAMES: Record<string, string> = {
     "image/jpeg": "JPEG",
@@ -74,6 +75,22 @@
       );
   }
 
+  /** The name a result's file gets: its stem (to change) and extension. */
+  function fileName(item: Item): { stem: string; extension: string } {
+    const { version } = item;
+    const extension = extensionFor(version.encoding.format);
+    return {
+      stem: stemOf(outputName(version.name, version.suffix, extension)),
+      extension,
+    };
+  }
+
+  /** `photo-text.txt` → `photo-text` and `txt`. */
+  function parts(name: string): { stem: string; extension: string } {
+    const stem = stemOf(name);
+    return { stem, extension: name.slice(stem.length + 1) };
+  }
+
   /** Size and format of a result, and its file size once known. */
   function details(item: Item): string[] {
     const { version } = item;
@@ -114,7 +131,10 @@
               <BlobImage blob={item.version.thumbnail} alt="" />
             </span>
             <span class="meta">
-              <span class="name">{item.version.name}</span>
+              <FileName
+                {...fileName(item)}
+                onrename={(stem) => session.renameResult(item.id, stem)}
+              />
               <span class="hint numbers parts">
                 {#each details(item) as part (part)}<span>{part}</span>{/each}
               </span>
@@ -136,7 +156,10 @@
     {#each session.outputs as { id, output } (id)}
       {@const file = shareable(output)}
       <article>
-        <span class="name">{output.name}</span>
+        <FileName
+          {...parts(output.name)}
+          onrename={(stem) => session.renameOutput(id, stem)}
+        />
         {#if output.text !== undefined}
           {#if output.text}
             <textarea readonly aria-label="Text from {output.name}"
@@ -310,12 +333,6 @@
     display: grid;
     flex: 1;
     min-width: 0;
-  }
-
-  .name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .parts {

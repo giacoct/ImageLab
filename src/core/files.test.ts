@@ -1,15 +1,25 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  cleanFileName,
   formatBytes,
   isImageFile,
   outputName,
   savedFormat,
   sniffType,
+  stemOf,
   uniqueNames,
 } from "./files";
 
 describe("files", () => {
+  it("cleans a typed file name", () => {
+    expect(stemOf("photo.final.png")).toBe("photo.final");
+    expect(cleanFileName("  holiday: day 1/2  ")).toBe("holiday- day 1-2");
+    expect(cleanFileName("..hidden")).toBe("hidden");
+    expect(cleanFileName(' <>"| ')).toBe("-");
+    expect(cleanFileName("   ")).toBe("");
+  });
+
   it("formats sizes", () => {
     expect(formatBytes(512)).toBe("512 B");
     expect(formatBytes(1536)).toBe("1.5 KB");

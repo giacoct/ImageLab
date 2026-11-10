@@ -31,8 +31,27 @@ export function outputName(
   suffix: string | null,
   extension: string,
 ): string {
-  const stem = fileName.replace(/\.[^/.]+$/, "");
+  const stem = stemOf(fileName);
   return `${stem}${suffix ? `-${suffix}` : ""}.${extension}`;
+}
+
+/** `photo.final.png` → `photo.final`. */
+export function stemOf(fileName: string): string {
+  return fileName.replace(/\.[^/.]+$/, "");
+}
+
+/**
+ * A name typed for a file, made safe for any file system: no path
+ * separators or characters Windows refuses, no leading dots, not too long.
+ * Empty when nothing usable is left.
+ */
+export function cleanFileName(typed: string): string {
+  return typed
+    .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-")
+    .trim()
+    .replace(/^\.+/, "")
+    .slice(0, 200)
+    .trim();
 }
 
 const IMAGE_EXTENSION = /\.(jpe?g|png|webp|avif|gif|bmp|heic|heif)$/i;

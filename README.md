@@ -8,6 +8,7 @@ its own, and the browser's Back button returns to the home page. A tool can
 also be opened first: without images it stays greyed out until you go back
 and load some. Tweak the settings while a live preview shows the result
 (zoom in to look closely), then apply the tool to all the images at once.
+Results can be renamed before they're saved (tap a name to change it).
 Download the results, one by one or as a ZIP, share them to another app, or
 use them as the input of another tool: crop, then scale, then convert to
 WebP, then compress to 200 KB, without downloading anything in between.

@@ -9,7 +9,7 @@
  * between: see `Version`).
  */
 
-import { isImageFile, uniqueNames } from "../core/files";
+import { cleanFileName, isImageFile, stemOf, uniqueNames } from "../core/files";
 import { defaults } from "../core/params";
 import { Cancelled, engine } from "../engine/client";
 import type { Output, Saved, Version } from "../engine/pipeline";
@@ -338,6 +338,45 @@ class Session {
     this.ranWith = null;
     this.saved.clear();
     this.sharing = "idle";
+  }
+
+  /**
+   * Give a result's file another name (its extension stays: the format
+   * decides it). It carries on if the result is used as input, where the
+   * next tool adds its suffix to it.
+   */
+  renameResult(id: string, typed: string): void {
+    const stem = cleanFileName(typed);
+    const item = this.results.find((result) => result.id === id);
+    if (!stem || !item) return;
+    // The name a file comes from, with no tool suffix: saved as `stem.ext`.
+    const version = { ...item.version, name: `${stem}.x`, suffix: null };
+    this.results = this.results.map((result) =>
+      result.id === id ? { id, version } : result,
+    );
+    const saved = this.saved.get(id);
+    if (saved)
+      this.saved.set(id, {
+        ...saved,
+        name: saved.name.replace(stemOf(saved.name), stem),
+      });
+  }
+
+  /** Give a text or SVG another name (its extension stays). */
+  renameOutput(id: string, typed: string): void {
+    const stem = cleanFileName(typed);
+    if (!stem) return;
+    this.outputs = this.outputs.map((entry) =>
+      entry.id === id
+        ? {
+            id,
+            output: {
+              ...entry.output,
+              name: entry.output.name.replace(stemOf(entry.output.name), stem),
+            },
+          }
+        : entry,
+    );
   }
 
   /** Make the results the images, for another tool (the caller goes back to the tools). */

@@ -2,7 +2,7 @@
 
 import { removeBackground as remove } from "../core/background";
 import { p } from "../core/params";
-import { editPixels } from "../engine/canvas";
+import { editPixels, inWorkingSpace } from "../engine/canvas";
 import { mapOp } from "./op";
 
 export const removeBackground = mapOp({
@@ -36,6 +36,8 @@ export const removeBackground = mapOp({
     }),
   },
   run(image, values) {
-    return editPixels(image, (pixels) => remove(pixels, values));
+    // Compared with the pixels' numbers, in the working color space.
+    const color = inWorkingSpace(values.color);
+    return editPixels(image, (pixels) => remove(pixels, { ...values, color }));
   },
 });

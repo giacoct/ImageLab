@@ -55,14 +55,18 @@ export class Previewer<K extends Kind = "preview"> {
   }
 }
 
-/** Draw a preview bitmap into a canvas (resizing it to match) and release the bitmap. */
+/**
+ * Draw a preview bitmap into a canvas (resizing it to match) and release the
+ * bitmap. The canvas is in Display P3 where the browser has it, so a
+ * wide-gamut image keeps its colors (an sRGB one looks the same in it).
+ */
 export function drawBitmap(
   canvas: HTMLCanvasElement,
   bitmap: ImageBitmap,
 ): void {
   canvas.width = bitmap.width;
   canvas.height = bitmap.height;
-  const context = canvas.getContext("2d");
+  const context = canvas.getContext("2d", { colorSpace: "display-p3" });
   context?.clearRect(0, 0, canvas.width, canvas.height);
   context?.drawImage(bitmap, 0, 0);
   bitmap.close();

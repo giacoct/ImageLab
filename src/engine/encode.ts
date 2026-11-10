@@ -2,15 +2,28 @@
  * Writing image files. JPEG, WebP and AVIF use Squoosh's codecs (WASM:
  * MozJPEG, libwebp, libavif), so the output is the same in every browser
  * (canvas encoders vary, and none writes AVIF); PNG uses the browser's own
- * lossless encoder.
+ * lossless encoder. The codecs write bare files: the EXIF and the color
+ * profile of an image in Display P3 are added to them (`core/embed.ts`).
  */
 
 import { formatToWrite, type Encoding } from "../core/encoding";
-import { embedExif } from "../core/exif";
+import { DISPLAY_P3_CODES } from "../core/color";
+import { embedMetadata } from "../core/embed";
 import type { ImageFormat } from "../core/files";
+import { tagNclx } from "../core/isobmff";
+import { profileOf } from "../core/metadata";
 import { hasTransparency } from "../core/pixels";
 import { largestThatFits } from "../core/search";
-import { flattened, readPixels, resized, type Img } from "./canvas";
+import {
+  flattened,
+  inSrgb,
+  readPixels,
+  resized,
+  workIn,
+  workingSpace,
+  type Img,
+} from "./canvas";
+import { displayP3Profile } from "./color";
 
 export interface Encoded {
   blob: Blob;
@@ -75,17 +88,58 @@ export async function write(
   return { ...picture, encoding, file: { blob, original: false, quality } };
 }
 
-/** Encode at `quality` (1–100; ignored by PNG), with `exif` unless it's AVIF. */
+/** A lossless PNG of the image, which says its color space. */
+export function losslessPng(image: Img): Promise<Blob> {
+  return encodeRaster(image, "image/png", 100, null);
+}
+
+/**
+ * Encode at `quality` (1–100; ignored by PNG), with `exif` unless it's AVIF.
+ * An image in Display P3 says so: by its profile (the browser's PNG has it
+ * already), or for AVIF by its color box. Where it can't, it's saved in
+ * sRGB, so it doesn't look washed out.
+ */
 async function encodeRaster(
   image: Img,
   format: ImageFormat,
   quality: number,
   exif: Uint8Array | null,
 ): Promise<Blob> {
-  const encoded = await encodeBare(image, format, quality);
-  if (!exif || format === "image/avif") return encoded;
-  const file = embedExif(new Uint8Array(await encoded.arrayBuffer()), exif);
-  return file ? new Blob([file], { type: format }) : encoded;
+  const bytes = async (blob: Blob) => new Uint8Array(await blob.arrayBuffer());
+  const avif = format === "image/avif";
+  let icc: Uint8Array | null = null;
+  let file: Uint8Array;
+  if (workingSpace() === "srgb") {
+    file = await bytes(await encodeBare(image, format, quality));
+  } else if (avif) {
+    file = await bytes(await encodeBare(image, format, quality));
+    const { primaries, transfer } = DISPLAY_P3_CODES;
+    if (!tagNclx(file, primaries, transfer))
+      file = await bytes(await encodeSrgb(image, format, quality));
+  } else if ((icc = await displayP3Profile())) {
+    file = await bytes(await encodeBare(image, format, quality));
+    if (profileOf(file)) icc = null; // the browser's PNG
+  } else file = await bytes(await encodeSrgb(image, format, quality));
+
+  const carried = avif ? null : exif;
+  const out =
+    carried || icc ? embedMetadata(file, { exif: carried, icc }) : null;
+  return new Blob([(out ?? file) as Uint8Array<ArrayBuffer>], { type: format });
+}
+
+/** Encode a copy in sRGB, for a file that can't say it's in Display P3. */
+async function encodeSrgb(
+  image: Img,
+  format: ImageFormat,
+  quality: number,
+): Promise<Blob> {
+  const space = workingSpace();
+  workIn("srgb");
+  try {
+    return await encodeBare(inSrgb(image), format, quality);
+  } finally {
+    workIn(space);
+  }
 }
 
 async function encodeBare(

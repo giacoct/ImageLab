@@ -5,17 +5,23 @@
  * Images are drawn synthetically so the expected pixels are known.
  */
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { initialEncoding, type Encoding } from "../core/encoding";
-import { embedExif } from "../core/exif";
+import { embedMetadata } from "../core/embed";
 import type { ImageFormat } from "../core/files";
-import { readMetadata } from "../core/metadata";
+import { profileOf, readMetadata } from "../core/metadata";
 import { defaults } from "../core/params";
 import { getOp } from "../ops";
 import type { Action, RunContext } from "../ops/op";
 import { cropForImage } from "../ops/transform";
-import { context2d, createCanvas, readPixels, type Img } from "./canvas";
+import {
+  context2d,
+  createCanvas,
+  readPixels,
+  workIn,
+  type Img,
+} from "./canvas";
 import { Cancelled, engine } from "./client";
 import { decode } from "./decode";
 import { encodeImage } from "./encode";
@@ -30,6 +36,9 @@ import {
   save,
   type Version,
 } from "./pipeline";
+
+// The test images are drawn in sRGB, whatever the last request worked in.
+beforeEach(() => workIn("srgb"));
 
 const context: RunContext = {
   scale: 1,
@@ -428,7 +437,9 @@ describe("pipeline", () => {
       ...[0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, 6, 0, 0],
       ...[0, 0, 0, 0],
     ]);
-    const tagged = new Blob([embedExif(jpeg, tiff)!], { type: "image/jpeg" });
+    const tagged = new Blob([embedMetadata(jpeg, { exif: tiff })!], {
+      type: "image/jpeg",
+    });
     const input = await open(tagged, "photo.jpg");
     expect([input.width, input.height]).toEqual([20, 40]); // turned upright
     expect(input.metadata).toEqual(["Camera: Cam"]);
@@ -509,6 +520,92 @@ describe("pipeline", () => {
     await expect(
       finish(await file(), action("scale"), context),
     ).rejects.toThrow(/makes images/);
+  });
+});
+
+describe("wide gamut", () => {
+  /** A photo in Display P3: its own red (past sRGB's) on the left, sRGB's blue #3366cc on the right. */
+  async function p3Photo(type = "image/jpeg"): Promise<Blob> {
+    const canvas = new OffscreenCanvas(40, 20);
+    const ctx = canvas.getContext("2d", { colorSpace: "display-p3" })!;
+    ctx.fillStyle = "color(display-p3 1 0 0)";
+    ctx.fillRect(0, 0, 20, 20);
+    ctx.fillStyle = "#3366cc";
+    ctx.fillRect(20, 0, 20, 20);
+    return canvas.convertToBlob({ type, quality: 1 });
+  }
+
+  /** The color at (x, y) of a file, read in Display P3. */
+  async function p3At(blob: Blob, x: number, y: number): Promise<number[]> {
+    const bitmap = await createImageBitmap(blob);
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const ctx = canvas.getContext("2d", { colorSpace: "display-p3" })!;
+    ctx.drawImage(bitmap, 0, 0);
+    return [...ctx.getImageData(x, y, 1, 1).data].slice(0, 3);
+  }
+
+  const near = (actual: number[], expected: number[], within: number) =>
+    actual.every((v, i) => Math.abs(v - expected[i]) <= within);
+
+  it("keeps a Display P3 photo's colors through a tool, in every format", async () => {
+    const input = await open(await p3Photo(), "photo.jpg");
+    expect(input.colorSpace).toBe("display-p3");
+    // Clipped to sRGB, the red would read about 234, 51, 35 in Display P3.
+    expect(near(await p3At(input.pixels, 5, 5), [255, 0, 0], 3)).toBe(true);
+    const scaled = await apply(
+      [input],
+      action("scale", { percent: 50 }),
+      context,
+    );
+    expect(scaled[0].colorSpace).toBe("display-p3");
+    for (const format of ["png", "jpeg", "webp", "avif"]) {
+      const converted = await apply(
+        scaled,
+        action("convert", { format, quality: 95 }),
+        context,
+      );
+      const { blob } = await save(converted[0]);
+      expect(blob.type).toBe(`image/${format}`);
+      expect(near(await p3At(blob, 2, 5), [255, 0, 0], 12), format).toBe(true);
+    }
+  });
+
+  it("leaves an sRGB image in sRGB, its files without a profile", async () => {
+    const input = await open(await pngBlob(twoTone()), "photo.png");
+    expect(input.colorSpace).toBe("srgb");
+    const [jpeg] = await apply(
+      [input],
+      action("convert", { format: "jpeg" }),
+      context,
+    );
+    expect(
+      profileOf(new Uint8Array(await jpeg.file!.blob.arrayBuffer())),
+    ).toBeNull();
+  });
+
+  it("detects and removes an sRGB background color on a Display P3 image", async () => {
+    // The blue half is the background: it's the most common edge color.
+    const canvas = new OffscreenCanvas(40, 40);
+    const ctx = canvas.getContext("2d", { colorSpace: "display-p3" })!;
+    ctx.fillStyle = "#3366cc";
+    ctx.fillRect(0, 0, 40, 40);
+    ctx.fillStyle = "color(display-p3 1 0 0)";
+    ctx.fillRect(10, 10, 20, 20);
+    const input = await open(
+      await canvas.convertToBlob({ type: "image/png" }),
+      "logo.png",
+    );
+    expect(input.colorSpace).toBe("display-p3");
+    const color = await backgroundOf(input);
+    expect(color).toBe("#3366cc");
+    const [removed] = await apply(
+      [input],
+      action("remove-background", { color }),
+      context,
+    );
+    const { image } = await decode(removed.pixels);
+    expect(pixel(image, 2, 2)[3]).toBe(0); // the background, gone
+    expect(pixel(image, 20, 20)[3]).toBe(255); // the subject, kept
   });
 });
 

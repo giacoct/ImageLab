@@ -34,6 +34,9 @@ Compress decide how that file is saved, and show its size and look right
 away. A photo's details (camera, date, location…) stay in the files made
 from it, except AVIF files, until Strip metadata removes them; the embedded
 thumbnail is dropped, so it can't show what a crop cut off.
+Wide-gamut photos (Display P3, as recent phones take them) keep their
+vivid colors through the tools, in browsers that can hold them (Chrome,
+Edge, Safari); elsewhere they're worked on in sRGB.
 
 ## Tools
 

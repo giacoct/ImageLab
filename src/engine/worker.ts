@@ -14,8 +14,14 @@ import type { RequestMessage, ResponseMessage } from "./protocol";
 
 declare const self: DedicatedWorkerGlobalScope;
 
-self.onmessage = async (event: MessageEvent<RequestMessage>) => {
-  const message = event.data;
+// One request at a time (the client sends them so anyway): each sets the
+// color space its canvases are made in (canvas.ts).
+let queue = Promise.resolve();
+self.onmessage = (event: MessageEvent<RequestMessage>) => {
+  queue = queue.then(() => handle(event.data));
+};
+
+async function handle(message: RequestMessage): Promise<void> {
   const asset = (path: string) => new URL(path, message.appUrl).href;
   const context = {
     scale: 1,
@@ -43,20 +49,23 @@ self.onmessage = async (event: MessageEvent<RequestMessage>) => {
         result = await backgroundOf(message.args.version);
         break;
       case "preview": {
-        const { image, scale } = await renderPreview(message.args, asset);
-        const bitmap = image.transferToImageBitmap();
-        transfer.push(bitmap);
-        result = { bitmap, scale };
-        break;
-      }
-      case "detail": {
-        const { image, region, density } = await renderDetail(
+        const { image, scale, colorSpace } = await renderPreview(
           message.args,
           asset,
         );
         const bitmap = image.transferToImageBitmap();
         transfer.push(bitmap);
-        result = { bitmap, region, density };
+        result = { bitmap, scale, colorSpace };
+        break;
+      }
+      case "detail": {
+        const { image, region, density, colorSpace } = await renderDetail(
+          message.args,
+          asset,
+        );
+        const bitmap = image.transferToImageBitmap();
+        transfer.push(bitmap);
+        result = { bitmap, region, density, colorSpace };
         break;
       }
     }
@@ -73,4 +82,4 @@ self.onmessage = async (event: MessageEvent<RequestMessage>) => {
       error: text || "Processing failed.",
     } satisfies ResponseMessage);
   }
-};
+}

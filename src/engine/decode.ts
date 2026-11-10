@@ -1,12 +1,14 @@
 /**
- * Decode an image file into the pipeline's canvas. The browser's own decoder
- * handles JPEG, PNG, WebP, AVIF, GIF and BMP (and HEIC in Safari), applying
- * the EXIF orientation; HEIC/HEIF elsewhere goes through libheif (WASM),
+ * Decode an image file into the pipeline's canvas (in the working color
+ * space, see `canvas.ts`). The browser's own decoder handles JPEG, PNG,
+ * WebP, AVIF, GIF and BMP (and HEIC in Safari), applying the EXIF orientation
+ * and the color profile; HEIC/HEIF elsewhere goes through libheif (WASM),
  * loaded only the first time it's needed.
  */
 
 import { sniffType } from "../core/files";
 import { context2d, createCanvas, type Img } from "./canvas";
+import { colorSpaceOf } from "./color";
 
 export interface Decoded {
   image: Img;
@@ -82,7 +84,10 @@ async function decodeHeic(bytes: Uint8Array): Promise<Img> {
     const width = primary.get_width();
     const height = primary.get_height();
     checkSize(width, height);
-    const data = new ImageData(width, height);
+    // libheif gives the file's own values: labelled with its color space,
+    // the canvas converts them into the working one.
+    const colorSpace = await colorSpaceOf(bytes);
+    const data = new ImageData(width, height, { colorSpace });
     const result = await new Promise<ImageData | null>((resolve) =>
       primary.display(data, resolve),
     );

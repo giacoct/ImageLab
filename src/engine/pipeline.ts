@@ -10,9 +10,13 @@
  * that never compounds compression; its file is written when it's saved,
  * unless Convert format or Compress already wrote it. The photo's EXIF goes
  * along (cleaned, see `core/exif.ts`) into every file written for it.
+ *
+ * Each request works in the color space of its images (`canvas.ts`): Display
+ * P3 if one of them is wide-gamut, so its colors survive.
  */
 
 import { edgeColor } from "../core/background";
+import type { ColorSpace } from "../core/color";
 import { initialEncoding, type Encoding } from "../core/encoding";
 import { carriedExif } from "../core/exif";
 import { extensionFor, outputName, type ImageFormat } from "../core/files";
@@ -26,10 +30,13 @@ import {
   downscaled,
   readPixels,
   resized,
+  workIn,
+  workingSpace,
   type Img,
 } from "./canvas";
+import { colorSpaceOf } from "./color";
 import { decode } from "./decode";
-import { encodeImage, type Picture } from "./encode";
+import { encodeImage, losslessPng, type Picture } from "./encode";
 
 /** One image as a tool left it. */
 export interface Version {
@@ -50,6 +57,17 @@ export interface Version {
   metadata: string[];
   /** The EXIF a file written for it carries, until Strip metadata drops it. */
   exif: Uint8Array | null;
+  /** Display P3 for a wide-gamut image: its pixels and files are in it. */
+  colorSpace: ColorSpace;
+}
+
+/** Work in Display P3 if one of the images is in it. */
+function workOn(versions: readonly Pick<Version, "colorSpace">[]): void {
+  workIn(
+    versions.some((version) => version.colorSpace === "display-p3")
+      ? "display-p3"
+      : "srgb",
+  );
 }
 
 /** What a final tool (OCR, SVG) makes of an image. */
@@ -85,6 +103,7 @@ const WRITABLE = new Set<string>([
 
 /** Read a file: its pixels, size, format and metadata. */
 export async function open(blob: Blob, name: string): Promise<Version> {
+  workIn(await colorSpaceOf(new Uint8Array(await blob.arrayBuffer())));
   const { image, type, bytes } = await decode(blob);
   // Labelled with the sniffed type: the declared one may be missing or wrong.
   const file = new Blob([blob], { type });
@@ -99,6 +118,7 @@ export async function open(blob: Blob, name: string): Promise<Version> {
     suffix: null,
     metadata: readMetadata(bytes).found,
     exif: carriedExif(exifOf(bytes)),
+    colorSpace: workingSpace(),
   };
 }
 
@@ -115,6 +135,7 @@ export async function apply(
   const op = getOp(action.op);
   if (op.kind === "final") throw new Error(`${op.title} doesn't make images.`);
   if (inputs.length === 0) throw new Error("Add images first.");
+  workOn(inputs);
 
   if (op.kind === "combine") {
     const images: Img[] = [];
@@ -166,9 +187,7 @@ async function store(
   const { image } = picture;
   return {
     name: from.name,
-    pixels: changed
-      ? await image.convertToBlob({ type: "image/png" })
-      : from.pixels,
+    pixels: changed ? await losslessPng(image) : from.pixels,
     width: image.width,
     height: image.height,
     thumbnail: changed ? await thumbnailOf(image) : from.thumbnail,
@@ -177,6 +196,7 @@ async function store(
     suffix: op.suffix,
     metadata: await metadataOf(picture, from),
     exif: picture.exif,
+    colorSpace: workingSpace(),
   };
 }
 
@@ -190,8 +210,9 @@ async function metadataOf(picture: Picture, from: Version): Promise<string[]> {
   return exif && encoding.format !== "image/avif" ? describeExif(exif) : [];
 }
 
-/** The image's background color: the most common one along its edges. */
+/** The image's background color: the most common one along its edges (in sRGB, as settings are). */
 export async function backgroundOf(version: Version): Promise<string> {
+  workIn("srgb");
   return edgeColor(readPixels(await pixelsOf(version)));
 }
 
@@ -203,6 +224,8 @@ export async function finish(
 ): Promise<Output> {
   const op = getOp(action.op);
   if (op.kind !== "final") throw new Error(`${op.title} makes images.`);
+  // Text and SVG colors are sRGB.
+  workIn("srgb");
   const blob = await op.run(await pixelsOf(input), action.params, context);
   const type = blob.type.split(";")[0];
   const isText = type.startsWith("text/");
@@ -219,6 +242,7 @@ export async function finish(
  * the app can't write (HEIC, GIF…), else the pixels encoded now.
  */
 export async function save(version: Version): Promise<Saved> {
+  workOn([version]);
   const written =
     version.file && WRITABLE.has(version.file.blob.type)
       ? version.file.blob
@@ -299,6 +323,7 @@ export async function renderPreview(
   request: PreviewRequest,
   asset: RunContext["asset"],
 ): Promise<Preview> {
+  workOn(request.images.map(({ version }) => version));
   const loaded = await Promise.all(
     request.images.map(({ key, version }) => proxyFor(key, version.pixels)),
   );
@@ -317,13 +342,15 @@ export async function renderPreview(
       proxy.image.height * factor,
     );
   });
-  return { image: await renderOn(images, scale, request, asset), scale };
+  const image = await renderOn(images, scale, request, asset);
+  return { image, scale, colorSpace: workingSpace() };
 }
 
 export interface Preview {
   image: Img;
   /** Preview size / full size, to show the zoom of the real image. */
   scale: number;
+  colorSpace: ColorSpace;
 }
 
 /**
@@ -384,6 +411,7 @@ export interface Detail {
   region: Region;
   /** Its pixels per pixel of the full-size result. */
   density: number;
+  colorSpace: ColorSpace;
 }
 
 /**
@@ -407,6 +435,7 @@ export async function renderDetail(
   asset: RunContext["asset"],
 ): Promise<Detail> {
   if (request.images.length === 0) throw new Error("Nothing to preview.");
+  workOn(request.images.map(({ version }) => version));
   const pixels = request.images.reduce(
     (sum, { version }) => sum + version.width * version.height,
     0,
@@ -420,6 +449,7 @@ export async function renderDetail(
     request.images.map(({ key }) => key),
     request.action,
     scale,
+    workingSpace(),
   ]);
   if (detailRendered?.signature !== signature) {
     detailRendered = null; // let it go before rendering the next
@@ -454,6 +484,7 @@ export async function renderDetail(
       height: part.height / image.height,
     },
     density: scale,
+    colorSpace: workingSpace(),
   };
 }
 

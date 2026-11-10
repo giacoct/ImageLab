@@ -17,7 +17,7 @@ npm run format    # prettier --write .
 
 `src/`, each layer importing only from the ones above it (the engine's pipeline also runs the ops):
 
-- `core/`: pure logic (geometry, pixels, params, metadata and EXIF, ZIP…), no DOM; unit-tested in Node.
+- `core/`: pure logic (geometry, pixels, params, metadata, EXIF and color profiles, ZIP…), no DOM; unit-tested in Node.
 - `engine/`: decoding, encoding and canvas primitives, the worker pipeline (`pipeline.ts`, `worker.ts`), its main-thread client (`client.ts`) and the GPU live preview (`live.ts`); browser-tested.
 - `ops/`: one file per tool, each an `Op` (`op.ts`) with a settings schema and a `run`; `index.ts` lists them in display order. `models/` holds the upscaler's ONNX model (patched, see `upscale.ts`).
 - `app/`: app state (`session.svelte.ts`), routing (`#/<tool id>`), previews, file picking, downloads, the share sheet (`share.ts`) and the service worker (`service.ts`; `public/service-worker.js` keeps the build's files for offline use, listed by `vite.config.ts`, isolates the app for threads and receives shares).

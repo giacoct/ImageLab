@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { carriedExif, embedExif, isobmffExif } from "./exif";
+import { embedMetadata } from "./embed";
+import { carriedExif, isobmffExif } from "./exif";
 import { describeExif, exifOf, readMetadata } from "./metadata";
 
 const text = (s: string) => [...s].map((c) => c.charCodeAt(0));
@@ -107,7 +108,7 @@ describe("carried EXIF", () => {
     expect(contains(carried, THUMBNAIL)).toBe(false);
     expect(contains(carried, text("MAKER SECRET"))).toBe(false);
     // Upright now: the file isn't turned again when it's shown.
-    const jpeg = embedExif(bareJpeg(), carried)!;
+    const jpeg = embedMetadata(bareJpeg(), { exif: carried })!;
     expect(readMetadata(jpeg).orientation).toBe(1);
   });
 
@@ -142,7 +143,7 @@ describe("embedding EXIF", () => {
   const carried = carriedExif(camera)!;
 
   it("puts it in a JPEG, after the JFIF segment", () => {
-    const file = embedExif(bareJpeg(), carried)!;
+    const file = embedMetadata(bareJpeg(), { exif: carried })!;
     expect(file[20]).toBe(0xff);
     expect(file[21]).toBe(0xe1); // right after SOI (2) + JFIF (2 + 16)
     expect(readMetadata(file).found).toEqual(describeExif(carried));
@@ -168,7 +169,7 @@ describe("embedding EXIF", () => {
       ...idat,
       ...iend,
     ]);
-    const file = embedExif(png, carried)!;
+    const file = embedMetadata(png, { exif: carried })!;
     expect(String.fromCharCode(...file.subarray(37, 41))).toBe("eXIf");
     expect(readMetadata(file).found).toEqual(describeExif(carried));
   });
@@ -190,7 +191,7 @@ describe("embedding EXIF", () => {
       ...text("WEBP"),
       ...chunk,
     ]);
-    const file = embedExif(webp, carried)!;
+    const file = embedMetadata(webp, { exif: carried })!;
     const view = new DataView(file.buffer);
     expect(String.fromCharCode(...file.subarray(12, 16))).toBe("VP8X");
     expect(file[20]).toBe(0x08 | 0x10); // EXIF, alpha
@@ -202,7 +203,9 @@ describe("embedding EXIF", () => {
 
   it("leaves other formats alone", () => {
     expect(
-      embedExif(new Uint8Array([0, 0, 0, 0, ...text("ftypavif")]), carried),
+      embedMetadata(new Uint8Array([0, 0, 0, 0, ...text("ftypavif")]), {
+        exif: carried,
+      }),
     ).toBeNull();
   });
 });

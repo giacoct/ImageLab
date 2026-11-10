@@ -53,6 +53,61 @@ export function exifOf(bytes: Uint8Array): Uint8Array | null {
   return parsed.blocks.find((block) => block.exif)?.exif ?? null;
 }
 
+/**
+ * The ICC color profile a JPEG, PNG or WebP embeds, if any; a PNG's is
+ * compressed (zlib, `deflated`).
+ */
+export function profileOf(
+  bytes: Uint8Array,
+): { data: Uint8Array; deflated: boolean } | null {
+  const parsed = parse(bytes);
+  if (!parsed) return null;
+  const at = (block: Block, offset: number, length: number) =>
+    ascii(bytes, block.start + offset, length);
+  if (parsed.format === "jpeg") {
+    // APP2 segments: "ICC_PROFILE\0", its number, how many, then a part.
+    const parts = parsed.blocks
+      .filter(
+        (block) =>
+          bytes[block.start + 1] === 0xe2 &&
+          at(block, 4, 12) === "ICC_PROFILE\0",
+      )
+      .sort((a, b) => bytes[a.start + 16] - bytes[b.start + 16])
+      .map((block) => bytes.subarray(block.start + 18, block.end));
+    if (parts.length === 0) return null;
+    const data = new Uint8Array(parts.reduce((sum, p) => sum + p.length, 0));
+    let offset = 0;
+    for (const part of parts) {
+      data.set(part, offset);
+      offset += part.length;
+    }
+    return { data, deflated: false };
+  }
+  for (const block of parsed.blocks) {
+    if (parsed.format === "png" && at(block, 4, 4) === "iCCP") {
+      // A name (up to 79 bytes, ended by 0), the compression method, the data.
+      const end = block.end - 4; // before the CRC
+      const name = bytes.subarray(block.start + 8, end).indexOf(0);
+      if (name < 0) return null;
+      return {
+        data: bytes.subarray(block.start + 8 + name + 2, end),
+        deflated: true,
+      };
+    }
+    if (parsed.format === "webp" && at(block, 0, 4) === "ICCP") {
+      const size = new DataView(bytes.buffer, bytes.byteOffset).getUint32(
+        block.start + 4,
+        true,
+      );
+      return {
+        data: bytes.subarray(block.start + 8, block.start + 8 + size),
+        deflated: false,
+      };
+    }
+  }
+  return null;
+}
+
 /** What an EXIF payload holds, in words (as `Metadata.found`). */
 export function describeExif(tiff: Uint8Array): string[] {
   return readExif(tiff).found;

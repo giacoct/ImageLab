@@ -1,5 +1,6 @@
 /** Messages between the main thread (`client.ts`) and the engine worker (`worker.ts`). */
 
+import type { ColorSpace } from "../core/color";
 import type { Action } from "../ops/op";
 import type {
   DetailRequest,
@@ -14,6 +15,8 @@ import type {
 export interface PreviewImage {
   bitmap: ImageBitmap;
   scale: number;
+  /** The space its colors are in: a canvas showing it should be too. */
+  colorSpace: ColorSpace;
 }
 
 /** A part of the full-size result, for a zoomed-in preview (see `renderDetail`). */
@@ -21,6 +24,7 @@ export interface DetailImage {
   bitmap: ImageBitmap;
   region: Region;
   density: number;
+  colorSpace: ColorSpace;
 }
 
 export interface Requests {

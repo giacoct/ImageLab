@@ -102,6 +102,7 @@ export class LiveAdjust {
   /** The source on the GPU (it may be closed since), and its size. */
   private uploaded: Source | null = null;
   private size = { width: 0, height: 0 };
+  private space: PredefinedColorSpace = "srgb";
   private readonly precise: boolean;
   private readonly onLost: (event: Event) => void;
 
@@ -156,12 +157,25 @@ export class LiveAdjust {
   /**
    * Draw `source` adjusted by `settings`; `scale` is its size relative to the
    * full-size image (blur is given in full-size pixels). The canvas takes the
-   * size of the source.
+   * size of the source. The math runs on the numbers of its color space, as
+   * the worker's does (Display P3 for a wide-gamut image), and the canvas
+   * shows them in it.
    */
-  draw(source: Source, settings: LiveSettings, scale: number): void {
+  draw(
+    source: Source,
+    settings: LiveSettings,
+    scale: number,
+    colorSpace: PredefinedColorSpace = "srgb",
+  ): void {
     const { gl } = this;
     if (gl.isContextLost()) return;
     const { width, height } = source;
+    if (colorSpace !== this.space) {
+      gl.drawingBufferColorSpace = colorSpace;
+      gl.unpackColorSpace = colorSpace;
+      this.space = colorSpace;
+      this.uploaded = null;
+    }
     if (source !== this.uploaded) this.upload(source);
     const [a, b] = this.targets!;
 

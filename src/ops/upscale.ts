@@ -16,6 +16,7 @@ import type { InferenceSession, Tensor } from "onnxruntime-web";
 import { hasTransparency } from "../core/pixels";
 import { p } from "../core/params";
 import {
+  blankPixels,
   context2d,
   createCanvas,
   downscaled,
@@ -154,7 +155,7 @@ async function enlargeWith(
       const cw = (Math.min(x0 + TILE, width) - x0) * FACTOR;
       const ch = (Math.min(y0 + TILE, height) - y0) * FACTOR;
       const offset = PAD * FACTOR;
-      const tile = new ImageData(cw, ch);
+      const tile = blankPixels(cw, ch);
       for (let y = 0; y < ch; y++) {
         for (let x = 0; x < cw; x++) {
           const s = (offset + y) * ow + offset + x;

@@ -68,15 +68,19 @@
   let renderer = $state.raw<LiveAdjust | null>(null);
   let gpuFailed = $state(false);
   /** The plain image the GPU adjusts, as the engine last rendered it. */
-  let source = $state.raw<{ bitmap: ImageBitmap; scale: number } | null>(null);
+  let source = $state.raw<{
+    bitmap: ImageBitmap;
+    scale: number;
+    colorSpace: PredefinedColorSpace;
+  } | null>(null);
 
   const previewer = new Previewer(
-    ({ bitmap, scale }) => {
+    ({ bitmap, scale, colorSpace }) => {
       real = { width: bitmap.width / scale, height: bitmap.height / scale };
       density = scale;
       if (live) {
         source?.bitmap.close();
-        source = { bitmap, scale };
+        source = { bitmap, scale, colorSpace };
       } else if (canvas) drawBitmap(canvas, bitmap);
       else bitmap.close();
       error = "";
@@ -256,10 +260,10 @@
   $effect(() => {
     if (!renderer || !source || !session.tool) return;
     const draw = renderer;
-    const { bitmap, scale } = source;
+    const { bitmap, scale, colorSpace } = source;
     const settings = $state.snapshot(session.tool.params) as unknown;
     const frame = requestAnimationFrame(() =>
-      draw.draw(bitmap, settings as LiveSettings, scale),
+      draw.draw(bitmap, settings as LiveSettings, scale, colorSpace),
     );
     return () => cancelAnimationFrame(frame);
   });
@@ -389,20 +393,23 @@
     // Where in the result, in fractions of its size.
     let fx = (point.x - pan.x) / size.width + 0.5;
     let fy = (point.y - pan.y) / size.height + 0.5;
-    let source = canvas;
+    let from = canvas;
     if (sharp && detailCanvas) {
       const { region } = sharp;
       const dx = (fx - region.x) / region.width;
       const dy = (fy - region.y) / region.height;
       if (dx >= 0 && dy >= 0 && dx < 1 && dy < 1) {
-        [fx, fy, source] = [dx, dy, detailCanvas];
+        [fx, fy, from] = [dx, dy, detailCanvas];
       }
     }
-    const x = Math.floor(fx * source.width);
-    const y = Math.floor(fy * source.height);
-    if (x < 0 || y < 0 || x >= source.width || y >= source.height) return;
-    // The pixel and its neighbors (outside the canvas, they read as transparent).
-    const area = source.getContext("2d")?.getImageData(x - 1, y - 1, 3, 3);
+    const x = Math.floor(fx * from.width);
+    const y = Math.floor(fy * from.height);
+    if (x < 0 || y < 0 || x >= from.width || y >= from.height) return;
+    // The pixel and its neighbors (outside the canvas, they read as
+    // transparent), in sRGB, as color settings are.
+    const area = from
+      .getContext("2d")
+      ?.getImageData(x - 1, y - 1, 3, 3, { colorSpace: "srgb" });
     const color = area && colorAt(area, 1, 1);
     if (!color) return;
     session.setParam(key, color);

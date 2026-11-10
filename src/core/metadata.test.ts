@@ -76,6 +76,32 @@ describe("metadata", () => {
     expect(readMetadata(stripMetadata(jpeg(1))!).found).toEqual([]);
   });
 
+  it("strips what follows a JPEG's end: more images, a video", () => {
+    // Two scans (a progressive JPEG), a table between them; the data
+    // holds an escaped 0xFF and a restart marker, which don't end it.
+    const scans = [
+      ...[0xff, 0xda, ...u16(4), 1, 2, 9, 0xff, 0, 9, 0xff, 0xd3, 9],
+      ...segment(0xc4, [0, 1, 2]),
+      ...[0xff, 0xda, ...u16(4), 3, 4, 9, 9],
+      ...[0xff, 0xd9],
+    ];
+    const photo = [0xff, 0xd8, ...segment(0xfe, text("hi")), ...scans];
+    const second = [
+      0xff,
+      0xd8,
+      ...segment(0xe1, [...text("Exif\0\0"), ...tiff(1)]),
+      ...scan,
+    ];
+    const file = new Uint8Array([...photo, ...second, ...text("ftypmp42")]);
+    expect(readMetadata(file).found).toEqual([
+      "Comment",
+      "More images or a video after the photo",
+    ]);
+    const stripped = stripMetadata(file)!;
+    expect([...stripped]).toEqual([0xff, 0xd8, ...scans]);
+    expect(readMetadata(stripped).found).toEqual([]);
+  });
+
   it("reads who, where and how a photo was taken", () => {
     // A little-endian TIFF laid out by hand: IFD0, then the EXIF and GPS
     // IFDs, then the values that don't fit in an entry.
@@ -173,6 +199,38 @@ describe("metadata", () => {
     expect(readMetadata(stripped).found).toEqual([]);
   });
 
+  it("keeps only the chunks that make a PNG", () => {
+    const chunk = (type: string, data: number[]) => [
+      ...u32(data.length),
+      ...text(type),
+      ...data,
+      0,
+      0,
+      0,
+      0,
+    ];
+    const image = [
+      ...chunk("IHDR", Array(13).fill(0)),
+      ...chunk("tRNS", [0, 0]),
+      ...chunk("IDAT", [1, 2, 3]),
+    ];
+    const png = new Uint8Array([
+      0x89,
+      ...text("PNG\r\n\x1a\n"),
+      ...image.slice(0, 25), // IHDR
+      ...chunk("caBX", text("manifest")), // C2PA Content Credentials
+      ...image.slice(25),
+      ...chunk("IEND", []),
+    ]);
+    expect(readMetadata(png).found).toEqual(["Other metadata"]);
+    expect([...stripMetadata(png)!]).toEqual([
+      0x89,
+      ...text("PNG\r\n\x1a\n"),
+      ...image,
+      ...chunk("IEND", []),
+    ]);
+  });
+
   it("strips EXIF and XMP from a WebP and fixes its header", () => {
     const chunk = (type: string, data: number[]) => [
       ...text(type),
@@ -185,6 +243,7 @@ describe("metadata", () => {
       ...chunk("VP8 ", [1, 2]),
       ...chunk("EXIF", tiff(1)),
       ...chunk("XMP ", text("<x/>")),
+      ...chunk("C2PA", text("ab")),
     ];
     const webp = new Uint8Array([
       ...text("RIFF"),
@@ -195,9 +254,11 @@ describe("metadata", () => {
       "Camera: Cam",
       "GPS location",
       "XMP (editing history, ratings…)",
+      "Other metadata",
     ]);
     const stripped = stripMetadata(webp)!;
     expect(readMetadata(stripped).found).toEqual([]);
+    expect(stripped.length).toBe(12 + 18 + 10);
     expect(stripped[20] & 0x0c).toBe(0);
     expect(new DataView(stripped.buffer).getUint32(4, true)).toBe(
       stripped.length - 8,

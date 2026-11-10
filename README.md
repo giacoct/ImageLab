@@ -63,7 +63,8 @@ Edge, Safari); elsewhere they're worked on in sRGB.
   file size, showing the quality it takes.
 - **Strip metadata**: remove camera, lens, date, location, author and other
   details without re-encoding the image, listing what each image carries
-  (HEIC photos included).
+  (HEIC photos included), along with the images or video a phone hides
+  after a JPEG (an HDR gain map, a Motion Photo's clip).
 - **Convert to SVG**: trace the image into vector shapes, saved as SVG.
 - **Extract text (OCR)**: read the text in the image, in English and/or
   Italian, saved as text.

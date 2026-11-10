@@ -1,8 +1,9 @@
 /**
  * Metadata in JPEG, PNG and WebP files, read and removed without decoding the
  * image: a file is split into its blocks (JPEG segments, PNG and WebP chunks),
- * metadata blocks are summarized or dropped, and everything else, the
- * compressed image data included, is copied byte for byte. HEIC and AVIF
+ * metadata blocks are summarized or dropped, and the blocks known to make the
+ * image, its compressed data included, are copied byte for byte; anything
+ * else (an unknown chunk, what follows a JPEG's end) counts as metadata. HEIC and AVIF
  * files are read too (their EXIF, see `exif.ts`), not stripped.
  */
 
@@ -19,7 +20,8 @@ export interface Metadata {
   orientation: number;
 }
 
-type Kind = "image" | "exif" | "xmp" | "iptc" | "comment" | "text" | "other";
+type Kind =
+  "image" | "exif" | "xmp" | "iptc" | "comment" | "text" | "appended" | "other";
 
 interface Block {
   kind: Kind;
@@ -69,6 +71,7 @@ export function profileOf(
     const parts = parsed.blocks
       .filter(
         (block) =>
+          block.kind === "image" &&
           bytes[block.start + 1] === 0xe2 &&
           at(block, 4, 12) === "ICC_PROFILE\0",
       )
@@ -172,24 +175,33 @@ function parse(bytes: Uint8Array): Parsed | null {
   return null;
 }
 
-/** JPEG segments up to the image data, which is one last `image` block. */
+/**
+ * JPEG segments, scans included, up to the end of the image (EOI). Whatever
+ * follows it is one `appended` block: phones put more images there (an HDR
+ * gain map, a depth map, each with its own EXIF) or a Motion Photo's video.
+ */
 function jpeg(bytes: Uint8Array): Block[] {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const blocks: Block[] = [];
   let offset = 2;
-  for (;;) {
+  while (offset < bytes.length) {
     if (bytes[offset] !== 0xff) throw new Error("Bad JPEG marker");
     const marker = bytes[offset + 1];
     if (marker === 0xff) {
       offset += 1; // fill byte
       continue;
     }
-    if (marker === 0xda) break; // start of scan: the image data follows
-    const end = offset + 2 + view.getUint16(offset + 2);
+    if (marker === 0xd9) {
+      blocks.push({ kind: "image", start: offset, end: offset + 2 });
+      offset += 2;
+      break;
+    }
+    let end = offset + 2 + view.getUint16(offset + 2);
     if (end > bytes.length) throw new Error("Truncated JPEG");
     const id = ascii(bytes, offset + 4, 12);
     let kind: Kind = "image";
-    if (marker === 0xe1 && id.startsWith("Exif\0\0")) kind = "exif";
+    if (marker === 0xda) end = scanEnd(bytes, end);
+    else if (marker === 0xe1 && id.startsWith("Exif\0\0")) kind = "exif";
     else if (marker === 0xe1) kind = "xmp";
     else if (marker === 0xed) kind = "iptc";
     else if (marker === 0xfe) kind = "comment";
@@ -206,9 +218,49 @@ function jpeg(bytes: Uint8Array): Block[] {
     blocks.push(block);
     offset = end;
   }
-  blocks.push({ kind: "image", start: offset, end: bytes.length });
+  if (offset < bytes.length)
+    blocks.push({ kind: "appended", start: offset, end: bytes.length });
   return blocks;
 }
+
+/**
+ * Where a scan's compressed data ends: at the next marker. In the data, 0xFF
+ * is followed by 0 (an escaped 0xFF) or a restart marker (RST0–7).
+ */
+function scanEnd(bytes: Uint8Array, from: number): number {
+  for (let at = from; at + 1 < bytes.length; at++) {
+    if (bytes[at] !== 0xff) continue;
+    const next = bytes[at + 1];
+    if (next !== 0 && next !== 0xff && (next < 0xd0 || next > 0xd7)) return at;
+  }
+  return bytes.length; // truncated: the data runs to the end
+}
+
+/**
+ * The PNG chunks that make the image and how it shows (its colors, its
+ * transparency, its animation); any other is metadata, so stripping keeps
+ * only what's known to be harmless (C2PA's `caBX`, say, goes).
+ */
+const PNG_IMAGE = new Set([
+  "IHDR",
+  "PLTE",
+  "IDAT",
+  "IEND",
+  "tRNS",
+  "gAMA",
+  "cHRM",
+  "sRGB",
+  "iCCP",
+  "cICP",
+  "mDCV",
+  "cLLI",
+  "sBIT",
+  "bKGD",
+  "pHYs",
+  "acTL",
+  "fcTL",
+  "fdAT",
+]);
 
 function png(bytes: Uint8Array): Block[] {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -228,7 +280,7 @@ function png(bytes: Uint8Array): Block[] {
       kind = "xmp";
     else if (type === "tEXt" || type === "zTXt" || type === "iTXt")
       kind = "text";
-    else if (type === "tIME") kind = "other";
+    else if (!PNG_IMAGE.has(type)) kind = "other";
     const block: Block = { kind, start: offset, end };
     if (kind === "exif")
       block.exif = bytes.subarray(offset + 8, offset + 8 + size);
@@ -239,6 +291,17 @@ function png(bytes: Uint8Array): Block[] {
   return blocks;
 }
 
+/** The WebP chunks that make the image (as `PNG_IMAGE`). */
+const WEBP_IMAGE = new Set([
+  "VP8X",
+  "VP8 ",
+  "VP8L",
+  "ALPH",
+  "ANIM",
+  "ANMF",
+  "ICCP",
+]);
+
 function webp(bytes: Uint8Array): Block[] {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const blocks: Block[] = [];
@@ -248,7 +311,13 @@ function webp(bytes: Uint8Array): Block[] {
     const end = Math.min(bytes.length, offset + 8 + size + (size % 2)); // padded to even sizes
     const type = ascii(bytes, offset, 4);
     const kind: Kind =
-      type === "EXIF" ? "exif" : type === "XMP " ? "xmp" : "image";
+      type === "EXIF"
+        ? "exif"
+        : type === "XMP "
+          ? "xmp"
+          : WEBP_IMAGE.has(type)
+            ? "image"
+            : "other";
     const block: Block = { kind, start: offset, end };
     if (kind === "exif") {
       const payload = bytes.subarray(offset + 8, offset + 8 + size);
@@ -269,6 +338,7 @@ const DESCRIPTIONS: Partial<Record<Kind, string>> = {
   iptc: "IPTC (captions, keywords…)",
   comment: "Comment",
   text: "Text notes",
+  appended: "More images or a video after the photo",
   other: "Other metadata",
 };
 

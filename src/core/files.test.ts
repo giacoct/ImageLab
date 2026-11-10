@@ -12,10 +12,12 @@ import {
 } from "./files";
 
 describe("files", () => {
-  it("cleans a typed file name", () => {
+  it("cleans a file name", () => {
     expect(stemOf("photo.final.png")).toBe("photo.final");
     expect(cleanFileName("  holiday: day 1/2  ")).toBe("holiday- day 1-2");
     expect(cleanFileName("..hidden")).toBe("hidden");
+    expect(cleanFileName("../../.bashrc.png")).toBe("-..-.bashrc.png");
+    expect(cleanFileName("C:\\Windows\\x.png")).toBe("C-Windows-x.png");
     expect(cleanFileName(' <>"| ')).toBe("-");
     expect(cleanFileName("   ")).toBe("");
   });

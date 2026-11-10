@@ -133,9 +133,10 @@ class Session {
     const opened = await Promise.all(
       images.map(async (file): Promise<Item | null> => {
         try {
+          // Cleaned like a typed one: a shared file's name is anyone's.
           const version = await engine.run("open", {
             blob: file,
-            name: file.name,
+            name: cleanFileName(file.name) || "image",
           });
           return { id: uid(), version };
         } catch (error) {

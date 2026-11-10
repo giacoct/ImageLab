@@ -41,7 +41,8 @@ export function stemOf(fileName: string): string {
 }
 
 /**
- * A name typed for a file, made safe for any file system: no path
+ * A file's name (typed, or the name an opened file came with), made safe
+ * for any file system and for the ZIPs the app writes: no path
  * separators or characters Windows refuses, no leading dots, not too long.
  * Empty when nothing usable is left.
  */

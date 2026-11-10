@@ -2,8 +2,11 @@
  * Metadata in JPEG, PNG and WebP files, read and removed without decoding the
  * image: a file is split into its blocks (JPEG segments, PNG and WebP chunks),
  * metadata blocks are summarized or dropped, and everything else, the
- * compressed image data included, is copied byte for byte.
+ * compressed image data included, is copied byte for byte. HEIC and AVIF
+ * files are read too (their EXIF, see `exif.ts`), not stripped.
  */
+
+import { isobmffExif } from "./exif";
 
 /**
  * What the file embeds, in words: `Label: value` (e.g. `Camera: Apple
@@ -37,7 +40,22 @@ const NONE: Metadata = { found: [], orientation: 1 };
 
 export function readMetadata(bytes: Uint8Array): Metadata {
   const parsed = parse(bytes);
-  return parsed ? summarize(parsed.blocks) : NONE;
+  if (parsed) return summarize(parsed.blocks);
+  // HEIC, AVIF: their EXIF, whose orientation they don't follow (`irot` does).
+  const exif = isobmffExif(bytes);
+  return exif ? { found: readExif(exif).found, orientation: 1 } : NONE;
+}
+
+/** The file's EXIF payload (a TIFF structure), if it has one. */
+export function exifOf(bytes: Uint8Array): Uint8Array | null {
+  const parsed = parse(bytes);
+  if (!parsed) return isobmffExif(bytes);
+  return parsed.blocks.find((block) => block.exif)?.exif ?? null;
+}
+
+/** What an EXIF payload holds, in words (as `Metadata.found`). */
+export function describeExif(tiff: Uint8Array): string[] {
+  return readExif(tiff).found;
 }
 
 /**

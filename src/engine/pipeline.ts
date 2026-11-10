@@ -7,14 +7,16 @@
  * e.g. when a result is used as the input of another tool. Its pixels are
  * kept losslessly (the input file, or a PNG once a tool changed them), so
  * that never compounds compression; its file is written when it's saved,
- * unless Convert format or Compress already wrote it.
+ * unless Convert format or Compress already wrote it. The photo's EXIF goes
+ * along (cleaned, see `core/exif.ts`) into every file written for it.
  */
 
 import { edgeColor } from "../core/background";
 import { initialEncoding, type Encoding } from "../core/encoding";
+import { carriedExif } from "../core/exif";
 import { extensionFor, outputName, type ImageFormat } from "../core/files";
 import { downscaleFactor } from "../core/geometry";
-import { readMetadata } from "../core/metadata";
+import { describeExif, exifOf, readMetadata } from "../core/metadata";
 import { getOp } from "../ops";
 import type { Action, Op, RunContext } from "../ops/op";
 import { downscaled, readPixels, type Img } from "./canvas";
@@ -38,6 +40,8 @@ export interface Version {
   suffix: string | null;
   /** The metadata the saved file carries, in words. */
   metadata: string[];
+  /** The EXIF a file written for it carries, until Strip metadata drops it. */
+  exif: Uint8Array | null;
 }
 
 /** What a final tool (OCR, SVG) makes of an image. */
@@ -86,6 +90,7 @@ export async function open(blob: Blob, name: string): Promise<Version> {
     file: { blob: file, original: true },
     suffix: null,
     metadata: readMetadata(bytes).found,
+    exif: carriedExif(exifOf(bytes)),
   };
 }
 
@@ -107,7 +112,13 @@ export async function apply(
     const images: Img[] = [];
     for (const input of inputs) images.push(await pixelsOf(input));
     const image = await op.run(images, action.params, context);
-    const picture = { image, encoding: inputs[0].encoding, file: null };
+    // A new picture, not any one photo: no camera, date or place to keep.
+    const picture = {
+      image,
+      encoding: inputs[0].encoding,
+      exif: null,
+      file: null,
+    };
     return [await store(inputs[0], picture, op, true)];
   }
 
@@ -116,6 +127,7 @@ export async function apply(
     const picture = {
       image: await pixelsOf(input),
       encoding: input.encoding,
+      exif: input.exif,
       file: input.file,
     };
     if (op.kind === "map") {
@@ -155,9 +167,19 @@ async function store(
     encoding: picture.encoding,
     file: picture.file,
     suffix: op.suffix,
-    // Files the app writes never carry metadata; only the input file does.
-    metadata: picture.file?.original ? from.metadata : [],
+    metadata: await metadataOf(picture, from),
+    exif: picture.exif,
   };
+}
+
+/** What the file saved for the picture will carry. */
+async function metadataOf(picture: Picture, from: Version): Promise<string[]> {
+  const { file, exif, encoding } = picture;
+  if (file?.original) return from.metadata;
+  if (file)
+    return readMetadata(new Uint8Array(await file.blob.arrayBuffer())).found;
+  // Written when saved, with the EXIF unless it's an AVIF.
+  return exif && encoding.format !== "image/avif" ? describeExif(exif) : [];
 }
 
 /** The image's background color: the most common one along its edges. */
@@ -195,7 +217,8 @@ export async function save(version: Version): Promise<Saved> {
       : null;
   const blob =
     written ??
-    (await encodeImage(await pixelsOf(version), version.encoding)).blob;
+    (await encodeImage(await pixelsOf(version), version.encoding, version.exif))
+      .blob;
   const extension = extensionFor(blob.type as ImageFormat);
   return { name: outputName(version.name, version.suffix, extension), blob };
 }
@@ -315,11 +338,8 @@ async function render(
     case "combine":
       return { image: op.run(images, values, context), scale };
     case "file": {
-      const picture = {
-        image: images[0],
-        encoding: request.images[0].version.encoding,
-        file: null,
-      };
+      const { encoding, exif } = request.images[0].version;
+      const picture = { image: images[0], encoding, exif, file: null };
       const written = await op.run(picture, values, context);
       const image = written.file
         ? (await decode(written.file.blob)).image

@@ -6,6 +6,7 @@
  */
 
 import { formatToWrite, type Encoding } from "../core/encoding";
+import { embedExif } from "../core/exif";
 import type { ImageFormat } from "../core/files";
 import { hasTransparency } from "../core/pixels";
 import { largestThatFits } from "../core/search";
@@ -28,6 +29,8 @@ export interface Encoded {
 export interface Picture {
   image: Img;
   encoding: Encoding;
+  /** The EXIF the files written for it carry (`core/exif.ts`), if any. */
+  exif: Uint8Array | null;
   file: {
     blob: Blob;
     original: boolean;
@@ -36,18 +39,19 @@ export interface Picture {
   } | null;
 }
 
-/** Encode `image` as `encoding` says. */
+/** Encode `image` as `encoding` says, with `exif` in the file where the format takes it. */
 export async function encodeImage(
   image: Img,
   encoding: Encoding,
+  exif: Uint8Array | null = null,
 ): Promise<Encoded> {
   const format = formatToWrite(encoding, () =>
     hasTransparency(readPixels(image).data),
   );
   if (encoding.targetBytes !== null)
-    return encodeToSize(image, format, encoding.targetBytes);
+    return encodeToSize(image, format, encoding.targetBytes, exif);
   return {
-    blob: await encodeRaster(image, format, encoding.quality),
+    blob: await encodeRaster(image, format, encoding.quality, exif),
     width: image.width,
     height: image.height,
     quality: format === "image/png" ? null : Math.round(encoding.quality),
@@ -63,12 +67,28 @@ export async function write(
   picture: Picture,
   encoding: Encoding,
 ): Promise<Picture> {
-  const { blob, quality } = await encodeImage(picture.image, encoding);
+  const { blob, quality } = await encodeImage(
+    picture.image,
+    encoding,
+    picture.exif,
+  );
   return { ...picture, encoding, file: { blob, original: false, quality } };
 }
 
-/** Encode at `quality` (1–100; ignored by PNG). */
+/** Encode at `quality` (1–100; ignored by PNG), with `exif` unless it's AVIF. */
 async function encodeRaster(
+  image: Img,
+  format: ImageFormat,
+  quality: number,
+  exif: Uint8Array | null,
+): Promise<Blob> {
+  const encoded = await encodeBare(image, format, quality);
+  if (!exif || format === "image/avif") return encoded;
+  const file = embedExif(new Uint8Array(await encoded.arrayBuffer()), exif);
+  return file ? new Blob([file], { type: format }) : encoded;
+}
+
+async function encodeBare(
   image: Img,
   format: ImageFormat,
   quality: number,
@@ -113,6 +133,7 @@ function encodeToSize(
   image: Img,
   format: ImageFormat,
   targetBytes: number,
+  exif: Uint8Array | null,
 ): Promise<Encoded> {
   if (format === "image/png") {
     return largestThatFits(
@@ -121,7 +142,7 @@ function encodeToSize(
           scale >= 1
             ? image
             : resized(image, image.width * scale, image.height * scale);
-        const blob = await encodeRaster(scaled, format, 100);
+        const blob = await encodeRaster(scaled, format, 100, exif);
         return {
           blob,
           width: scaled.width,
@@ -137,7 +158,7 @@ function encodeToSize(
   }
   return largestThatFits(
     async (quality) => {
-      const blob = await encodeRaster(image, format, quality * 100);
+      const blob = await encodeRaster(image, format, quality * 100, exif);
       return {
         blob,
         width: image.width,

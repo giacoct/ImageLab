@@ -20,7 +20,9 @@ be sent to it straight from the gallery.
 Results are kept at full quality and only saved to a file when you download
 them, so using them as input never adds compression. Convert format and
 Compress decide how that file is saved, and show its size and look right
-away.
+away. A photo's details (camera, date, location…) stay in the files made
+from it, except AVIF files, until Strip metadata removes them; the embedded
+thumbnail is dropped, so it can't show what a crop cut off.
 
 ## Tools
 
@@ -46,7 +48,8 @@ away.
 - **Compress**: to a chosen quality, showing the file's size, or to fit a
   file size, showing the quality it takes.
 - **Strip metadata**: remove camera, lens, date, location, author and other
-  details without re-encoding the image, listing what each image carries.
+  details without re-encoding the image, listing what each image carries
+  (HEIC photos included).
 - **Convert to SVG**: trace the image into vector shapes, saved as SVG.
 - **Extract text (OCR)**: read the text in the image, in English and/or
   Italian, saved as text.

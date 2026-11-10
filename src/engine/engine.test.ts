@@ -8,7 +8,9 @@
 import { describe, expect, it } from "vitest";
 
 import { initialEncoding, type Encoding } from "../core/encoding";
+import { embedExif } from "../core/exif";
 import type { ImageFormat } from "../core/files";
+import { readMetadata } from "../core/metadata";
 import { defaults } from "../core/params";
 import { getOp } from "../ops";
 import type { Action, RunContext } from "../ops/op";
@@ -410,6 +412,53 @@ describe("pipeline", () => {
     const saved = await save(clean);
     expect(saved.name).toBe("photo-clean.jpg");
     expect(new Uint8Array(await saved.blob.arrayBuffer())).toEqual(bytes);
+  });
+
+  it("keeps the photo's EXIF in the files it writes, but AVIF, until it's stripped", async () => {
+    const bytes = async (blob: Blob) =>
+      new Uint8Array(await blob.arrayBuffer());
+    const jpeg = await bytes(
+      (await encodeImage(twoTone(), as("image/jpeg"))).blob,
+    );
+    // Big-endian TIFF, IFD0: Make "Cam", Orientation 6 (turned a quarter).
+    const tiff = new Uint8Array([
+      ...[0x4d, 0x4d, 0, 42, 0, 0, 0, 8, 0, 2],
+      ...[0x01, 0x0f, 0, 2, 0, 0, 0, 4, 0x43, 0x61, 0x6d, 0],
+      ...[0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, 6, 0, 0],
+      ...[0, 0, 0, 0],
+    ]);
+    const tagged = new Blob([embedExif(jpeg, tiff)!], { type: "image/jpeg" });
+    const input = await open(tagged, "photo.jpg");
+    expect([input.width, input.height]).toEqual([20, 40]); // turned upright
+    expect(input.metadata).toEqual(["Camera: Cam"]);
+
+    const scaled = await applyOne(input, "scale", { percent: 50 });
+    expect(scaled.metadata).toEqual(["Camera: Cam"]);
+    for (const format of ["jpeg", "png", "webp"]) {
+      const converted = await applyOne(scaled, "convert", { format });
+      expect(converted.metadata).toEqual(["Camera: Cam"]);
+      const { blob } = await save(converted);
+      expect(readMetadata(await bytes(blob))).toEqual({
+        found: ["Camera: Cam"],
+        orientation: 1,
+      });
+      const { image } = await decode(blob);
+      expect([image.width, image.height]).toEqual([10, 20]); // not turned again
+      const clean = await applyOne(converted, "strip-metadata");
+      expect(clean.metadata).toEqual([]);
+      expect(readMetadata(await bytes((await save(clean)).blob)).found).toEqual(
+        [],
+      );
+    }
+    expect(
+      (await applyOne(scaled, "convert", { format: "avif" })).metadata,
+    ).toEqual([]);
+    // Stripped before it's written: written without.
+    const stripped = await applyOne(scaled, "strip-metadata");
+    expect(stripped.metadata).toEqual([]);
+    expect(
+      readMetadata(await bytes((await save(stripped)).blob)).found,
+    ).toEqual([]);
   });
 
   it("reads the text in an image, dark on light or light on dark", async () => {

@@ -1,8 +1,8 @@
 /**
  * Strip metadata: remove camera, date, GPS and other details from the file.
- * An untouched JPEG, PNG or WebP is cleaned without re-encoding; any file the
- * app writes itself (after a tool that changes the pixels, or Convert format)
- * never carries metadata.
+ * A JPEG, PNG or WebP file (the input's, or one Convert format or Compress
+ * wrote) is cleaned without re-encoding; the pixels the other tools leave are
+ * written at the end without the EXIF they'd otherwise carry.
  */
 
 import { stripMetadata as strip } from "../core/metadata";
@@ -17,23 +17,28 @@ export const stripMetadata = fileOp({
   suffix: "clean",
   params: {},
   async run(picture) {
-    if (!picture.file?.original) return picture;
-    const { type } = picture.file.blob;
-    const stripped = strip(
-      new Uint8Array(await picture.file.blob.arrayBuffer()),
-    );
+    const cleaned = { ...picture, exif: null };
+    const { file } = picture;
+    if (!file) return cleaned;
+    const { type } = file.blob;
+    const stripped = strip(new Uint8Array(await file.blob.arrayBuffer()));
+    if (stripped)
+      return {
+        ...cleaned,
+        file: {
+          ...file,
+          blob: new Blob([stripped], { type }),
+          original: false,
+        },
+      };
+    // The app's own AVIF files carry none.
+    if (!file.original) return cleaned;
     // Not possible losslessly (e.g. HEIC): drop the file, so the pixels are
     // re-encoded at the end, at a quality high enough to look the same.
-    if (!stripped) {
-      return {
-        ...picture,
-        encoding: { ...picture.encoding, quality: 95 },
-        file: null,
-      };
-    }
     return {
-      ...picture,
-      file: { blob: new Blob([stripped], { type }), original: false },
+      ...cleaned,
+      encoding: { ...picture.encoding, quality: 95 },
+      file: null,
     };
   },
 });

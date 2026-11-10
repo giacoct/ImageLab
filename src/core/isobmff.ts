@@ -107,6 +107,10 @@ export function itemOfType(
       at += baseSize;
       const extents = view.getUint16(at);
       at += 2;
+      // Extents of no bytes, or more than the box holds: malformed (and,
+      // read one by one, a file could keep this busy for hours).
+      const extentSize = indexSize + offsetSize + lengthSize;
+      if (extentSize === 0 || at + extents * extentSize > iloc.end) return null;
       const parts: Uint8Array[] = [];
       for (let e = 0; e < extents; e++) {
         at += indexSize;

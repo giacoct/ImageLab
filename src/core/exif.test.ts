@@ -211,22 +211,23 @@ describe("embedding EXIF", () => {
 });
 
 describe("HEIC and AVIF", () => {
+  const box = (type: string, content: number[]) => [
+    ...u32(8 + content.length),
+    ...text(type),
+    ...content,
+  ];
+  const full = (type: string, version: number, content: number[]) =>
+    box(type, [version, 0, 0, 0, ...content]);
+  const iinf = full("iinf", 0, [
+    ...u16(2),
+    ...full("infe", 2, [...u16(1), ...u16(0), ...text("hvc1"), 0]),
+    ...full("infe", 2, [...u16(2), ...u16(0), ...text("Exif"), 0]),
+  ]);
+
   /** A minimal HEIF: a `meta` box naming item 2 as Exif, its bytes in `mdat`. */
   function heif(payload: number[]): Uint8Array {
-    const box = (type: string, content: number[]) => [
-      ...u32(8 + content.length),
-      ...text(type),
-      ...content,
-    ];
-    const full = (type: string, version: number, content: number[]) =>
-      box(type, [version, 0, 0, 0, ...content]);
     const item = [...u32(6), ...text("Exif\0\0"), ...payload];
     const ftyp = box("ftyp", [...text("heic"), 0, 0, 0, 0, ...text("mif1")]);
-    const iinf = full("iinf", 0, [
-      ...u16(2),
-      ...full("infe", 2, [...u16(1), ...u16(0), ...text("hvc1"), 0]),
-      ...full("infe", 2, [...u16(2), ...u16(0), ...text("Exif"), 0]),
-    ]);
     const ilocFor = (mdatAt: number) =>
       full("iloc", 0, [
         0x44, // offsets and lengths: 4 bytes
@@ -257,5 +258,20 @@ describe("HEIC and AVIF", () => {
 
   it("finds nothing in a file without one", () => {
     expect(isobmffExif(new Uint8Array(40))).toBeNull();
+  });
+
+  it("gives up quickly on extents that take no bytes", () => {
+    // 20,000 items of 65,535 extents each, every one 0 bytes long: read
+    // one by one, over a billion of them.
+    const items = Array.from({ length: 20_000 }, () => [
+      ...u16(1), // item 1
+      ...u16(0), // data reference
+      ...u16(0xffff), // extents
+    ]).flat();
+    const iloc = full("iloc", 0, [0x00, 0x00, ...u16(20_000), ...items]);
+    const meta = full("meta", 0, [...iinf, ...iloc]);
+    const start = performance.now();
+    expect(isobmffExif(new Uint8Array(meta))).toBeNull();
+    expect(performance.now() - start).toBeLessThan(100);
   });
 });

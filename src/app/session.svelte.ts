@@ -59,6 +59,19 @@ class Session {
   readonly op = $derived(this.tool ? getOp(this.tool.op) : null);
   /** The color setting being picked from the image in the preview, if any. */
   picking = $state<string | null>(null);
+  /**
+   * The file Convert format or Compress will write for the picked image:
+   * its size, the quality it's written at, and (a PNG shrunk to fit a file
+   * size) its width / the image's. `pending` while it's worked out.
+   */
+  estimate = $state.raw<{
+    bytes: number;
+    quality: number | null;
+    shrink: number;
+    name: string;
+    pending: boolean;
+  } | null>(null);
+  private estimating: AbortController | null = null;
 
   /** The images the last run made. */
   results = $state.raw<Item[]>([]);
@@ -153,8 +166,58 @@ class Session {
     this.cancel();
     this.tool = { op: opId, params: defaults(getOp(opId).params) };
     this.picking = null;
+    this.estimating?.abort();
+    this.estimate = null;
     this.clearResults();
     if (opId === "remove-background") void this.detectBackground();
+  }
+
+  /**
+   * Work out the file the open tool will write for the picked image, on the
+   * full-size image (so it's exact), once the settings rest for a moment.
+   */
+  async updateEstimate(): Promise<void> {
+    this.estimating?.abort();
+    const tool = this.tool;
+    const item = this.selected;
+    if (!tool || !item) {
+      this.estimate = null;
+      return;
+    }
+    const controller = new AbortController();
+    this.estimating = controller;
+    if (this.estimate) this.estimate = { ...this.estimate, pending: true };
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    if (controller.signal.aborted) return;
+    try {
+      const action = $state.snapshot(tool);
+      const [version] = await engine.estimate(
+        { inputs: [item.version], action },
+        controller.signal,
+      );
+      const file = version.file;
+      if (!file) {
+        this.estimate = null;
+        return;
+      }
+      // A PNG fits a file size by shrinking: how much is in the file.
+      let shrink = 1;
+      if (file.quality === null && file.blob.type === "image/png") {
+        const bitmap = await createImageBitmap(file.blob);
+        shrink = bitmap.width / version.width;
+        bitmap.close();
+      }
+      if (controller.signal.aborted) return;
+      this.estimate = {
+        bytes: file.blob.size,
+        quality: file.quality ?? null,
+        shrink,
+        name: item.version.name,
+        pending: false,
+      };
+    } catch {
+      if (!controller.signal.aborted) this.estimate = null;
+    }
   }
 
   /**

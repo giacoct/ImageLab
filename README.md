@@ -42,7 +42,8 @@ away.
   of the preview, or type the sizes.
 - **Merge images**: combine all the images into one, stacked or side by side.
 - **Convert format**: JPEG, PNG, WebP or AVIF.
-- **Compress**: to a chosen quality, or to fit a file size.
+- **Compress**: to a chosen quality, showing the file's size, or to fit a
+  file size, showing the quality it takes.
 - **Strip metadata**: remove camera, date and GPS details without
   re-encoding the image.
 - **Convert to SVG**: trace the image into vector shapes, saved as SVG.

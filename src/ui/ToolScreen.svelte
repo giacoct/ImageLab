@@ -8,10 +8,12 @@
 -->
 <script lang="ts">
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import { untrack } from "svelte";
   import LoaderCircle from "@lucide/svelte/icons/loader-circle";
   import ScanSearch from "@lucide/svelte/icons/scan-search";
 
   import { goHome } from "../app/router";
+  import { formatBytes } from "../core/files";
   import { session } from "../app/session.svelte";
   import CropEditor from "./CropEditor.svelte";
   import Failures from "./Failures.svelte";
@@ -25,6 +27,40 @@
 
   const count = $derived(session.items.length);
   const look = $derived(TOOL_LOOKS[op.id]);
+  /** Compress and Convert format tell what the file will be like. */
+  const estimates = $derived(op.id === "compress" || op.id === "convert");
+
+  // Worked out again when the settings or the picked image change.
+  $effect(() => {
+    if (!estimates) return;
+    void JSON.stringify(session.tool?.params);
+    void session.selected;
+    untrack(() => session.updateEstimate());
+  });
+
+  /**
+   * At a chosen quality, the file's size; to fit a file size, the quality
+   * it takes (a PNG: how much it's shrunk). For the picked image.
+   */
+  const estimate = $derived.by(() => {
+    const file = session.estimate;
+    const params = session.tool?.params;
+    if (!estimates || !file || !params) return null;
+    if (op.id === "compress" && params.mode === "target") {
+      if (file.bytes > Number(params.targetKb) * 1024)
+        return `It can't get that small: ${formatBytes(file.bytes)} at least.`;
+      return file.quality !== null
+        ? `At quality ${file.quality}%: ${formatBytes(file.bytes)}`
+        : `Shrunk to ${Math.round(file.shrink * 100)}% (PNG is lossless): ${formatBytes(file.bytes)}`;
+    }
+    // Next to the file it comes from, when there's one already.
+    const from = session.selected?.version.file?.blob.size;
+    const share = from
+      ? ` (${Math.round((file.bytes / from) * 100)}% of ${formatBytes(from)})`
+      : "";
+    return `File size: ${formatBytes(file.bytes)}${share}`;
+  });
+
   const applyLabel = $derived.by(() => {
     if (count === 0) return "Apply";
     const images = count === 1 ? "1 image" : `${count} images`;
@@ -114,6 +150,18 @@
             {/if}
           {/snippet}
         </ParamForm>
+      {/if}
+      {#if estimates && (estimate || session.estimate?.pending !== false)}
+        <p
+          class="estimate numbers"
+          class:pending={!estimate || session.estimate?.pending}
+          aria-live="polite"
+        >
+          {estimate ?? "Working out the file size…"}
+          {#if estimate && session.items.length > 1}
+            <span class="hint">for {session.estimate?.name}</span>
+          {/if}
+        </p>
       {/if}
       <Failures />
       <Results />
@@ -243,6 +291,19 @@
     display: grid;
     gap: 1.25rem;
     padding: 1rem var(--gutter) 1.5rem;
+  }
+
+  .estimate {
+    background: var(--fill);
+    border-radius: var(--radius);
+    font-weight: 550;
+    padding: 0.55rem 0.75rem;
+    transition: opacity 0.2s;
+  }
+
+  /* Being worked out again: the last figures, faded. */
+  .estimate.pending {
+    opacity: 0.55;
   }
 
   .bullets {

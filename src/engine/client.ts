@@ -120,6 +120,7 @@ class Engine {
   );
   private waiting: (() => void)[] = [];
   private readonly previewWorker = new EngineWorker();
+  private readonly estimateWorker = new EngineWorker();
 
   /**
    * Run a request on the first idle pool worker, waiting for one if they're
@@ -147,6 +148,17 @@ class Engine {
       }
       await new Promise<void>((resolve) => this.waiting.push(resolve));
     }
+  }
+
+  /**
+   * Apply a tool to one image on a worker of its own, to tell what its file
+   * will be like (Compress, Convert format). Aborting stops it at once.
+   */
+  estimate(
+    args: Requests["apply"]["args"],
+    signal: AbortSignal,
+  ): Promise<Requests["apply"]["result"]> {
+    return this.estimateWorker.call("apply", args, signal);
   }
 
   /** Run on the preview worker, so previews never wait behind a batch. */

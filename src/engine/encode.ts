@@ -15,6 +15,8 @@ export interface Encoded {
   blob: Blob;
   width: number;
   height: number;
+  /** The quality it was written at (1–100), null for lossless PNG. */
+  quality: number | null;
 }
 
 /**
@@ -26,7 +28,12 @@ export interface Encoded {
 export interface Picture {
   image: Img;
   encoding: Encoding;
-  file: { blob: Blob; original: boolean } | null;
+  file: {
+    blob: Blob;
+    original: boolean;
+    /** The quality it was written at, when the app wrote it lossy. */
+    quality?: number | null;
+  } | null;
 }
 
 /** Encode `image` as `encoding` says. */
@@ -43,6 +50,7 @@ export async function encodeImage(
     blob: await encodeRaster(image, format, encoding.quality),
     width: image.width,
     height: image.height,
+    quality: format === "image/png" ? null : Math.round(encoding.quality),
   };
 }
 
@@ -55,8 +63,8 @@ export async function write(
   picture: Picture,
   encoding: Encoding,
 ): Promise<Picture> {
-  const { blob } = await encodeImage(picture.image, encoding);
-  return { ...picture, encoding, file: { blob, original: false } };
+  const { blob, quality } = await encodeImage(picture.image, encoding);
+  return { ...picture, encoding, file: { blob, original: false, quality } };
 }
 
 /** Encode at `quality` (1–100; ignored by PNG). */
@@ -118,6 +126,7 @@ function encodeToSize(
           blob,
           width: scaled.width,
           height: scaled.height,
+          quality: null,
           size: blob.size,
         };
       },
@@ -133,6 +142,7 @@ function encodeToSize(
         blob,
         width: image.width,
         height: image.height,
+        quality: Math.round(quality * 100),
         size: blob.size,
       };
     },

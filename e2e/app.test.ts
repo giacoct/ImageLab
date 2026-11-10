@@ -225,4 +225,12 @@ describe("ImageLab", () => {
     await page.getByRole("heading", { name: "Result", exact: true }).waitFor();
     await page.context().close();
   });
+
+  it("opens on the home page from a malformed address", async () => {
+    const page = await openApp();
+    await page.goto(`${baseUrl}#/%`);
+    await page.reload();
+    await page.getByRole("heading", { name: "Drop images here" }).waitFor();
+    await page.context().close();
+  });
 });

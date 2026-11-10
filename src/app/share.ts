@@ -41,7 +41,12 @@ export async function takeShared(): Promise<File[]> {
   for (const request of await cache.keys()) {
     const response = await cache.match(request);
     if (!response) continue;
-    const name = decodeURIComponent(response.headers.get("x-name") ?? "image");
+    let name = "image";
+    try {
+      name = decodeURIComponent(response.headers.get("x-name") ?? name);
+    } catch {
+      // A malformed name: the image all the same.
+    }
     files.push(
       new File([await response.blob()], name, {
         type: response.headers.get("content-type") ?? "",

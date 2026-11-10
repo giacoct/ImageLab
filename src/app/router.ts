@@ -22,8 +22,12 @@ export function toolHref(id: string): string {
 }
 
 function toolInAddress(): string | null {
-  const id = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
-  return TOOL_IDS.has(id) ? id : null;
+  try {
+    const id = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
+    return TOOL_IDS.has(id) ? id : null;
+  } catch {
+    return null; // a malformed address (`#/%`): the home page
+  }
 }
 
 /** Show the page the address names. */

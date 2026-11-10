@@ -403,18 +403,23 @@
 </div>
 
 <style>
+  /*
+   * Fitted, a swipe scrolls the page (on a phone the preview scrolls away
+   * with it); zoomed in, a drag moves the image instead.
+   */
   .stage {
     background: var(--stage);
     height: 100%;
     min-height: 12rem;
     overflow: hidden;
     position: relative;
-    touch-action: none;
+    touch-action: pan-y;
     user-select: none;
   }
 
   .stage.zoomed {
     cursor: grab;
+    touch-action: none;
   }
 
   .stage.zoomed:active {

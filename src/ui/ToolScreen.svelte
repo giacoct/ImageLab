@@ -1,8 +1,8 @@
 <!--
   A tool's page: the viewer (or the crop box) as large as the screen allows,
   the images under it, and the settings, Apply and the results beside it on
-  a wide screen, below it on a phone, where the viewer stays in view at the
-  top and Apply stays at the bottom. Images are loaded only on the home
+  a wide screen, below it on a phone, where the viewer scrolls away with the
+  page, leaving the screen to the settings, and Apply stays at the bottom. Images are loaded only on the home
   page: without any, the tool is shown greyed out and disabled, with a way
   back to load them.
 -->
@@ -193,7 +193,7 @@
 </div>
 
 <style>
-  /* Phone first: one column; the viewer sticks to the top, Apply to the bottom. */
+  /* Phone first: one column, scrolling as a whole; Apply sticks to the bottom. */
   .screen {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -264,9 +264,6 @@
 
   .stage {
     height: 46svh;
-    position: sticky;
-    top: env(safe-area-inset-top);
-    z-index: 1;
   }
 
   .strip {
@@ -363,7 +360,6 @@
       height: auto;
       margin-left: var(--gutter);
       overflow: hidden;
-      position: static;
     }
 
     .strip {

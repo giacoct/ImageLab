@@ -256,8 +256,8 @@
     display: grid;
     gap: 0.75rem;
     padding: 0.9rem;
-    /* Clear of the sticky viewer above and the Apply bar below. */
-    scroll-margin: 50svh 0 6rem;
+    /* Clear of the Apply bar below. */
+    scroll-margin: 1rem 0 6rem;
   }
 
   .results button:not(.quiet):not(:hover) {

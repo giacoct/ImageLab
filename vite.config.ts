@@ -62,6 +62,17 @@ export default defineConfig({
           },
         },
       },
+      {
+        // The built site in Chromium, driven by Playwright from Node.
+        test: {
+          name: "e2e",
+          include: ["e2e/**/*.test.ts"],
+          environment: "node",
+          globalSetup: ["e2e/setup.ts"],
+          testTimeout: 60_000,
+          hookTimeout: 120_000,
+        },
+      },
     ],
   },
 });

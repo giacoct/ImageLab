@@ -78,7 +78,7 @@ Requires Node.js 26.
 ```bash
 npm ci
 npm run dev       # http://localhost:4200
-npm run check     # formatting, type check, all tests
+npm run check     # formatting, type check, all tests (in Chromium too)
 npm run build     # → dist/
 ```
 

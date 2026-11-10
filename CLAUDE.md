@@ -10,6 +10,7 @@ npm run check     # prettier --check, svelte-check, all tests: run after every c
 npm run build     # svelte-check + vite build → dist/
 npx vitest run --project unit      # pure tests (src/core), Node, fast
 npx vitest run --project browser   # engine tests (src/engine), headless Chromium
+npx vitest run --project e2e       # the built site in Chromium, as a user would (e2e/)
 npm run format    # prettier --write .
 ```
 
@@ -22,6 +23,8 @@ npm run format    # prettier --write .
 - `ops/`: one file per tool, each an `Op` (`op.ts`) with a settings schema and a `run`; `index.ts` lists them in display order. `models/` holds the upscaler's ONNX model (patched, see `upscale.ts`).
 - `app/`: app state (`session.svelte.ts`), routing (`#/<tool id>`), previews, file picking, downloads, the share sheet (`share.ts`) and the service worker (`service.ts`; `public/service-worker.js` keeps the build's files for offline use, listed by `vite.config.ts`, isolates the app for threads and receives shares).
 - `ui/`: Svelte components; `tools.ts` gives each tool its icon and color, `icons.ts` maps the icon names settings use (`ChoiceOption.icon`) to components.
+
+`e2e/` tests the built site end to end, served as GitHub Pages serves it (`setup.ts`).
 
 Adding a tool: a file in `src/ops/`, its entry in `ops/index.ts` and `ui/tools.ts`, a line in `README.md`.
 

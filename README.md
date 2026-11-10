@@ -15,6 +15,10 @@ Download the results, one by one or as a ZIP, share them to another app, or
 use them as the input of another tool: crop, then scale, then convert to
 WebP, then compress to 200 KB, without downloading anything in between.
 
+Where the browser allows it, the slow work (AVIF files, upscaling without a
+GPU) runs on several cores. GitHub Pages can't send the headers that allow
+it, so a service worker adds them; the very first visit reloads once for it.
+
 On a phone, ImageLab can be installed from the browser's menu ("Add to Home
 screen"). Installed, it shows up in the share sheet on Android, so photos can
 be sent to it straight from the gallery.

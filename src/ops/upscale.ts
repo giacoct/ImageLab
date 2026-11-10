@@ -79,7 +79,7 @@ function loadModel(): Promise<Model> {
 
 async function cpuModel(): Promise<Model> {
   const ort = await import("onnxruntime-web/wasm");
-  // Threads need cross-origin isolation, which GitHub Pages can't enable.
+  // Threads need cross-origin isolation (see public/service-worker.js).
   ort.env.wasm.numThreads = self.crossOriginIsolated
     ? Math.min(4, navigator.hardwareConcurrency)
     : 1;

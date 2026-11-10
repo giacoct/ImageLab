@@ -5,12 +5,20 @@ import { playwright } from "@vitest/browser-playwright";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
+const ISOLATION = {
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Embedder-Policy": "require-corp",
+};
+
 // Relative base: the same build works at https://<user>.github.io/ImageLab/
 // and at the root of any other static host.
 export default defineConfig({
   base: "./",
   plugins: [svelte(), ocrFiles()],
-  server: { port: 4200 },
+  // Cross-origin isolation, for threads; on GitHub Pages the service worker
+  // adds these headers (public/service-worker.js).
+  server: { port: 4200, headers: ISOLATION },
+  preview: { headers: ISOLATION },
   worker: { format: "es" },
   // libheif embeds its WASM in one 2 MB chunk, loaded only for HEIC files.
   build: { target: "es2023", chunkSizeWarningLimit: 2500 },

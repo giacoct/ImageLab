@@ -6,7 +6,7 @@
  *
  * In: once installed, the app is a target of the share sheet (the
  * manifest's `share_target`). The browser posts the shared images to
- * `share`; the service worker (`public/share-target.js`) keeps them in a
+ * `share`; the service worker (`public/service-worker.js`) keeps them in a
  * cache and opens `?shared`, where the app takes them.
  */
 
@@ -27,13 +27,6 @@ export function canShareFiles(
 /** Open the share sheet; it rejects with an `AbortError` when the user closes it. */
 export function shareFiles(files: File[]): Promise<void> {
   return navigator.share({ files });
-}
-
-/** Registered at the app's root, so the share target is in its scope. */
-export function receiveShares(): void {
-  navigator.serviceWorker?.register("share-target.js").catch(() => {
-    // Without it the app works the same; it just can't receive shares.
-  });
 }
 
 /** The images shared to the app, if it was opened by a share; once. */

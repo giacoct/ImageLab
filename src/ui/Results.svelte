@@ -126,13 +126,14 @@
     {#if session.results.length}
       <ul>
         {#each session.results as item (item.id)}
+          {@const name = fileName(item)}
           <li>
             <span class="thumb checker">
               <BlobImage blob={item.version.thumbnail} alt="" />
             </span>
             <span class="meta">
               <FileName
-                {...fileName(item)}
+                {...name}
                 onrename={(stem) => session.renameResult(item.id, stem)}
               />
               <span class="hint numbers parts">
@@ -142,7 +143,7 @@
             <button
               class="icon quiet"
               type="button"
-              aria-label="Download {item.version.name}"
+              aria-label="Download {name.stem}.{name.extension}"
               title="Download"
               disabled={session.saving}
               onclick={() => session.download([item])}

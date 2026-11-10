@@ -5,12 +5,13 @@
  * its address with `inject("baseUrl")`.
  */
 
-import { readFile, mkdtemp, rm } from "node:fs/promises";
-import { createServer } from "node:http";
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
-import { extname, join, normalize } from "node:path";
+import { extname, join, normalize, sep } from "node:path";
+import { promisify } from "node:util";
 
-import { build } from "vite";
 import type { TestProject } from "vitest/node";
 
 declare module "vitest" {
@@ -34,27 +35,51 @@ const TYPES: Record<string, string> = {
 };
 
 export default async function setup(project: TestProject) {
+  const root = project.config.root;
   const outDir = await mkdtemp(join(tmpdir(), "imagelab-e2e-"));
-  // A production build, as deployed (Vitest sets NODE_ENV to "test").
-  const nodeEnv = process.env.NODE_ENV;
-  process.env.NODE_ENV = "production";
+  const cleanUp = () => rm(outDir, { recursive: true, force: true });
+  let server: Server;
   try {
-    await build({
-      mode: "production",
-      logLevel: "error",
-      build: { outDir, emptyOutDir: true },
-    });
-  } finally {
-    process.env.NODE_ENV = nodeEnv;
+    await buildInto(root, outDir);
+    server = await serve(outDir);
+  } catch (error) {
+    await cleanUp();
+    throw error;
   }
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("No port");
+  project.provide("baseUrl", `http://localhost:${address.port}/`);
 
+  return async () => {
+    await new Promise((resolve) => server.close(resolve));
+    await cleanUp();
+  };
+}
+
+/**
+ * A production build, as deployed: in a process of its own, run from the
+ * project's root, so it finds its config and the files it copies wherever
+ * Vitest was started, and its NODE_ENV (Vitest sets "test") stays its own.
+ */
+async function buildInto(root: string, outDir: string): Promise<void> {
+  const vite = join(root, "node_modules", "vite", "bin", "vite.js");
+  await promisify(execFile)(
+    process.execPath,
+    [vite, "build", "--outDir", outDir, "--emptyOutDir", "--logLevel", "error"],
+    { cwd: root, env: { ...process.env, NODE_ENV: "production" } },
+  );
+}
+
+/** Static files, as GitHub Pages serves them: paths decoded, folders to their index.html. */
+async function serve(outDir: string): Promise<Server> {
   const server = createServer(async (request, response) => {
-    const path = new URL(request.url ?? "/", "http://localhost").pathname;
-    const file = normalize(
-      join(outDir, path.endsWith("/") ? `${path}index.html` : path),
-    );
     try {
-      if (!file.startsWith(outDir)) throw new Error("outside");
+      const url = new URL(request.url ?? "/", "http://localhost");
+      const path = decodeURIComponent(url.pathname);
+      const file = normalize(
+        join(outDir, path.endsWith("/") ? `${path}index.html` : path),
+      );
+      if (!file.startsWith(outDir + sep)) throw new Error("Outside the site");
       const body = await readFile(file);
       response.writeHead(200, {
         "content-type": TYPES[extname(file)] ?? "application/octet-stream",
@@ -64,13 +89,9 @@ export default async function setup(project: TestProject) {
       response.writeHead(404).end();
     }
   });
-  await new Promise<void>((resolve) => server.listen(0, "localhost", resolve));
-  const address = server.address();
-  if (!address || typeof address === "string") throw new Error("No port");
-  project.provide("baseUrl", `http://localhost:${address.port}/`);
-
-  return async () => {
-    await new Promise((resolve) => server.close(resolve));
-    await rm(outDir, { recursive: true, force: true });
-  };
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "localhost", resolve);
+  });
+  return server;
 }

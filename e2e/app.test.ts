@@ -96,12 +96,14 @@ async function load(
   await page.getByRole("button", { name: "Choose images" }).click();
   await (await chooser).setFiles(chosen);
   const count = files.length === 1 ? "1 image" : `${files.length} images`;
-  await page.getByRole("heading", { name: count }).waitFor();
+  await page.getByRole("heading", { name: count, exact: true }).waitFor();
 }
 
+/** A tool's link reads its title, then its description. */
 async function openTool(page: Page, title: string) {
-  await page.getByRole("link", { name: new RegExp(title) }).click();
-  await page.getByRole("heading", { name: title }).waitFor();
+  const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  await page.getByRole("link", { name: new RegExp(`^${escaped}`) }).click();
+  await page.getByRole("heading", { name: title, exact: true }).waitFor();
 }
 
 describe("ImageLab", () => {
@@ -114,15 +116,21 @@ describe("ImageLab", () => {
 
     await openTool(page, "Scale");
     await page.getByRole("button", { name: "Apply to 2 images" }).click();
-    await page.getByRole("heading", { name: "2 results" }).waitFor();
+    await page
+      .getByRole("heading", { name: "2 results", exact: true })
+      .waitFor();
     await expect(page.getByText("150 × 100").count()).resolves.toBe(1);
     await page.getByRole("button", { name: "Use as input" }).click();
 
-    await page.getByRole("heading", { name: "2 images" }).waitFor();
+    await page
+      .getByRole("heading", { name: "2 images", exact: true })
+      .waitFor();
     await openTool(page, "Convert format");
     await page.getByRole("button", { name: "WebP", exact: true }).click();
     await page.getByRole("button", { name: "Apply to 2 images" }).click();
-    await page.getByRole("heading", { name: "2 results" }).waitFor();
+    await page
+      .getByRole("heading", { name: "2 results", exact: true })
+      .waitFor();
 
     const name = page.getByRole("textbox", { name: /^File name/ }).first();
     await name.fill("summer");
@@ -144,26 +152,43 @@ describe("ImageLab", () => {
     const page = await openApp();
     await load(page, [{ name: "wide.png", width: 3000, height: 2000 }]);
     await openTool(page, "Add margin");
-    // Once the preview is in (the zoom buttons show), to 100% and past it.
+    const detail = page.locator("canvas.detail");
+    const shown = async () =>
+      !(await detail.getAttribute("class"))?.includes("hidden");
+    /** The detail's pixels per pixel of the result, from the zoom level. */
+    const density = async () => {
+      const perPoint = await detail.evaluate(
+        (canvas: HTMLCanvasElement) =>
+          canvas.width / canvas.getBoundingClientRect().width,
+      );
+      const level = await page.locator(".level").textContent();
+      return (perPoint * parseFloat(level!)) / 100;
+    };
+
+    // Fitted, the preview is sharp enough: no detail.
     const zoomIn = page.getByRole("button", { name: "Zoom in" });
-    await zoomIn.waitFor();
+    await zoomIn.waitFor(); // the preview is in
+    expect(await shown()).toBe(false);
+
+    // At 100%, past the preview's pixels: one is rendered at full size.
     const box = (await page.getByRole("application").boundingBox())!;
     await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2);
     await page.locator(".level", { hasText: "100%" }).waitFor();
+    await until(shown);
+    expect(await density()).toBeCloseTo(1, 1);
+
+    // Further in, and moved to a part it didn't cover: rendered again there.
     await zoomIn.click();
-    const detail = page.locator("canvas.detail");
+    await zoomIn.click();
+    const before = await detail.evaluate((canvas) => canvas.style.left);
+    await page.keyboard.press("0"); // back to fitting, then into a corner
+    await page.mouse.dblclick(box.x + 40, box.y + 40);
     await until(
-      async () => !(await detail.getAttribute("class"))?.includes("hidden"),
+      async () =>
+        (await shown()) &&
+        (await detail.evaluate((canvas) => canvas.style.left)) !== before,
     );
-    // Its pixels are the full-size result's: as many per screen point as
-    // the zoom level says.
-    const perPoint = await detail.evaluate(
-      (canvas: HTMLCanvasElement) =>
-        canvas.width / canvas.getBoundingClientRect().width,
-    );
-    const zoom =
-      parseFloat((await page.locator(".level").textContent())!) / 100;
-    expect(perPoint * zoom).toBeCloseTo(1, 1);
+    expect(await density()).toBeCloseTo(1, 1);
     await page.context().close();
   });
 
@@ -182,25 +207,22 @@ describe("ImageLab", () => {
       .getByRole("button", { name: "Apply to 1 image" })
       .boundingBox())!;
     const viewport = page.viewportSize()!;
+    expect(apply.y).toBeGreaterThanOrEqual(viewport.height / 2);
     expect(apply.y + apply.height).toBeLessThanOrEqual(viewport.height);
     await page.context().close();
   });
 
   it("works offline once opened", async () => {
+    // Controlled by the service worker (openApp waits for it), which only
+    // takes over once it has kept the app's files.
     const page = await openApp();
-    await until(() =>
-      page.evaluate(
-        async () =>
-          (await (await caches.open("imagelab-files")).keys()).length > 20,
-      ),
-    );
     await page.context().setOffline(true);
     await page.reload();
     await page.getByRole("heading", { name: "Drop images here" }).waitFor();
     await load(page, [{ name: "photo.png", width: 200, height: 100 }]);
     await openTool(page, "Scale");
     await page.getByRole("button", { name: "Apply to 1 image" }).click();
-    await page.getByRole("heading", { name: "Result" }).waitFor();
+    await page.getByRole("heading", { name: "Result", exact: true }).waitFor();
     await page.context().close();
   });
 });

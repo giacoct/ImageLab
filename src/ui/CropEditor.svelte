@@ -8,6 +8,7 @@
 <script lang="ts">
   import { drawBitmap, Previewer } from "../app/previewer";
   import { session } from "../app/session.svelte";
+  import { engine } from "../engine/client";
   import {
     applyDrag,
     aspectFactor,
@@ -26,6 +27,7 @@
   let size = $state<{ width: number; height: number } | null>(null);
 
   const previewer = new Previewer(
+    engine.preview.bind(engine),
     ({ bitmap }) => {
       size = { width: bitmap.width, height: bitmap.height };
       if (canvas) drawBitmap(canvas, bitmap);

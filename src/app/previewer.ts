@@ -4,23 +4,19 @@
  * dragging a slider never queues up stale renders.
  */
 
-import { engine } from "../engine/client";
-import type { Requests } from "../engine/protocol";
-
-type Kind = "preview" | "detail";
-
-export class Previewer<K extends Kind = "preview"> {
+export class Previewer<Args, Image extends { bitmap: ImageBitmap }> {
   private inFlight = false;
-  private next: Requests[K]["args"] | null = null;
+  private next: Args | null = null;
 
+  /** `render` is the engine's call: `engine.preview` or `engine.detail`. */
   constructor(
-    private readonly onImage: (image: Requests[K]["result"]) => void,
+    private readonly render: (args: Args) => Promise<Image>,
+    private readonly onImage: (image: Image) => void,
     private readonly onError: (message: string) => void,
     private readonly onBusy: (busy: boolean) => void = () => {},
-    private readonly kind: K = "preview" as K,
   ) {}
 
-  request(args: Requests[K]["args"]): void {
+  request(args: Args): void {
     this.next = args;
     if (!this.inFlight) void this.pump();
   }
@@ -37,11 +33,7 @@ export class Previewer<K extends Kind = "preview"> {
       const args = this.next;
       this.next = null;
       try {
-        const image = (await (this.kind === "detail"
-          ? engine.detail(args as Requests["detail"]["args"])
-          : engine.preview(
-              args as Requests["preview"]["args"],
-            ))) as Requests[K]["result"];
+        const image = await this.render(args);
         if (this.next)
           image.bitmap.close(); // already outdated
         else this.onImage(image);

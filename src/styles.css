@@ -281,15 +281,6 @@ input[type="color"] {
   background-size: 12px 12px;
 }
 
-.visually-hidden {
-  clip-path: inset(50%);
-  height: 1px;
-  overflow: hidden;
-  position: absolute;
-  white-space: nowrap;
-  width: 1px;
-}
-
 /* --- the generated settings form (ParamForm) ------------------------------ */
 
 .fields {

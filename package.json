@@ -11,8 +11,13 @@
     "build": "svelte-check --fail-on-warnings && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "check": "prettier --check . --plugin=prettier-plugin-svelte && svelte-check --fail-on-warnings && vitest run",
-    "format": "prettier --write . --plugin=prettier-plugin-svelte"
+    "check": "prettier --check . && svelte-check --fail-on-warnings && vitest run",
+    "format": "prettier --write ."
+  },
+  "prettier": {
+    "plugins": [
+      "prettier-plugin-svelte"
+    ]
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "7.3.1",

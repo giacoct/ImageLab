@@ -103,8 +103,9 @@ const WRITABLE = new Set<string>([
 
 /** Read a file: its pixels, size, format and metadata. */
 export async function open(blob: Blob, name: string): Promise<Version> {
-  workIn(await colorSpaceOf(new Uint8Array(await blob.arrayBuffer())));
-  const { image, type, bytes } = await decode(blob);
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  workIn(await colorSpaceOf(bytes));
+  const { image, type } = await decode(blob, bytes);
   // Labelled with the sniffed type: the declared one may be missing or wrong.
   const file = new Blob([blob], { type });
   return {

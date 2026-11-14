@@ -213,17 +213,14 @@
 <style>
   /* The slider's value, quiet until it's edited. */
   .exact {
+    appearance: textfield;
     background: transparent;
     border-color: transparent;
+    margin-right: 0.1rem;
     min-height: 0;
     padding: 0 0.15rem;
-    margin-right: 0.1rem;
     text-align: right;
     width: 4rem;
-  }
-
-  .exact {
-    appearance: textfield;
   }
 
   .exact::-webkit-inner-spin-button {

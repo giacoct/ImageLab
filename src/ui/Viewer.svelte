@@ -75,6 +75,7 @@
   } | null>(null);
 
   const previewer = new Previewer(
+    engine.preview.bind(engine),
     ({ bitmap, scale, colorSpace }) => {
       real = { width: bitmap.width / scale, height: bitmap.height / scale };
       density = scale;
@@ -95,6 +96,7 @@
   /** What the next detail is asked for, to label the one that comes back. */
   let asking = { signature: "", density: 0 };
   const detailer = new Previewer(
+    engine.detail.bind(engine),
     ({ bitmap, region, density }) => {
       if (!detailCanvas) return bitmap.close();
       drawBitmap(detailCanvas, bitmap);
@@ -108,7 +110,6 @@
     // The preview stays as it is: only less sharp.
     () => {},
     (value) => (detailBusy = value),
-    "detail",
   );
 
   const PADDING = 24;

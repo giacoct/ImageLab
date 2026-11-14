@@ -10,15 +10,8 @@
 
   import { chooseImages } from "../app/picker";
   import { session } from "../app/session.svelte";
-  import { formatBytes } from "../core/files";
+  import { imageDetails } from "../core/files";
   import BlobImage from "./BlobImage.svelte";
-
-  const FORMAT_NAMES: Record<string, string> = {
-    "image/jpeg": "JPEG",
-    "image/png": "PNG",
-    "image/webp": "WebP",
-    "image/avif": "AVIF",
-  };
 
   let { editable = false }: { editable?: boolean } = $props();
 
@@ -65,12 +58,9 @@
   <div class="caption">
     {#if version}
       <span class="name">{version.name}</span>
-      <span class="hint numbers">{version.width} × {version.height}</span>
-      <span class="hint">{FORMAT_NAMES[version.encoding.format]}</span>
-      <!-- The size once known: the file is written, or is the input in that format. -->
-      {#if version.file?.blob.type === version.encoding.format}
-        <span class="hint numbers">{formatBytes(version.file.blob.size)}</span>
-      {/if}
+      {#each imageDetails(version) as part (part)}
+        <span class="hint numbers">{part}</span>
+      {/each}
     {/if}
     {#if session.reading}
       <span class="hint">

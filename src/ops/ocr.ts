@@ -8,12 +8,7 @@ import type { Worker as Tesseract } from "tesseract.js";
 
 import { p } from "../core/params";
 import { adjustPixels } from "../core/pixels";
-import {
-  context2d,
-  createCanvas,
-  editPixels,
-  type Img,
-} from "../engine/canvas";
+import { editPixels, flattened, type Img } from "../engine/canvas";
 import { finalOp } from "./op";
 
 let current: { langs: string; worker: Promise<Tesseract> } | undefined;
@@ -51,12 +46,7 @@ function tesseract(
  * make it grayscale, and invert it when it's mostly dark (light text).
  */
 function prepare(image: Img): OffscreenCanvas {
-  const canvas = createCanvas(image.width, image.height);
-  const ctx = context2d(canvas);
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(image, 0, 0);
-  return editPixels(canvas, ({ data }) => {
+  return editPixels(flattened(image), ({ data }) => {
     const gray = {
       brightness: 100,
       contrast: 100,

@@ -3,11 +3,7 @@
   revoked when it changes or the component goes away, so callers never leak.
 -->
 <script lang="ts">
-  let {
-    blob,
-    alt,
-    class: className = "",
-  }: { blob: Blob; alt: string; class?: string } = $props();
+  let { blob, alt }: { blob: Blob; alt: string } = $props();
 
   let url = $state<string>();
 
@@ -19,5 +15,5 @@
 </script>
 
 {#if url}
-  <img src={url} {alt} class={className} decoding="async" />
+  <img src={url} {alt} decoding="async" />
 {/if}

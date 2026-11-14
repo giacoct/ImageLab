@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   cleanFileName,
   formatBytes,
+  imageDetails,
   isImageFile,
   outputName,
   savedFormat,
@@ -26,6 +27,27 @@ describe("files", () => {
     expect(formatBytes(512)).toBe("512 B");
     expect(formatBytes(1536)).toBe("1.5 KB");
     expect(formatBytes(3 * 1024 * 1024)).toBe("3.00 MB");
+  });
+
+  it("describes an image, with its file's size once known", () => {
+    const image = {
+      width: 640,
+      height: 480,
+      encoding: { format: "image/webp" as const },
+    };
+    const webp = new Blob([new Uint8Array(2048)], { type: "image/webp" });
+    const heic = new Blob([new Uint8Array(2048)], { type: "image/heic" });
+    expect(imageDetails({ ...image, file: { blob: webp } })).toEqual([
+      "640 × 480",
+      "WebP",
+      "2.0 KB",
+    ]);
+    // A file in another format (an input HEIC) isn't the one saved.
+    expect(imageDetails({ ...image, file: { blob: heic } })).toEqual([
+      "640 × 480",
+      "WebP",
+    ]);
+    expect(imageDetails({ ...image, file: null })).toHaveLength(2);
   });
 
   it("names outputs", () => {

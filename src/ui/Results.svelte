@@ -15,18 +15,17 @@
   import { goHome } from "../app/router";
   import { session } from "../app/session.svelte";
   import { canShareFiles, shareFiles } from "../app/share";
-  import { extensionFor, formatBytes, outputName, stemOf } from "../core/files";
+  import {
+    extensionFor,
+    formatBytes,
+    imageDetails,
+    outputName,
+    stemOf,
+  } from "../core/files";
   import type { Output } from "../engine/pipeline";
   import type { Item } from "../app/session.svelte";
   import BlobImage from "./BlobImage.svelte";
   import FileName from "./FileName.svelte";
-
-  const FORMAT_NAMES: Record<string, string> = {
-    "image/jpeg": "JPEG",
-    "image/png": "PNG",
-    "image/webp": "WebP",
-    "image/avif": "AVIF",
-  };
 
   const count = $derived(session.results.length + session.outputs.length);
   const canShare = canShareFiles();
@@ -90,18 +89,6 @@
     const stem = stemOf(name);
     return { stem, extension: name.slice(stem.length + 1) };
   }
-
-  /** Size and format of a result, and its file size once known. */
-  function details(item: Item): string[] {
-    const { version } = item;
-    const parts = [
-      `${version.width} × ${version.height}`,
-      FORMAT_NAMES[version.encoding.format],
-    ];
-    if (version.file?.blob.type === version.encoding.format)
-      parts.push(formatBytes(version.file.blob.size));
-    return parts;
-  }
 </script>
 
 {#if count}
@@ -137,7 +124,9 @@
                 onrename={(stem) => session.renameResult(item.id, stem)}
               />
               <span class="hint numbers parts">
-                {#each details(item) as part (part)}<span>{part}</span>{/each}
+                {#each imageDetails(item.version) as part (part)}<span
+                    >{part}</span
+                  >{/each}
               </span>
             </span>
             <button

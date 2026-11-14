@@ -20,13 +20,16 @@ export interface Decoded {
 /** The largest image the app accepts, in pixels (≈ a 100 MP photo). */
 const MAX_PIXELS = 100_000_000;
 
-export async function decode(blob: Blob): Promise<Decoded> {
-  const bytes = new Uint8Array(await blob.arrayBuffer());
+/** Decode `blob`, whose `bytes` may be given when they were read already. */
+export async function decode(blob: Blob, bytes?: Uint8Array): Promise<Decoded> {
+  bytes ??= new Uint8Array(await blob.arrayBuffer());
   const type = sniffType(bytes, blob.type);
 
   let bitmap: ImageBitmap | null = null;
   try {
-    bitmap = await createImageBitmap(new Blob([bytes], { type }), {
+    // Labelled with the sniffed type (a Blob of a Blob shares its bytes).
+    const file = blob.type === type ? blob : new Blob([blob], { type });
+    bitmap = await createImageBitmap(file, {
       imageOrientation: "from-image",
     });
   } catch {

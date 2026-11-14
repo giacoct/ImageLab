@@ -4,15 +4,33 @@
 export type ImageFormat =
   "image/jpeg" | "image/png" | "image/webp" | "image/avif";
 
-const EXTENSIONS: Record<ImageFormat, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/avif": "avif",
+const FORMATS: Record<ImageFormat, { extension: string; name: string }> = {
+  "image/jpeg": { extension: "jpg", name: "JPEG" },
+  "image/png": { extension: "png", name: "PNG" },
+  "image/webp": { extension: "webp", name: "WebP" },
+  "image/avif": { extension: "avif", name: "AVIF" },
 };
 
 export function extensionFor(format: ImageFormat): string {
-  return EXTENSIONS[format];
+  return FORMATS[format].extension;
+}
+
+/**
+ * What lists show of an image: its size, the format it saves to and, once
+ * known, its file's size (the file is written, or is the input in that
+ * format).
+ */
+export function imageDetails(image: {
+  width: number;
+  height: number;
+  encoding: { format: ImageFormat };
+  file: { blob: Blob } | null;
+}): string[] {
+  const { format } = image.encoding;
+  const details = [`${image.width} × ${image.height}`, FORMATS[format].name];
+  if (image.file?.blob.type === format)
+    details.push(formatBytes(image.file.blob.size));
+  return details;
 }
 
 /** Human-readable file size, e.g. `1.5 KB`. */

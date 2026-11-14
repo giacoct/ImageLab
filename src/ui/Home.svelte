@@ -14,6 +14,12 @@
   import { TOOL_LOOKS } from "./tools";
 
   const count = $derived(session.items.length);
+
+  /** A band of each tool's color, in the order they're listed. */
+  const spectrum = `linear-gradient(90deg, ${OPS.map((op, i) => {
+    const [from, to] = [i, i + 1].map((n) => (n * 100) / OPS.length);
+    return `${TOOL_LOOKS[op.id].color} ${from}% ${to}%`;
+  }).join(", ")})`;
 </script>
 
 <div class="home">
@@ -23,7 +29,11 @@
   </header>
 
   <main>
-    <section class="intake" aria-labelledby="intake-title">
+    <section
+      class="intake"
+      aria-labelledby="intake-title"
+      style:--spectrum={spectrum}
+    >
       {#if count === 0}
         <h1 id="intake-title" class="display">Drop images here</h1>
         <p class="lead muted">
